@@ -51,11 +51,7 @@ class Record(tuple, Mapping):
     __keys = None
 
     def __new__(cls, iterable=()):
-        keys = []
-        values = []
-        for key, value in iter_items(iterable):
-            keys.append(key)
-            values.append(value)
+        keys, values = zip(*iter_items(iterable))
         inst = tuple.__new__(cls, values)
         inst.__keys = tuple(keys)
         return inst

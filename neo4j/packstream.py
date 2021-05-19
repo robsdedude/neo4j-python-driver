@@ -363,20 +363,11 @@ class Unpacker:
     def __init__(self, unpackable):
         self.unpackable = unpackable
 
-    def reset(self):
-        self.unpackable.reset()
-
-    def read(self, n=1):
-        return self.unpackable.read(n)
-
-    def read_u8(self):
-        return self.unpackable.read_u8()
-
     def unpack(self):
         return self._unpack()
 
     def _unpack(self):
-        marker = self.read_u8()
+        marker = self.unpackable.read_u8()
 
         if marker == -1:
             raise ValueError("Nothing to unpack")
@@ -393,7 +384,7 @@ class Unpacker:
 
         # Float
         elif marker == 0xC1:
-            value, = struct_unpack(">d", self.read(8))
+            value, = struct_unpack(">d", self.unpackable.read(8))
             return value
 
         # Boolean
@@ -404,39 +395,39 @@ class Unpacker:
 
         # Integer
         elif marker == 0xC8:
-            return struct_unpack(">b", self.read(1))[0]
+            return struct_unpack(">b", self.unpackable.read(1))[0]
         elif marker == 0xC9:
-            return struct_unpack(">h", self.read(2))[0]
+            return struct_unpack(">h", self.unpackable.read(2))[0]
         elif marker == 0xCA:
-            return struct_unpack(">i", self.read(4))[0]
+            return struct_unpack(">i", self.unpackable.read(4))[0]
         elif marker == 0xCB:
-            return struct_unpack(">q", self.read(8))[0]
+            return struct_unpack(">q", self.unpackable.read(8))[0]
 
         # Bytes
         elif marker == 0xCC:
-            size, = struct_unpack(">B", self.read(1))
-            return self.read(size).tobytes()
+            size, = struct_unpack(">B", self.unpackable.read(1))
+            return self.unpackable.read(size).tobytes()
         elif marker == 0xCD:
-            size, = struct_unpack(">H", self.read(2))
-            return self.read(size).tobytes()
+            size, = struct_unpack(">H", self.unpackable.read(2))
+            return self.unpackable.read(size).tobytes()
         elif marker == 0xCE:
-            size, = struct_unpack(">I", self.read(4))
-            return self.read(size).tobytes()
+            size, = struct_unpack(">I", self.unpackable.read(4))
+            return self.unpackable.read(size).tobytes()
 
         else:
             marker_high = marker & 0xF0
             # String
             if marker_high == 0x80:  # TINY_STRING
-                return decode(self.read(marker & 0x0F), "utf-8")
+                return decode(self.unpackable.read(marker & 0x0F), "utf-8")
             elif marker == 0xD0:  # STRING_8:
-                size, = struct_unpack(">B", self.read(1))
-                return decode(self.read(size), "utf-8")
+                size, = struct_unpack(">B", self.unpackable.read(1))
+                return decode(self.unpackable.read(size), "utf-8")
             elif marker == 0xD1:  # STRING_16:
-                size, = struct_unpack(">H", self.read(2))
-                return decode(self.read(size), "utf-8")
+                size, = struct_unpack(">H", self.unpackable.read(2))
+                return decode(self.unpackable.read(size), "utf-8")
             elif marker == 0xD2:  # STRING_32:
-                size, = struct_unpack(">I", self.read(4))
-                return decode(self.read(size), "utf-8")
+                size, = struct_unpack(">I", self.unpackable.read(4))
+                return decode(self.unpackable.read(size), "utf-8")
 
             # List
             elif 0x90 <= marker <= 0x9F or 0xD4 <= marker <= 0xD7:
@@ -472,15 +463,15 @@ class Unpacker:
                 for _ in range(size):
                     yield self._unpack()
         elif marker == 0xD4:  # LIST_8:
-            size, = struct_unpack(">B", self.read(1))
+            size, = struct_unpack(">B", self.unpackable.read(1))
             for _ in range(size):
                 yield self._unpack()
         elif marker == 0xD5:  # LIST_16:
-            size, = struct_unpack(">H", self.read(2))
+            size, = struct_unpack(">H", self.unpackable.read(2))
             for _ in range(size):
                 yield self._unpack()
         elif marker == 0xD6:  # LIST_32:
-            size, = struct_unpack(">I", self.read(4))
+            size, = struct_unpack(">I", self.unpackable.read(4))
             for _ in range(size):
                 yield self._unpack()
         elif marker == 0xD7:  # LIST_STREAM:
@@ -493,7 +484,7 @@ class Unpacker:
             return
 
     def unpack_map(self):
-        marker = self.read_u8()
+        marker = self.unpackable.read_u8()
         return self._unpack_map(marker)
 
     def _unpack_map(self, marker):
@@ -506,21 +497,21 @@ class Unpacker:
                 value[key] = self._unpack()
             return value
         elif marker == 0xD8:  # MAP_8:
-            size, = struct_unpack(">B", self.read(1))
+            size, = struct_unpack(">B", self.unpackable.read(1))
             value = {}
             for _ in range(size):
                 key = self._unpack()
                 value[key] = self._unpack()
             return value
         elif marker == 0xD9:  # MAP_16:
-            size, = struct_unpack(">H", self.read(2))
+            size, = struct_unpack(">H", self.unpackable.read(2))
             value = {}
             for _ in range(size):
                 key = self._unpack()
                 value[key] = self._unpack()
             return value
         elif marker == 0xDA:  # MAP_32:
-            size, = struct_unpack(">I", self.read(4))
+            size, = struct_unpack(">I", self.unpackable.read(4))
             value = {}
             for _ in range(size):
                 key = self._unpack()
@@ -538,7 +529,7 @@ class Unpacker:
             return None
 
     def unpack_structure_header(self):
-        marker = self.read_u8()
+        marker = self.unpackable.read_u8()
         if marker == -1:
             return None, None
         else:
@@ -547,7 +538,7 @@ class Unpacker:
     def _unpack_structure_header(self, marker):
         marker_high = marker & 0xF0
         if marker_high == 0xB0:  # TINY_STRUCT
-            signature = self.read(1).tobytes()
+            signature = self.unpackable.read(1).tobytes()
             return marker & 0x0F, signature
         else:
             raise ValueError("Expected structure, found marker %02X" % marker)
