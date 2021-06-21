@@ -206,10 +206,12 @@ class Session(Workspace):
         :returns: a new :class:`neo4j.Result` object
         :rtype: :class:`neo4j.Result`
         """
+        if isinstance(query, str):
+            query = Query(query)
+        elif not isinstance(query, Query):
+            raise TypeError("query must be a string or a Query instance")
         if not query:
             raise ValueError("Cannot run an empty query")
-        if not isinstance(query, (str, Query)):
-            raise TypeError("query must be a string or a Query instance")
 
         if self._transaction:
             raise ClientError("Explicit Transaction must be handled explicitly")
@@ -452,6 +454,9 @@ class Query:
 
     def __str__(self):
         return str(self.text)
+
+    def __bool__(self):
+        return bool(self.text)
 
 
 def unit_of_work(metadata=None, timeout=None):

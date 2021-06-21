@@ -23,8 +23,10 @@ import pytest
 from unittest.mock import NonCallableMagicMock
 
 from neo4j import (
+    Query,
+    ServerInfo,
     Session,
-    SessionConfig, ServerInfo,
+    SessionConfig,
 )
 
 
@@ -81,8 +83,14 @@ class FakeConnection(NonCallableMagicMock):
 
 @pytest.fixture()
 def pool(mocker):
+    def acquire_side_effect(*args, **kwargs):
+        con = FakeConnection(*args, **kwargs)
+        pool.__mock_connections.append(con)
+        return con
+
     pool = mocker.MagicMock()
-    pool.acquire = mocker.MagicMock(side_effect=iter(FakeConnection, 0))
+    pool.__mock_connections = []
+    pool.acquire = mocker.MagicMock(side_effect=acquire_side_effect)
     return pool
 
 
@@ -193,3 +201,33 @@ def test_closes_connection_after_tx_commit(pool, test_run_args):
             tx.commit()
             assert session._connection is None
         assert session._connection is None
+
+
+@pytest.mark.parametrize("query_str", ("", "foobar"))
+@pytest.mark.parametrize("as_string", (True, False))
+def test_session_run_query_argument(pool, query_str, as_string, mocker):
+    orig_init = Query.__init__
+    init_calls = []
+
+    def init(self, *args, **kwargs):
+        init_calls.append((args, kwargs))
+        orig_init(self, *args, **kwargs)
+
+    mocker.patch.object(Query, "__init__", init)
+    query = query_str if as_string else Query(query_str)
+    init_calls = []
+    with Session(pool, SessionConfig()) as session:
+        assert not init_calls
+        session.run(query)
+
+        if as_string:
+            # assert str gets wrapped as Query
+            assert len(init_calls) == 1
+            assert init_calls[0][0] == (query_str,)
+        else:
+            assert not init_calls
+
+        assert len(pool.__mock_connections) == 1
+        con = pool.__mock_connections[0]
+        assert con.method_calls
+        assert con.method_calls[0][:2] == ("run", (query_str,))
