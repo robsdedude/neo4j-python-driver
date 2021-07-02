@@ -141,6 +141,7 @@ class Bolt(abc.ABC):
         self.unresolved_address = unresolved_address
         self.socket = sock
         self.server_info = ServerInfo(Address(sock.getpeername()), self.PROTOCOL_VERSION)
+        self.configuration_hints = {}
         self.outbox = Outbox()
         self.inbox = Inbox(self.socket, on_error=self._set_defunct_read)
         self.packer = Packer(self.outbox)

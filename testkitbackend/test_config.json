@@ -32,6 +32,7 @@
     "Optimization:ImplicitDefaultArguments": true,
     "Optimization:MinimalResets": "Driver resets some clean connections when put back into pool",
     "Optimization:ConnectionReuse": true,
-    "Optimization:PullPipelining": true
+    "Optimization:PullPipelining": true,
+    "ConfHint:connection.recv_timeout_seconds": true
   }
 }
