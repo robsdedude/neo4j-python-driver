@@ -1434,8 +1434,8 @@ Context Manager
     :members:
     :special-members: __enter__, __exit__
 
-Full Controll
-=============
+Full Control
+============
 
 .. code-block:: python
 
