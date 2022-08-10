@@ -19,13 +19,13 @@
 from logging import getLogger
 from ssl import SSLSocket
 
-from ..._async_compat.util import Util
-from ..._exceptions import BoltProtocolError
-from ...api import (
+from ..._api import (
     READ_ACCESS,
     SYSTEM_DATABASE,
     Version,
 )
+from ..._async_compat.util import Util
+from ..._exceptions import BoltProtocolError
 from ...exceptions import (
     ConfigurationError,
     DatabaseUnavailable,

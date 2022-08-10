@@ -16,11 +16,13 @@
 # limitations under the License.
 
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import selectors
-import socket
 import struct
+import typing as t
 from socket import (
     AF_INET,
     AF_INET6,
@@ -34,8 +36,12 @@ from ssl import (
     CertificateError,
     HAS_SNI,
     SSLError,
+    SSLSocket,
 )
-from time import perf_counter
+
+
+if t.TYPE_CHECKING:
+    import typing_extensions as te
 
 from ... import addressing
 from ..._deadline import Deadline
@@ -49,6 +55,7 @@ from ...exceptions import (
     DriverError,
     ServiceUnavailable,
 )
+from ..shims import wait_for
 from ._util import (
     AsyncNetworkUtil,
     NetworkUtil,
@@ -68,7 +75,7 @@ def _sanitize_deadline(deadline):
 
 
 class AsyncBoltSocket:
-    Bolt = None
+    Bolt: te.Final[t.Type] = None  # type: ignore[assignment]
 
     def __init__(self, reader, protocol, writer):
         self._reader = reader  # type: asyncio.StreamReader
@@ -94,9 +101,16 @@ class AsyncBoltSocket:
         if timeout is not None and timeout <= 0:
             # give the io-operation time for one loop cycle to do its thing
             io_fut = asyncio.create_task(io_fut)
-            await asyncio.sleep(0)
+            try:
+                await asyncio.sleep(0)
+            except asyncio.CancelledError:
+                # This is emulating non-blocking. There is no cancelling this!
+                # Still, we don't want to silently swallow the cancellation.
+                # Hence, we flag this task as cancelled again, so that the next
+                # `await` will raise the CancelledError.
+                asyncio.current_task().cancel()
         try:
-            return await asyncio.wait_for(io_fut, timeout)
+            return await wait_for(io_fut, timeout)
         except asyncio.TimeoutError as e:
             raise to_raise("timed out") from e
 
@@ -150,6 +164,9 @@ class AsyncBoltSocket:
         self._writer.close()
         await self._writer.wait_closed()
 
+    def kill(self):
+        self._writer.close()
+
     @classmethod
     async def _connect_secure(cls, resolved_address, timeout, keep_alive, ssl):
         """
@@ -176,7 +193,7 @@ class AsyncBoltSocket:
                     "Unsupported address {!r}".format(resolved_address))
             s.setblocking(False)  # asyncio + blocking = no-no!
             log.debug("[#0000]  C: <OPEN> %s", resolved_address)
-            await asyncio.wait_for(
+            await wait_for(
                 loop.sock_connect(s, resolved_address),
                 timeout
             )
@@ -225,6 +242,12 @@ class AsyncBoltSocket:
             raise ServiceUnavailable(
                 "Timed out trying to establish connection to {!r}".format(
                     resolved_address))
+        except asyncio.CancelledError:
+            log.debug("[#0000]  C: <CANCELLED> %s", resolved_address)
+            log.debug("[#0000]  C: <CLOSE> %s", resolved_address)
+            if s:
+                await cls.close_socket(s)
+            raise
         except (SSLError, CertificateError) as error:
             local_port = s.getsockname()[1]
             raise BoltSecurityError(
@@ -347,12 +370,22 @@ class AsyncBoltSocket:
                 err_str = error.__class__.__name__
                 if str(error):
                     err_str += ": " + str(error)
-                log.debug("[#%04X]  C: <CONNECTION FAILED> %s", local_port,
-                          err_str)
+                log.debug("[#%04X]  C: <CONNECTION FAILED> %s %s", local_port,
+                          resolved_address, err_str)
                 if s:
                     await cls.close_socket(s)
                 errors.append(error)
                 failed_addresses.append(resolved_address)
+            except asyncio.CancelledError:
+                try:
+                    local_port = s.getsockname()[1]
+                except (OSError, AttributeError, TypeError):
+                    local_port = 0
+                log.debug("[#%04X]  C: <CANCELED> %s", local_port,
+                          resolved_address)
+                if s:
+                    await cls.close_socket(s)
+                raise
             except Exception:
                 if s:
                     await cls.close_socket(s)
@@ -372,7 +405,7 @@ class AsyncBoltSocket:
 
 
 class BoltSocket:
-    Bolt = None
+    Bolt: te.Final[t.Type] = None  # type: ignore[assignment]
 
     def __init__(self, socket_: socket):
         self._socket = socket_
@@ -383,12 +416,12 @@ class BoltSocket:
         return self.__socket
 
     @_socket.setter
-    def _socket(self, socket_: socket):
+    def _socket(self, socket_: t.Union[socket, SSLSocket]):
         self.__socket = socket_
         self.getsockname = socket_.getsockname
         self.getpeername = socket_.getpeername
         if hasattr(socket, "getpeercert"):
-            self.getpeercert = socket_.getpeercert
+            self.getpeercert = socket_.getpeercert  # type: ignore
         elif hasattr(self, "getpeercert"):
             del self.getpeercert
         self.gettimeout = socket_.gettimeout
@@ -428,6 +461,9 @@ class BoltSocket:
 
     def close(self):
         self._socket.shutdown(SHUT_RDWR)
+        self._socket.close()
+
+    def kill(self):
         self._socket.close()
 
     @classmethod

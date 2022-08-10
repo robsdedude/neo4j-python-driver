@@ -19,15 +19,15 @@
 from abc import ABCMeta
 from collections.abc import Mapping
 
-from ._meta import (
-    deprecation_warn,
-    get_user_agent,
-)
-from .api import (
+from ._api import (
     DEFAULT_DATABASE,
     TRUST_ALL_CERTIFICATES,
     TRUST_SYSTEM_CA_SIGNED_CERTIFICATES,
     WRITE_ACCESS,
+)
+from ._meta import (
+    deprecation_warn,
+    get_user_agent,
 )
 from .exceptions import ConfigurationError
 
@@ -295,13 +295,6 @@ class PoolConfig(Config):
     connection_timeout = 30.0  # seconds
     # The maximum amount of time to wait for a TCP connection to be established.
 
-    #: Update Routing Table Timout
-    update_routing_table_timeout = 90.0  # seconds
-    # The maximum amount of time to wait for updating the routing table.
-    # This includes everything necessary for this to happen.
-    # Including opening sockets, requesting and receiving the routing table,
-    # etc.
-
     #: Trust
     trust = DeprecatedAlternative(
         "trusted_certificates", _trust_to_trusted_certificates
@@ -334,14 +327,6 @@ class PoolConfig(Config):
     #: User Agent (Python Driver Specific)
     user_agent = get_user_agent()
     # Specify the client agent name.
-
-    #: Protocol Version (Python Driver Specific)
-    protocol_version = None  # Version(4, 0)
-    # Specify a specific Bolt Protocol Version
-
-    #: Initial Connection Pool Size (Python Driver Specific)
-    init_size = 1  # The other drivers do not seed from the start.
-    # This will seed the pool with the specified number of connections.
 
     #: Socket Keep Alive (Python and .NET Driver Specific)
     keep_alive = True
@@ -399,12 +384,6 @@ class PoolConfig(Config):
 class WorkspaceConfig(Config):
     """ WorkSpace configuration.
     """
-
-    #: Session Connection Timeout
-    session_connection_timeout = 120.0  # seconds
-    # The maximum amount of time to wait for a session to obtain a usable
-    # read/write connection. This includes everything necessary for this to
-    # happen. Including fetching routing tables, opening sockets, etc.
 
     #: Connection Acquisition Timeout
     connection_acquisition_timeout = 60.0  # seconds

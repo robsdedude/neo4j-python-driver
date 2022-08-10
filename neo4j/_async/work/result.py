@@ -16,9 +16,18 @@
 # limitations under the License.
 
 
-from collections import deque
+from __future__ import annotations
+
+import typing as t
+from collections import (
+    deque,
+    namedtuple,
+)
 from warnings import warn
-from collections import namedtuple
+
+
+if t.TYPE_CHECKING:
+    import typing_extensions as te
 
 from ..._async_compat.util import AsyncUtil
 from ..._codec.hydration import BrokenHydrationObject
@@ -37,6 +46,16 @@ from ...time import (
 )
 from ...work import ResultSummary
 from ..io import ConnectionErrorHandler
+
+
+if t.TYPE_CHECKING:
+    import pandas  # type: ignore[import]
+
+    from ...graph import Graph
+
+
+_T = t.TypeVar("_T")
+_T_ResultKey = t.Union[int, str]
 
 
 _RESULT_OUT_OF_SCOPE_ERROR = (
@@ -215,9 +234,10 @@ class AsyncResult:
         )
         self._streaming = True
 
-    async def __aiter__(self):
+    async def __aiter__(self) -> t.AsyncIterator[Record]:
         """Iterator returning Records.
-        :returns: Record, it is an immutable ordered collection of key-value pairs.
+
+        :return: Record, it is an immutable ordered collection of key-value pairs.
         :rtype: :class:`neo4j.Record`
         """
         while self._record_buffer or self._attached:
@@ -238,7 +258,7 @@ class AsyncResult:
         if self._consumed:
             raise ResultConsumedError(self, _RESULT_CONSUMED_ERROR)
 
-    async def __anext__(self):
+    async def __anext__(self) -> Record:
         return await self.__aiter__().__anext__()
 
     async def _attach(self):
@@ -283,7 +303,7 @@ class AsyncResult:
     def _obtain_summary(self):
         """Obtain the summary of this result, buffering any remaining records.
 
-        :returns: The :class:`neo4j.ResultSummary` for this result
+        :return: The :class:`neo4j.ResultSummary` for this result
         """
         if self._summary is None:
             if self._metadata:
@@ -298,10 +318,10 @@ class AsyncResult:
 
         return self._summary
 
-    def keys(self):
+    def keys(self) -> t.Tuple[str, ...]:
         """The keys for the records in this result.
 
-        :returns: tuple of key names
+        :return: tuple of key names
         :rtype: tuple
         """
         return self._keys
@@ -322,7 +342,7 @@ class AsyncResult:
         await self._exhaust()
         self._out_of_scope = True
 
-    async def consume(self):
+    async def consume(self) -> ResultSummary:
         """Consume the remainder of this result and return a :class:`neo4j.ResultSummary`.
 
         Example::
@@ -361,7 +381,7 @@ class AsyncResult:
             async with driver.session() as session:
                 values, summary = await session.read_transaction(get_two_tx)
 
-        :returns: The :class:`neo4j.ResultSummary` for this result
+        :return: The :class:`neo4j.ResultSummary` for this result
 
         :raises ResultConsumedError: if the transaction from which this result
             was obtained has been closed.
@@ -379,7 +399,17 @@ class AsyncResult:
         self._consumed = True
         return summary
 
-    async def single(self, strict=False):
+    @t.overload
+    async def single(
+        self, strict: te.Literal[False] = False
+    ) -> t.Optional[Record]:
+        ...
+
+    @t.overload
+    async def single(self, strict: te.Literal[True]) -> Record:
+        ...
+
+    async def single(self, strict: bool = False) -> t.Optional[Record]:
         """Obtain the next and only remaining record or None.
 
         Calling this method always exhausts the result.
@@ -392,9 +422,7 @@ class AsyncResult:
             instead of returning None if there is more than one record or
             warning if there are more than 1 record.
             :const:`False` by default.
-        :type strict: bool
 
-        :returns: the next :class:`neo4j.Record` or :const:`None` if none remain
         :warns: if more than one record is available
 
         :raises ResultNotSingleError:
@@ -402,6 +430,8 @@ class AsyncResult:
         :raises ResultConsumedError: if the transaction from which this result
             was obtained has been closed or the Result has been explicitly
             consumed.
+
+        :return: the next :class:`neo4j.Record` or :const:`None` if none remain
 
         .. versionchanged:: 5.0
             Added ``strict`` parameter.
@@ -434,13 +464,12 @@ class AsyncResult:
                 )
         return buffer.popleft()
 
-    async def fetch(self, n):
+    async def fetch(self, n: int) -> t.List[Record]:
         """Obtain up to n records from this result.
 
         :param n: the maximum number of records to fetch.
-        :type n: int
 
-        :returns: list of :class:`neo4j.Record`
+        :return: list of :class:`neo4j.Record`
 
         :raises ResultConsumedError: if the transaction from which this result
             was obtained has been closed or the Result has been explicitly
@@ -454,11 +483,11 @@ class AsyncResult:
             for _ in range(min(n, len(self._record_buffer)))
         ]
 
-    async def peek(self):
+    async def peek(self) -> t.Optional[Record]:
         """Obtain the next record from this result without consuming it.
         This leaves the record in the buffer for further processing.
 
-        :returns: the next :class:`neo4j.Record` or :const:`None` if none
+        :return: the next :class:`neo4j.Record` or :const:`None` if none
             remain.
 
         :raises ResultConsumedError: if the transaction from which this result
@@ -471,20 +500,20 @@ class AsyncResult:
         await self._buffer(1)
         if self._record_buffer:
             return self._record_buffer[0]
+        return None
 
-    async def graph(self):
+    async def graph(self) -> Graph:
         """Return a :class:`neo4j.graph.Graph` instance containing all the graph objects
         in the result. After calling this method, the result becomes
         detached, buffering all remaining records.
 
-        :returns: a result graph
-        :rtype: :class:`neo4j.graph.Graph`
+        **This is experimental.** (See :ref:`filter-warnings-ref`)
 
         :raises ResultConsumedError: if the transaction from which this result
             was obtained has been closed or the Result has been explicitly
             consumed.
 
-        **This is experimental.** (See :ref:`filter-warnings-ref`)
+        :return: a result graph
 
         .. versionchanged:: 5.0
             Can raise :exc:`ResultConsumedError`.
@@ -492,7 +521,9 @@ class AsyncResult:
         await self._buffer_all()
         return self._hydration_scope.get_graph()
 
-    async def value(self, key=0, default=None):
+    async def value(
+        self, key: _T_ResultKey = 0, default: object = None
+    ) -> t.List[t.Any]:
         """Helper function that return the remainder of the result as a list of values.
 
         See :class:`neo4j.Record.value`
@@ -500,45 +531,45 @@ class AsyncResult:
         :param key: field to return for each remaining record. Obtain a single value from the record by index or key.
         :param default: default value, used if the index of key is unavailable
 
-        :returns: list of individual values
-        :rtype: list
-
         :raises ResultConsumedError: if the transaction from which this result
             was obtained has been closed or the Result has been explicitly
             consumed.
+
+        :return: list of individual values
 
         .. versionchanged:: 5.0
             Can raise :exc:`ResultConsumedError`.
         """
         return [record.value(key, default) async for record in self]
 
-    async def values(self, *keys):
+    async def values(
+        self, *keys: _T_ResultKey
+    ) -> t.List[t.List[t.Any]]:
         """Helper function that return the remainder of the result as a list of values lists.
 
         See :class:`neo4j.Record.values`
 
         :param keys: fields to return for each remaining record. Optionally filtering to include only certain values by index or key.
 
-        :returns: list of values lists
-        :rtype: list
-
         :raises ResultConsumedError: if the transaction from which this result
             was obtained has been closed or the Result has been explicitly
             consumed.
+
+        :return: list of values lists
 
         .. versionchanged:: 5.0
             Can raise :exc:`ResultConsumedError`.
         """
         return [record.values(*keys) async for record in self]
 
-    async def data(self, *keys):
+    async def data(self, *keys: _T_ResultKey) -> t.List[t.Any]:
         """Helper function that return the remainder of the result as a list of dictionaries.
 
         See :class:`neo4j.Record.data`
 
         :param keys: fields to return for each remaining record. Optionally filtering to include only certain values by index or key.
 
-        :returns: list of dictionaries
+        :return: list of dictionaries
         :rtype: list
 
         :raises ResultConsumedError: if the transaction from which this result
@@ -552,7 +583,11 @@ class AsyncResult:
 
     @experimental("pandas support is experimental and might be changed or "
                   "removed in future versions")
-    async def to_df(self, expand=False, parse_dates=False):
+    async def to_df(
+        self,
+        expand: bool = False,
+        parse_dates: bool = False
+    ) -> pandas.DataFrame:
         r"""Convert (the rest of) the result to a pandas DataFrame.
 
         This method is only available if the `pandas` library is installed.
@@ -628,14 +663,11 @@ class AsyncResult:
 
             :const:`dict` keys and variable names that contain ``.``  or ``\``
             will be escaped with a backslash (``\.`` and ``\\`` respectively).
-        :type expand: bool
         :param parse_dates:
             If :const:`True`, columns that excluvively contain
             :class:`time.DateTime` objects, :class:`time.Date` objects, or
             :const:`None`, will be converted to :class:`pandas.Timestamp`.
-        :type parse_dates: bool
 
-        :rtype: :py:class:`pandas.DataFrame`
         :raises ImportError: if `pandas` library is not available.
         :raises ResultConsumedError: if the transaction from which this result
             was obtained has been closed or the Result has been explicitly
@@ -645,7 +677,7 @@ class AsyncResult:
         ``pandas`` support might be changed or removed in future versions
         without warning. (See :ref:`filter-warnings-ref`)
         """
-        import pandas as pd
+        import pandas as pd  # type: ignore[import]
 
         if not expand:
             df = pd.DataFrame(await self.values(), columns=self._keys)
@@ -692,7 +724,7 @@ class AsyncResult:
         )
         return df
 
-    def closed(self):
+    def closed(self) -> bool:
         """Return True if the result has been closed.
 
         When a result gets consumed :meth:`consume` or the transaction that
@@ -702,8 +734,7 @@ class AsyncResult:
         In such case, all methods that need to access the Result's records,
         will raise a :exc:`ResultConsumedError` when called.
 
-        :returns: whether the result is closed.
-        :rtype: bool
+        :return: whether the result is closed.
 
         .. versionadded:: 5.0
         """

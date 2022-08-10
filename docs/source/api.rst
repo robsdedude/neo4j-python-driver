@@ -511,6 +511,8 @@ To construct a :class:`neo4j.Session` use the :meth:`neo4j.Driver.session` metho
 
 
 Sessions will often be created and destroyed using a *with block context*.
+This is the recommended approach as it takes care of closing the session
+properly even when an exception is raised.
 
 .. code-block:: python
 
@@ -535,6 +537,8 @@ Session
 .. autoclass:: neo4j.Session()
 
     .. automethod:: close
+
+    .. automethod:: closed
 
     .. automethod:: run
 
@@ -643,7 +647,7 @@ context of the impersonated user. For this, the user for which the
 .. Note::
 
     The server or all servers of the cluster need to support impersonation when.
-    Otherwise, the driver will raise :py:exc:`.ConfigurationError`
+    Otherwise, the driver will raise :exc:`.ConfigurationError`
     as soon as it encounters a server that does not.
 
 
@@ -708,7 +712,7 @@ Neo4j supports three kinds of transaction:
 + :ref:`explicit-transactions-ref`
 + :ref:`managed-transactions-ref`
 
-Each has pros and cons but if in doubt, use a managed transaction with a `transaction function`.
+Each has pros and cons but if in doubt, use a managed transaction with a *transaction function*.
 
 
 .. _auto-commit-transactions-ref:
@@ -716,7 +720,7 @@ Each has pros and cons but if in doubt, use a managed transaction with a `transa
 Auto-commit Transactions
 ========================
 Auto-commit transactions are the simplest form of transaction, available via
-:py:meth:`neo4j.Session.run`. These are easy to use but support only one
+:meth:`neo4j.Session.run`. These are easy to use but support only one
 statement per transaction and are not automatically retried on failure.
 
 Auto-commit transactions are also the only way to run ``PERIODIC COMMIT``
@@ -756,7 +760,7 @@ Example:
 
 Explicit Transactions
 =====================
-Explicit transactions support multiple statements and must be created with an explicit :py:meth:`neo4j.Session.begin_transaction` call.
+Explicit transactions support multiple statements and must be created with an explicit :meth:`neo4j.Session.begin_transaction` call.
 
 This creates a new :class:`neo4j.Transaction` object that can be used to run Cypher.
 
@@ -766,16 +770,16 @@ It also gives applications the ability to directly control ``commit`` and ``roll
 
     .. automethod:: run
 
-    .. automethod:: close
-
-    .. automethod:: closed
-
     .. automethod:: commit
 
     .. automethod:: rollback
 
+    .. automethod:: close
+
+    .. automethod:: closed
+
 Closing an explicit transaction can either happen automatically at the end of a ``with`` block,
-or can be explicitly controlled through the :py:meth:`neo4j.Transaction.commit`, :py:meth:`neo4j.Transaction.rollback` or :py:meth:`neo4j.Transaction.close` methods.
+or can be explicitly controlled through the :meth:`neo4j.Transaction.commit`, :meth:`neo4j.Transaction.rollback` or :meth:`neo4j.Transaction.close` methods.
 
 Explicit transactions are most useful for applications that need to distribute Cypher execution across multiple functions for the same transaction.
 
@@ -811,8 +815,8 @@ Managed Transactions (`transaction functions`)
 ==============================================
 Transaction functions are the most powerful form of transaction, providing access mode override and retry capabilities.
 
-+ :py:meth:`neo4j.Session.write_transaction`
-+ :py:meth:`neo4j.Session.read_transaction`
++ :meth:`neo4j.Session.write_transaction`
++ :meth:`neo4j.Session.read_transaction`
 
 These allow a function object representing the transactional unit of work to be passed as a parameter.
 This function is called one or more times, within a configurable time limit, until it succeeds.
@@ -912,8 +916,8 @@ Record
 .. autoclass:: neo4j.Record()
 
     A :class:`neo4j.Record` is an immutable ordered collection of key-value
-    pairs. It is generally closer to a :py:class:`namedtuple` than to an
-    :py:class:`OrderedDict` inasmuch as iteration of the collection will
+    pairs. It is generally closer to a :class:`namedtuple` than to an
+    :class:`OrderedDict` inasmuch as iteration of the collection will
     yield values rather than keys.
 
     .. describe:: Record(iterable)
@@ -1263,43 +1267,44 @@ Server-side errors
     * :class:`neo4j.exceptions.ForbiddenOnReadOnlyDatabase`
 
 
-.. autoclass:: neo4j.exceptions.Neo4jError
+.. autoexception:: neo4j.exceptions.Neo4jError()
+    :show-inheritance:
     :members: message, code, is_retriable, is_retryable
 
-.. autoclass:: neo4j.exceptions.ClientError
+.. autoexception:: neo4j.exceptions.ClientError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.CypherSyntaxError
+.. autoexception:: neo4j.exceptions.CypherSyntaxError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.CypherTypeError
+.. autoexception:: neo4j.exceptions.CypherTypeError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.ConstraintError
+.. autoexception:: neo4j.exceptions.ConstraintError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.AuthError
+.. autoexception:: neo4j.exceptions.AuthError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.TokenExpired
+.. autoexception:: neo4j.exceptions.TokenExpired()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.Forbidden
+.. autoexception:: neo4j.exceptions.Forbidden()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.DatabaseError
+.. autoexception:: neo4j.exceptions.DatabaseError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.TransientError
+.. autoexception:: neo4j.exceptions.TransientError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.DatabaseUnavailable
+.. autoexception:: neo4j.exceptions.DatabaseUnavailable()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.NotALeader
+.. autoexception:: neo4j.exceptions.NotALeader()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.ForbiddenOnReadOnlyDatabase
+.. autoexception:: neo4j.exceptions.ForbiddenOnReadOnlyDatabase()
     :show-inheritance:
 
 
@@ -1312,6 +1317,8 @@ Client-side errors
 
 
 * :class:`neo4j.exceptions.DriverError`
+
+  * :class:`neo4j.exceptions.SessionError`
 
   * :class:`neo4j.exceptions.TransactionError`
 
@@ -1344,52 +1351,59 @@ Client-side errors
     * :class:`neo4j.exceptions.CertificateConfigurationError`
 
 
-.. autoclass:: neo4j.exceptions.DriverError
+.. autoexception:: neo4j.exceptions.DriverError()
+    :show-inheritance:
     :members: is_retryable
 
-.. autoclass:: neo4j.exceptions.TransactionError
+.. autoexception:: neo4j.exceptions.SessionError()
+    :show-inheritance:
+    :members: session
+
+.. autoexception:: neo4j.exceptions.TransactionError()
+    :show-inheritance:
+    :members: transaction
+
+.. autoexception:: neo4j.exceptions.TransactionNestingError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.TransactionNestingError
+.. autoexception:: neo4j.exceptions.ResultError()
+    :show-inheritance:
+    :members: result
+
+.. autoexception:: neo4j.exceptions.ResultConsumedError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.ResultError
+.. autoexception:: neo4j.exceptions.ResultNotSingleError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.ResultConsumedError
+.. autoexception:: neo4j.exceptions.BrokenRecordError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.ResultNotSingleError
+.. autoexception:: neo4j.exceptions.SessionExpired()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.BrokenRecordError
+.. autoexception:: neo4j.exceptions.ServiceUnavailable()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.SessionExpired
+.. autoexception:: neo4j.exceptions.RoutingServiceUnavailable()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.ServiceUnavailable
+.. autoexception:: neo4j.exceptions.WriteServiceUnavailable()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.RoutingServiceUnavailable
+.. autoexception:: neo4j.exceptions.ReadServiceUnavailable()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.WriteServiceUnavailable
+.. autoexception:: neo4j.exceptions.IncompleteCommit()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.ReadServiceUnavailable
+.. autoexception:: neo4j.exceptions.ConfigurationError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.IncompleteCommit
+.. autoexception:: neo4j.exceptions.AuthConfigurationError()
     :show-inheritance:
 
-.. autoclass:: neo4j.exceptions.ConfigurationError
-    :show-inheritance:
-
-.. autoclass:: neo4j.exceptions.AuthConfigurationError
-    :show-inheritance:
-
-.. autoclass:: neo4j.exceptions.CertificateConfigurationError
+.. autoexception:: neo4j.exceptions.CertificateConfigurationError()
     :show-inheritance:
 
 

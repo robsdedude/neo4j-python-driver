@@ -16,21 +16,27 @@
 # limitations under the License.
 
 
-from .session import (
+from .result import (
     AsyncResult,
+    QueryResult,
+)
+from .session import (
     AsyncSession,
     AsyncWorkspace,
 )
 from .transaction import (
     AsyncManagedTransaction,
     AsyncTransaction,
+    AsyncTransactionBase,
 )
 
 
 __all__ = [
     "AsyncResult",
     "AsyncSession",
-    "AsyncTransaction",
     "AsyncManagedTransaction",
+    "AsyncTransaction",
+    "AsyncTransactionBase",
     "AsyncWorkspace",
+    "QueryResult",
 ]

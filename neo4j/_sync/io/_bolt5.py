@@ -19,12 +19,12 @@
 from logging import getLogger
 from ssl import SSLSocket
 
-from ..._codec.hydration import v2 as hydration_v2
-from ..._exceptions import BoltProtocolError
-from ...api import (
+from ..._api import (
     READ_ACCESS,
     Version,
 )
+from ..._codec.hydration import v2 as hydration_v2
+from ..._exceptions import BoltProtocolError
 from ...exceptions import (
     DatabaseUnavailable,
     ForbiddenOnReadOnlyDatabase,

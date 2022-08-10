@@ -16,9 +16,11 @@
 # limitations under the License.
 
 
+from __future__ import annotations
+
 import asyncio
 
-from neo4j.api import READ_ACCESS
+from neo4j._api import READ_ACCESS
 
 from ..._conf import WorkspaceConfig
 from ..._deadline import Deadline
@@ -28,6 +30,7 @@ from ..._meta import (
 )
 from ...exceptions import (
     ServiceUnavailable,
+    SessionError,
     SessionExpired,
 )
 from ..io import AsyncNeo4jPool
@@ -66,7 +69,7 @@ class AsyncWorkspace:
         except (OSError, ServiceUnavailable, SessionExpired):
             pass
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> AsyncWorkspace:
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):
@@ -77,7 +80,7 @@ class AsyncWorkspace:
         self._config.database = database
 
     async def _connect(self, access_mode, **acquire_kwargs):
-        timeout = Deadline(self._config.session_connection_timeout)
+        acquisition_timeout = self._config.connection_acquisition_timeout
         if self._connection:
             # TODO: Investigate this
             # log.warning("FIXME: should always disconnect before connect")
@@ -99,13 +102,12 @@ class AsyncWorkspace:
                     database=self._config.database,
                     imp_user=self._config.impersonated_user,
                     bookmarks=self._bookmarks,
-                    timeout=timeout,
+                    acquisition_timeout=acquisition_timeout,
                     database_callback=self._set_cached_database
                 )
         acquire_kwargs_ = {
             "access_mode": access_mode,
-            "timeout": timeout,
-            "acquisition_timeout": self._config.connection_acquisition_timeout,
+            "timeout": acquisition_timeout,
             "database": self._config.database,
             "bookmarks": self._bookmarks,
             "liveness_check_timeout": None,
@@ -138,8 +140,19 @@ class AsyncWorkspace:
         await self._disconnect()
         return supports_auto_routing
 
-    async def close(self):
+    async def close(self) -> None:
         if self._closed:
             return
         await self._disconnect(sync=True)
         self._closed = True
+
+    def closed(self) -> bool:
+        """Indicate whether the session has been closed.
+
+        :return: :const:`True` if closed, :const:`False` otherwise.
+        """
+        return self._closed
+
+    def _check_state(self):
+        if self._closed:
+            raise SessionError(self, "Session closed")

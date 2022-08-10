@@ -52,6 +52,7 @@ class AsyncQuickConnection:
     def __init__(self, socket):
         self.socket = socket
         self.address = socket.getpeername()
+        self.local_port = self.address[1]
 
     @property
     def is_reset(self):
@@ -90,8 +91,7 @@ class AsyncFakeBoltPool(AsyncIOPool):
         self.address = address
 
     async def acquire(
-        self, access_mode, timeout, acquisition_timeout,
-        database, bookmarks, liveness_check_timeout
+        self, access_mode, timeout, database, bookmarks, liveness_check_timeout
     ):
         return await self._acquire(
             self.address, timeout, liveness_check_timeout

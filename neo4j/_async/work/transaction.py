@@ -16,6 +16,10 @@
 # limitations under the License.
 
 
+from __future__ import annotations
+
+import asyncio
+import typing as t
 from functools import wraps
 
 from ..._async_compat.util import AsyncUtil
@@ -28,11 +32,16 @@ from .result import (
 )
 
 
-__all__ = ("AsyncTransaction", "AsyncManagedTransaction")
+__all__ = (
+    "AsyncManagedTransaction",
+    "AsyncTransaction",
+    "AsyncTransactionBase",
+)
 
 
-class _AsyncTransactionBase:
-    def __init__(self, connection, fetch_size, on_closed, on_error):
+class AsyncTransactionBase:
+    def __init__(self, connection, fetch_size, on_closed, on_error,
+                 on_cancel):
         self._connection = connection
         self._error_handling_connection = ConnectionErrorHandler(
             connection, self._error_handler
@@ -44,6 +53,7 @@ class _AsyncTransactionBase:
         self._fetch_size = fetch_size
         self._on_closed = on_closed
         self._on_error = on_error
+        self._on_cancel = on_cancel
 
     async def _enter(self):
         return self
@@ -54,6 +64,9 @@ class _AsyncTransactionBase:
         success = not bool(exception_type)
         if success:
             await self._commit()
+        elif issubclass(exception_type, asyncio.CancelledError):
+            self._cancel()
+            return
         await self._close()
 
     async def _begin(
@@ -71,6 +84,9 @@ class _AsyncTransactionBase:
 
     async def _error_handler(self, exc):
         self._last_error = exc
+        if isinstance(exc, asyncio.CancelledError):
+            self._cancel()
+            return
         await AsyncUtil.callback(self._on_error, exc)
 
     async def _consume_results(self):
@@ -78,7 +94,12 @@ class _AsyncTransactionBase:
             await result._tx_end()
         self._results = []
 
-    async def run(self, query, parameters=None, **kwparameters):
+    async def run(
+        self,
+        query: str,
+        parameters: t.Dict[str, t.Any] = None,
+        **kwparameters: t.Any
+    ) -> AsyncResult:
         """ Run a Cypher query within the context of this transaction.
 
         Cypher is typically expressed as a query template plus a
@@ -98,15 +119,12 @@ class _AsyncTransactionBase:
         :class:`list` properties must be homogenous.
 
         :param query: cypher query
-        :type query: str
         :param parameters: dictionary of parameters
-        :type parameters: dict
         :param kwparameters: additional keyword parameters
 
-        :returns: a new :class:`neo4j.AsyncResult` object
-        :rtype: :class:`neo4j.AsyncResult`
-
         :raise TransactionError: if the transaction is already closed
+
+        :return: a new :class:`neo4j.AsyncResult` object
         """
         if isinstance(query, Query):
             raise ValueError("Query object is only supported for session.run")
@@ -134,7 +152,12 @@ class _AsyncTransactionBase:
 
         return result
 
-    async def query(self, query, parameters=None, **kwparameters):
+    async def query(
+        self,
+        query: str,
+        parameters: t.Dict[str, t.Any] = None,
+        **kwargs: t.Any
+    ) -> QueryResult:
         """ Run a Cypher query within the context of this transaction.
 
         Cypher is typically expressed as a query template plus a
@@ -154,17 +177,14 @@ class _AsyncTransactionBase:
         :class:`list` properties must be homogenous.
 
         :param query: cypher query
-        :type query: str
         :param parameters: dictionary of parameters
-        :type parameters: dict
-        :param kwparameters: additional keyword parameters
-
-        :returns: the result of the query
-        :rtype: :class:`neo4j.QueryResult`
+        :param kwargs: additional query parameters
 
         :raise TransactionError: if the transaction is already closed
+
+        :return: the result of the query
         """
-        result = await self.run(query, parameters, **kwparameters)
+        result = await self.run(query, parameters, **kwargs)
         records = await AsyncUtil.list(result)
         summary = await result.consume()
         return QueryResult(records, summary)
@@ -188,6 +208,9 @@ class _AsyncTransactionBase:
             await self._connection.send_all()
             await self._connection.fetch_all()
             self._bookmark = metadata.get("bookmark")
+        except asyncio.CancelledError:
+            self._on_cancel()
+            raise
         finally:
             self._closed_flag = True
             await AsyncUtil.callback(self._on_closed)
@@ -212,6 +235,9 @@ class _AsyncTransactionBase:
                 self._connection.rollback(on_success=metadata.update)
                 await self._connection.send_all()
                 await self._connection.fetch_all()
+        except asyncio.CancelledError:
+            self._on_cancel()
+            raise
         finally:
             self._closed_flag = True
             await AsyncUtil.callback(self._on_closed)
@@ -223,16 +249,45 @@ class _AsyncTransactionBase:
             return
         await self._rollback()
 
-    def _closed(self):
-        """Indicator to show whether the transaction has been closed.
+    if AsyncUtil.is_async_code:
+        def _cancel(self) -> None:
+            """Cancel this transaction.
 
-        :return: :const:`True` if closed, :const:`False` otherwise.
+            If the transaction is already closed, this method does nothing.
+            Else, it will close the connection without ROLLBACK or COMMIT in
+            a non-blocking manner.
+
+            The primary purpose of this function is to handle
+            :class:`asyncio.CancelledError`.
+
+            ::
+
+                tx = await session.begin_transaction()
+                try:
+                    ...  # do some work
+                except asyncio.CancelledError:
+                    tx.cancel()
+                    raise
+
+            """
+            if self._closed_flag:
+                return
+            try:
+                self._on_cancel()
+            finally:
+                self._closed_flag = True
+
+    def _closed(self):
+        """Indicate whether the transaction has been closed or cancelled.
+
+        :return:
+            :const:`True` if closed or cancelled, :const:`False` otherwise.
         :rtype: bool
         """
         return self._closed_flag
 
 
-class AsyncTransaction(_AsyncTransactionBase):
+class AsyncTransaction(AsyncTransactionBase):
     """ Container for multiple Cypher queries to be executed within a single
     context. :class:`AsyncTransaction` objects can be used as a context
     managers (:py:const:`async with` block) where the transaction is committed
@@ -243,32 +298,37 @@ class AsyncTransaction(_AsyncTransactionBase):
 
     """
 
-    @wraps(_AsyncTransactionBase._enter)
-    async def __aenter__(self):
+    @wraps(AsyncTransactionBase._enter)
+    async def __aenter__(self) -> AsyncTransaction:
         return await self._enter()
 
-    @wraps(_AsyncTransactionBase._exit)
+    @wraps(AsyncTransactionBase._exit)
     async def __aexit__(self, exception_type, exception_value, traceback):
         await self._exit(exception_type, exception_value, traceback)
 
-    @wraps(_AsyncTransactionBase._commit)
-    async def commit(self):
+    @wraps(AsyncTransactionBase._commit)
+    async def commit(self) -> None:
         return await self._commit()
 
-    @wraps(_AsyncTransactionBase._rollback)
-    async def rollback(self):
+    @wraps(AsyncTransactionBase._rollback)
+    async def rollback(self) -> None:
         return await self._rollback()
 
-    @wraps(_AsyncTransactionBase._close)
-    async def close(self):
+    @wraps(AsyncTransactionBase._close)
+    async def close(self) -> None:
         return await self._close()
 
-    @wraps(_AsyncTransactionBase._closed)
-    def closed(self):
+    @wraps(AsyncTransactionBase._closed)
+    def closed(self) -> bool:
         return self._closed()
 
+    if AsyncUtil.is_async_code:
+        @wraps(AsyncTransactionBase._cancel)
+        def cancel(self) -> None:
+            return self._cancel()
 
-class AsyncManagedTransaction(_AsyncTransactionBase):
+
+class AsyncManagedTransaction(AsyncTransactionBase):
     """Transaction object provided to transaction functions.
 
     Inside a transaction function, the driver is responsible for managing

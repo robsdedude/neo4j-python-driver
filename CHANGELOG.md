@@ -87,8 +87,9 @@
   they have been removed.
 - Deprecated Nodes' and Relationships' `id` property (`int`) in favor of
   `element_id` (`str`).  
-  This also affects `Graph` objects as `graph.nodes[...]` and
- `graph.relationships[...]` now prefers strings over integers.
+  This also affects `Graph` objects as indexing `graph.nodes[...]` and
+  `graph.relationships[...]` with integers has been deprecated in favor of
+  indexing them with strings.
 - `ServerInfo.connection_id` has been deprecated and will be removed in a
   future release. There is no replacement as this is considered internal
   information.
@@ -118,6 +119,26 @@
   be used by client code. `Record` should be imported directly from `neo4j`
   instead. `neo4j.data.DataHydrator` and `neo4j.data.DataDeydrator` have been
   removed without replacement.
+- Removed undocumented config options that had no effect:
+  `protocol_version` and `init_size`.
+- Introduced `neo4j.exceptions.SessionError` that is raised when trying to
+  execute work on a closed or otherwise terminated session.
+- Removed deprecated config options `update_routing_table_timeout` and
+  `session_connection_timeout`.  
+  Server-side keep-alives communicated through configuration hints together with
+  the config option `connection_acquisition_timeout` are sufficient to avoid the
+  driver getting stuck.
+- Several attributes of `neo4j.api` have been deprecated without replacement.
+  - `DRIVER_BOLT`
+  - `DRIVER_NEO4J`
+  - `SECURITY_TYPE_NOT_SECURE`
+  - `SECURITY_TYPE_SELF_SIGNED_CERTIFICATE`
+  - `SECURITY_TYPE_SECURE`
+  - `URI_SCHEME_BOLT_ROUTING`
+  - `AuthToken`
+  - `parse_neo4j_uri`
+  - `check_access_mode`
+  - `parse_routing_context`
 
 
 ## Version 4.4

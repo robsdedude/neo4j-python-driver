@@ -16,7 +16,12 @@
 # limitations under the License.
 
 
+from __future__ import annotations
+
+import asyncio
 import inspect
+import typing as t
+from functools import wraps
 
 from .._meta import experimental
 
@@ -49,15 +54,25 @@ class AsyncUtil:
                 return await res
             return res
 
-    experimental_async = experimental
+    experimental_async: t.ClassVar = experimental
 
-    is_async_code = True
+    @staticmethod
+    def shielded(coro_function):
+        assert asyncio.iscoroutinefunction(coro_function)
+
+        @wraps(coro_function)
+        async def shielded_function(*args, **kwargs):
+            return await asyncio.shield(coro_function(*args, **kwargs))
+
+        return shielded_function
+
+    is_async_code: t.ClassVar = True
 
 
 class Util:
-    iter = iter
-    next = next
-    list = list
+    iter: t.ClassVar = iter
+    next: t.ClassVar = next
+    list: t.ClassVar = list
 
     @staticmethod
     def callback(cb, *args, **kwargs):
@@ -70,4 +85,8 @@ class Util:
             return f
         return f_
 
-    is_async_code = False
+    @staticmethod
+    def shielded(coro_function):
+        return coro_function
+
+    is_async_code: t.ClassVar = False

@@ -32,11 +32,11 @@ from neo4j import (
     TrustCustomCAs,
     TrustSystemCAs,
 )
-from neo4j._async_compat.util import AsyncUtil
-from neo4j.api import (
+from neo4j._api import (
     READ_ACCESS,
     WRITE_ACCESS,
 )
+from neo4j._async_compat.util import AsyncUtil
 from neo4j.exceptions import ConfigurationError
 
 from ..._async_compat import mark_async_test
@@ -208,7 +208,6 @@ async def test_driver_opens_write_session_by_default(uri, mocker):
     acquire_mock.assert_called_once_with(
         access_mode=WRITE_ACCESS,
         timeout=mocker.ANY,
-        acquisition_timeout=mocker.ANY,
         database=mocker.ANY,
         bookmarks=mocker.ANY,
         liveness_check_timeout=mocker.ANY

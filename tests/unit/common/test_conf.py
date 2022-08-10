@@ -23,17 +23,17 @@ from neo4j import (
     TrustCustomCAs,
     TrustSystemCAs,
 )
+from neo4j._api import (
+    READ_ACCESS,
+    TRUST_ALL_CERTIFICATES,
+    TRUST_SYSTEM_CA_SIGNED_CERTIFICATES,
+    WRITE_ACCESS,
+)
 from neo4j._conf import (
     Config,
     PoolConfig,
     SessionConfig,
     WorkspaceConfig,
-)
-from neo4j.api import (
-    READ_ACCESS,
-    TRUST_ALL_CERTIFICATES,
-    TRUST_SYSTEM_CA_SIGNED_CERTIFICATES,
-    WRITE_ACCESS,
 )
 from neo4j.debug import watch
 from neo4j.exceptions import ConfigurationError
@@ -45,12 +45,9 @@ watch("neo4j")
 
 test_pool_config = {
     "connection_timeout": 30.0,
-    "update_routing_table_timeout": 90.0,
-    "init_size": 1,
     "keep_alive": True,
     "max_connection_lifetime": 3600,
     "max_connection_pool_size": 100,
-    "protocol_version": None,
     "resolver": None,
     "encrypted": False,
     "user_agent": "test",
@@ -59,7 +56,6 @@ test_pool_config = {
 }
 
 test_session_config = {
-    "session_connection_timeout": 120.0,
     "connection_acquisition_timeout": 60.0,
     "max_transaction_retry_time": 30.0,
     "initial_retry_delay": 1.0,

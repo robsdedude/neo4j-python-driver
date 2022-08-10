@@ -18,6 +18,26 @@
 
 from logging import getLogger as _getLogger
 
+from ._api import (
+    Auth,  # TODO: Validate naming for Auth compared to other drivers.
+)
+from ._api import (
+    AuthToken,
+    basic_auth,
+    bearer_auth,
+    Bookmark,
+    Bookmarks,
+    custom_auth,
+    DEFAULT_DATABASE,
+    kerberos_auth,
+    READ_ACCESS,
+    ServerInfo,
+    SYSTEM_DATABASE,
+    TRUST_ALL_CERTIFICATES,
+    TRUST_SYSTEM_CA_SIGNED_CERTIFICATES,
+    Version,
+    WRITE_ACCESS,
+)
 from ._async.driver import (
     AsyncBoltDriver,
     AsyncDriver,
@@ -62,26 +82,6 @@ from .addressing import (
     IPv4Address,
     IPv6Address,
 )
-from .api import (
-    Auth,  # TODO: Validate naming for Auth compared to other drivers.
-)
-from .api import (
-    AuthToken,
-    basic_auth,
-    bearer_auth,
-    Bookmark,
-    Bookmarks,
-    custom_auth,
-    DEFAULT_DATABASE,
-    kerberos_auth,
-    READ_ACCESS,
-    ServerInfo,
-    SYSTEM_DATABASE,
-    TRUST_ALL_CERTIFICATES,
-    TRUST_SYSTEM_CA_SIGNED_CERTIFICATES,
-    Version,
-    WRITE_ACCESS,
-)
 from .work import (
     Query,
     ResultSummary,
@@ -108,6 +108,7 @@ __all__ = [
     "BoltDriver",
     "Bookmark",
     "Bookmarks",
+    "Config",
     "custom_auth",
     "DEFAULT_DATABASE",
     "Driver",
@@ -117,8 +118,10 @@ __all__ = [
     "IPv4Address",
     "IPv6Address",
     "kerberos_auth",
+    "log",
     "ManagedTransaction",
     "Neo4jDriver",
+    "PoolConfig",
     "Query",
     "READ_ACCESS",
     "Record",
@@ -126,6 +129,7 @@ __all__ = [
     "ResultSummary",
     "ServerInfo",
     "Session",
+    "SessionConfig",
     "SummaryCounters",
     "Transaction",
     "TRUST_ALL_CERTIFICATES",
@@ -135,6 +139,7 @@ __all__ = [
     "TrustSystemCAs",
     "unit_of_work",
     "Version",
+    "WorkspaceConfig",
     "WRITE_ACCESS",
 ]
 
