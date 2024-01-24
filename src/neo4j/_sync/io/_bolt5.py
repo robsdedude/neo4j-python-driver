@@ -177,7 +177,7 @@ class Bolt5x0(Bolt):
                     dehydration_hooks=None, hydration_hooks=None):
         routing_context = self.routing_context or {}
         db_context = {}
-        if database is not None:
+        if database:
             db_context.update(db=database)
         if imp_user is not None:
             db_context.update(imp_user=imp_user)

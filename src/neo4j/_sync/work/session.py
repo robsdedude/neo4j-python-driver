@@ -167,6 +167,16 @@ class Session(Workspace):
             self._auto_result = None
             self._disconnect()
 
+    def _get_resolved_database(self) -> str:
+        assert not self._connection
+        # FIXME: not working with direct drivers
+        self._connect(READ_ACCESS)
+        self._disconnect()
+        assert self._cached_database
+        assert self._config.database
+
+        return self._config.database
+
     def _get_server_info(self):
         assert not self._connection
         self._connect(READ_ACCESS, liveness_check_timeout=0)

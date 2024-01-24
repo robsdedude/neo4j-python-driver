@@ -167,6 +167,16 @@ class AsyncSession(AsyncWorkspace):
             self._auto_result = None
             await self._disconnect()
 
+    async def _get_resolved_database(self) -> str:
+        assert not self._connection
+        # FIXME: not working with direct drivers
+        await self._connect(READ_ACCESS)
+        await self._disconnect()
+        assert self._cached_database
+        assert self._config.database
+
+        return self._config.database
+
     async def _get_server_info(self):
         assert not self._connection
         await self._connect(READ_ACCESS, liveness_check_timeout=0)

@@ -234,7 +234,7 @@ class Bolt3(Bolt):
         self, database=None, imp_user=None, bookmarks=None,
         dehydration_hooks=None, hydration_hooks=None
     ):
-        if database is not None:
+        if database:
             raise ConfigurationError(
                 "Database name parameter for selecting database is not "
                 "supported in Bolt Protocol {!r}. Database name {!r}. "
@@ -276,7 +276,7 @@ class Bolt3(Bolt):
             notifications_min_severity=None,
             notifications_disabled_categories=None, dehydration_hooks=None,
             hydration_hooks=None, **handlers):
-        if db is not None:
+        if db:
             raise ConfigurationError(
                 "Database name parameter for selecting database is not "
                 "supported in Bolt Protocol {!r}. Database name {!r}.".format(
@@ -338,7 +338,7 @@ class Bolt3(Bolt):
               db=None, imp_user=None, notifications_min_severity=None,
               notifications_disabled_categories=None, dehydration_hooks=None,
               hydration_hooks=None, **handlers):
-        if db is not None:
+        if db:
             raise ConfigurationError(
                 "Database name parameter for selecting database is not "
                 "supported in Bolt Protocol {!r}. Database name {!r}.".format(

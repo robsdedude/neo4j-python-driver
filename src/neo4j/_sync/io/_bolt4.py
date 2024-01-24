@@ -165,7 +165,7 @@ class Bolt4x0(Bolt):
         metadata = {}
         records = []
 
-        if database is None:  # default database
+        if not database:  # default database
             self.run(
                 "CALL dbms.routing.getRoutingTable($context)",
                 {"context": self.routing_context},
@@ -444,6 +444,9 @@ class Bolt4x3(Bolt4x2):
                 )
             )
 
+        if not database:  # default database
+            database = None
+
         routing_context = self.routing_context or {}
         log.debug("[#%04X]  C: ROUTE %r %r %r", self.local_port,
                   routing_context, bookmarks, database)
@@ -515,7 +518,7 @@ class Bolt4x4(Bolt4x3):
     ):
         routing_context = self.routing_context or {}
         db_context = {}
-        if database is not None:
+        if database:
             db_context.update(db=database)
         if imp_user is not None:
             db_context.update(imp_user=imp_user)

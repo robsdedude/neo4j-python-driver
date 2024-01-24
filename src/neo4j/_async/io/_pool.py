@@ -630,8 +630,8 @@ class AsyncNeo4jPool(AsyncIOPool):
         cx = await self._acquire(address, auth, deadline, None)
         try:
             routing_table = await cx.route(
-                database=database or self.workspace_config.database,
-                imp_user=imp_user or self.workspace_config.impersonated_user,
+                database=database,
+                imp_user=imp_user,
                 bookmarks=bookmarks
             )
         finally:

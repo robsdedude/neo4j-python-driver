@@ -255,14 +255,15 @@ class AsyncGraphDatabase:
             _normalize_notifications_config(config)
             liveness_check_timeout = config.get("liveness_check_timeout")
             if (
-                    liveness_check_timeout is not None
-                    and liveness_check_timeout < 0
+                liveness_check_timeout is not None
+                and liveness_check_timeout < 0
             ):
                 raise ConfigurationError(
                     'The config setting "liveness_check_timeout" must be '
                     "greater than or equal to 0 but was "
                     f"{liveness_check_timeout}."
                 )
+            _normalize_database_config(config)
 
             assert driver_type in (DRIVER_BOLT, DRIVER_NEO4J)
             if driver_type == DRIVER_BOLT:
@@ -572,7 +573,22 @@ class AsyncDriver:
     @classmethod
     def _prepare_session_config(cls, config_kwargs):
         _normalize_notifications_config(config_kwargs)
+        _normalize_database_config(config_kwargs)
         return config_kwargs
+
+    async def resolve_home_db(
+        self,
+        auth: _TAuth = None,
+        impersonated_user: t.Optional[str] = None,
+    ) -> str:
+        self._check_state()
+        session_config = self._read_session_config({
+            "auth": auth,
+            "impersonated_user": impersonated_user
+        })
+        session_config.database = None
+        async with self._session(session_config) as session:
+            return await session._get_resolved_database()
 
     async def close(self) -> None:
         """ Shut down, closing any open connections in the pool.
@@ -1298,3 +1314,8 @@ def _normalize_notifications_config(config_kwargs):
             config_kwargs["notifications_min_severity"], "value",
             config_kwargs["notifications_min_severity"]
         )
+
+
+def _normalize_database_config(config_kwargs):
+    if config_kwargs.get("database") == "":
+        del config_kwargs["database"]
