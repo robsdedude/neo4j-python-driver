@@ -76,7 +76,7 @@ class OrderedSet(MutableSet):
 class RoutingTable:
 
     @classmethod
-    def parse_routing_info(cls, *, database, servers, ttl):
+    def parse_routing_info(cls, *, database, servers, ttl, e_tag):
         """ Parse the records returned from the procedure call and
         return a new RoutingTable instance.
         """
@@ -98,9 +98,11 @@ class RoutingTable:
         except (KeyError, TypeError) as exc:
             raise ValueError("Cannot parse routing info") from exc
         else:
-            return cls(database=database, routers=routers, readers=readers, writers=writers, ttl=ttl)
+            return cls(database=database, routers=routers, readers=readers,
+                       writers=writers, ttl=ttl, e_tag=e_tag)
 
-    def __init__(self, *, database, routers=(), readers=(), writers=(), ttl=0):
+    def __init__(self, *, database, routers=(), readers=(), writers=(), ttl=0,
+                 e_tag=None):
         self.initial_routers = OrderedSet(routers)
         self.routers = OrderedSet(routers)
         self.readers = OrderedSet(readers)
@@ -109,6 +111,7 @@ class RoutingTable:
         self.last_updated_time = monotonic()
         self.ttl = ttl
         self.database = database
+        self.e_tag = e_tag
 
     def __repr__(self):
         return "RoutingTable(database=%r routers=%r, readers=%r, writers=%r, last_updated_time=%r, ttl=%r)" % (
@@ -163,7 +166,28 @@ class RoutingTable:
         self.initialized_without_writers = not self.writers
         self.last_updated_time = monotonic()
         self.ttl = new_routing_table.ttl
+        self.e_tag = new_routing_table.e_tag
         log.debug("[#0000]  _: <ROUTING> updated table=%r", self)
+
+    def remove(self, address):
+        if address not in self.servers():
+            return
+        self.routers.discard(address)
+        self.readers.discard(address)
+        self.writers.discard(address)
+        # we're not having an up-to date routing table, it seems
+        self.e_tag = None
+
+    def remove_writer(self, address):
+        if address not in self.writers:
+            return
+        self.writers.discard(address)
+        # we're not having an up-to date routing table, it seems
+        self.e_tag = None
+
+    def touch(self):
+        log.debug("[#0000]  _: <ROUTING> touched table=%r", self)
+        self.last_updated_time = monotonic()
 
     def servers(self):
         return set(self.routers) | set(self.writers) | set(self.readers)

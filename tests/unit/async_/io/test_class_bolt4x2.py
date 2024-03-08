@@ -64,7 +64,7 @@ async def test_db_extra_in_begin(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x2.UNPACKER_CLS)
     connection = AsyncBolt4x2(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.begin(db="something")
+    await connection.begin(db="something")
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x11"
@@ -77,7 +77,7 @@ async def test_db_extra_in_run(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x2.UNPACKER_CLS)
     connection = AsyncBolt4x2(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.run("", {}, db="something")
+    await connection.run("", {}, db="something")
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x10"
@@ -92,7 +92,7 @@ async def test_n_extra_in_discard(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x2.UNPACKER_CLS)
     connection = AsyncBolt4x2(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.discard(n=666)
+    await connection.discard(n=666)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x2F"
@@ -112,7 +112,7 @@ async def test_qid_extra_in_discard(fake_socket, test_input, expected):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x2.UNPACKER_CLS)
     connection = AsyncBolt4x2(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.discard(qid=test_input)
+    await connection.discard(qid=test_input)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x2F"
@@ -132,7 +132,7 @@ async def test_n_and_qid_extras_in_discard(fake_socket, test_input, expected):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x2.UNPACKER_CLS)
     connection = AsyncBolt4x2(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.discard(n=666, qid=test_input)
+    await connection.discard(n=666, qid=test_input)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x2F"
@@ -152,7 +152,7 @@ async def test_n_extra_in_pull(fake_socket, test_input, expected):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x2.UNPACKER_CLS)
     connection = AsyncBolt4x2(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.pull(n=test_input)
+    await connection.pull(n=test_input)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x3F"
@@ -172,7 +172,7 @@ async def test_qid_extra_in_pull(fake_socket, test_input, expected):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x2.UNPACKER_CLS)
     connection = AsyncBolt4x2(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.pull(qid=test_input)
+    await connection.pull(qid=test_input)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x3F"
@@ -185,7 +185,7 @@ async def test_n_and_qid_extras_in_pull(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x2.UNPACKER_CLS)
     connection = AsyncBolt4x2(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.pull(n=666, qid=777)
+    await connection.pull(n=666, qid=777)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x3F"
@@ -226,7 +226,7 @@ async def test_telemetry_message(
     )
     if serv_enabled:
         connection.configuration_hints["telemetry.enabled"] = True
-    connection.telemetry(api)
+    await connection.telemetry(api)
     await connection.send_all()
 
     with pytest.raises(OSError):
@@ -520,14 +520,14 @@ async def test_tracks_last_database(fake_socket_pair, actions):
     for action, finish, db in actions:
         await sockets.server.send_message(b"\x70", {})
         if action == "run":
-            connection.run("RETURN 1", db=db)
+            await connection.run("RETURN 1", db=db)
         elif action == "begin":
-            connection.begin(db=db)
+            await connection.begin(db=db)
         elif action == "begin_run":
-            connection.begin(db=db)
+            await connection.begin(db=db)
             assert connection.last_database == db
             await sockets.server.send_message(b"\x70", {})
-            connection.run("RETURN 1")
+            await connection.run("RETURN 1")
         else:
             raise ValueError(action)
 
@@ -541,14 +541,14 @@ async def test_tracks_last_database(fake_socket_pair, actions):
             await connection.reset()
         elif finish == "commit":
             if action == "run":
-                connection.pull()
+                await connection.pull()
             else:
-                connection.commit()
+                await connection.commit()
         elif finish == "rollback":
             if action == "run":
-                connection.pull()
+                await connection.pull()
             else:
-                connection.rollback()
+                await connection.rollback()
         else:
             raise ValueError(finish)
 

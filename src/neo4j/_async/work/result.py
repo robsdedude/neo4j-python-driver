@@ -160,7 +160,7 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
             self._attached = False
             await AsyncUtil.callback(self._on_closed)
 
-        self._connection.run(
+        await self._connection.run(
             query_text,
             parameters=parameters,
             mode=access_mode,
@@ -176,11 +176,11 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
             on_success=on_attached,
             on_failure=on_failed_attach,
         )
-        self._pull()
+        await self._pull()
         await self._connection.send_all()
         await self._attach()
 
-    def _pull(self):
+    async def _pull(self):
         def on_records(records):
             if not self._discarding:
                 records = (
@@ -211,7 +211,7 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
             self._bookmark = summary_metadata.get("bookmark")
             self._database = summary_metadata.get("db", self._database)
 
-        self._connection.pull(
+        await self._connection.pull(
             n=self._fetch_size,
             qid=self._qid,
             hydration_hooks=self._hydration_scope.hydration_hooks,
@@ -222,7 +222,7 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
         )
         self._streaming = True
 
-    def _discard(self):
+    async def _discard(self):
         async def on_summary():
             self._attached = False
             await AsyncUtil.callback(self._on_closed)
@@ -244,7 +244,7 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
             self._database = summary_metadata.get("db", self._database)
 
         # This was the last page received, discard the rest
-        self._connection.discard(
+        await self._connection.discard(
             n=-1,
             qid=self._qid,
             on_success=on_success,
@@ -269,10 +269,10 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
             elif self._streaming:
                 await self._connection.fetch_message()
             elif self._discarding:
-                self._discard()
+                await self._discard()
                 await self._connection.send_all()
             elif self._has_more:
-                self._pull()
+                await self._pull()
                 await self._connection.send_all()
 
         self._exhausted = True

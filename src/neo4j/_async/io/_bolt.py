@@ -85,7 +85,7 @@ class ClientStateManagerBase(abc.ABC):
         ...
 
 
-class AsyncBolt:
+class AsyncBolt(abc.ABC):
     """ Server connection for Bolt protocol.
 
     A :class:`.Bolt` should be constructed following a
@@ -130,6 +130,9 @@ class AsyncBolt:
     # using the default (-1) to refer to the most recent query when pulling
     # results for it.
     most_recent_qid = None
+
+    _auto_route_enabled: bool
+    _auto_route_db: t.Optional[str]
 
     def __init__(self, unresolved_address, sock, max_connection_lifetime, *,
                  auth=None, auth_manager=None, user_agent=None,
@@ -178,6 +181,8 @@ class AsyncBolt:
         self.notifications_min_severity = notifications_min_severity
         self.notifications_disabled_categories = \
             notifications_disabled_categories
+        self._auto_route_enabled = False
+        self._auto_route_db = None
 
     def __del__(self):
         if not asyncio.iscoroutinefunction(self.close):
@@ -229,6 +234,19 @@ class AsyncBolt:
     @abc.abstractmethod
     def supports_re_auth(self):
         """Whether the connection version supports re-authentication."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def supports_eager_route_updates(self):
+        """
+        Whether the connection version supports eager route updates.
+
+        The driver is allowed to send a ROUTE message in more states (e.g.,
+        while a transaction is open) if this is True. Further, the protocol
+        uses e-tags to avoid the overhead of having to send unchanged routing
+        tables.
+        """
         pass
 
     def assert_re_auth_support(self):
@@ -283,6 +301,7 @@ class AsyncBolt:
             AsyncBolt5x2,
             AsyncBolt5x3,
             AsyncBolt5x4,
+            AsyncBolt5x5,
         )
 
         handlers = {
@@ -297,6 +316,7 @@ class AsyncBolt:
             AsyncBolt5x2.PROTOCOL_VERSION: AsyncBolt5x2,
             AsyncBolt5x3.PROTOCOL_VERSION: AsyncBolt5x3,
             AsyncBolt5x4.PROTOCOL_VERSION: AsyncBolt5x4,
+            AsyncBolt5x5.PROTOCOL_VERSION: AsyncBolt5x5,
         }
 
         if protocol_version is None:
@@ -411,7 +431,10 @@ class AsyncBolt:
 
         # Carry out Bolt subclass imports locally to avoid circular dependency
         # issues.
-        if protocol_version == (5, 4):
+        if protocol_version == (5, 5):
+            from ._bolt5 import AsyncBolt5x5
+            bolt_cls = AsyncBolt5x5
+        elif protocol_version == (5, 4):
             from ._bolt5 import AsyncBolt5x4
             bolt_cls = AsyncBolt5x4
         elif protocol_version == (5, 3):
@@ -565,7 +588,7 @@ class AsyncBolt:
 
     @abc.abstractmethod
     async def route(
-        self, database=None, imp_user=None, bookmarks=None,
+        self, database=None, imp_user=None, bookmarks=None, e_tag=None,
         dehydration_hooks=None, hydration_hooks=None
     ):
         """ Fetch a routing table from the server for the given
@@ -580,6 +603,8 @@ class AsyncBolt:
             Requires Bolt 4.4+.
         :param bookmarks: iterable of bookmark values after which this
                           transaction should begin
+        :param e_tag: the e-tag of the routing table as know to the driver.
+            Requires Bolt 5.5+.
         :param dehydration_hooks:
             Hooks to dehydrate types (dict from type (class) to dehydration
             function). Dehydration functions receive the value and returns an
@@ -592,8 +617,24 @@ class AsyncBolt:
         pass
 
     @abc.abstractmethod
-    def telemetry(self, api: TelemetryAPI, dehydration_hooks=None,
-                  hydration_hooks=None, **handlers) -> None:
+    async def _auto_route(self, dehydration_hooks=None, hydration_hooks=None):
+        # TODO: can this be merged with `route()`?
+        pass
+
+    def enable_auto_route(self, database):
+        self._auto_route_enabled = True
+        assert database, "auto routing only for know database name"
+        self._auto_route_db = database
+
+    def disable_auto_route(self):
+        self._auto_route_enabled = False
+        self._auto_route_db = None
+
+    @abc.abstractmethod
+    async def telemetry(
+        self, api: TelemetryAPI, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ) -> None:
         """Send telemetry information about the API usage to the server.
 
         :param api: the API used.
@@ -609,11 +650,13 @@ class AsyncBolt:
         pass
 
     @abc.abstractmethod
-    def run(self, query, parameters=None, mode=None, bookmarks=None,
-            metadata=None, timeout=None, db=None, imp_user=None,
-            notifications_min_severity=None,
-            notifications_disabled_categories=None, dehydration_hooks=None,
-            hydration_hooks=None, **handlers):
+    async def run(
+        self, query, parameters=None, mode=None, bookmarks=None,
+        metadata=None, timeout=None, db=None, imp_user=None,
+        notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         """ Appends a RUN message to the output queue.
 
         :param query: Cypher query string
@@ -645,8 +688,10 @@ class AsyncBolt:
         pass
 
     @abc.abstractmethod
-    def discard(self, n=-1, qid=-1, dehydration_hooks=None,
-                hydration_hooks=None, **handlers):
+    async def discard(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
         """ Appends a DISCARD message to the output queue.
 
         :param n: number of records to discard, default = -1 (ALL)
@@ -664,8 +709,10 @@ class AsyncBolt:
         pass
 
     @abc.abstractmethod
-    def pull(self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
-             **handlers):
+    async def pull(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
         """ Appends a PULL message to the output queue.
 
         :param n: number of records to pull, default = -1 (ALL)
@@ -683,10 +730,12 @@ class AsyncBolt:
         pass
 
     @abc.abstractmethod
-    def begin(self, mode=None, bookmarks=None, metadata=None, timeout=None,
-              db=None, imp_user=None, notifications_min_severity=None,
-              notifications_disabled_categories=None, dehydration_hooks=None,
-              hydration_hooks=None, **handlers):
+    async def begin(
+        self, mode=None, bookmarks=None, metadata=None, timeout=None,
+        db=None, imp_user=None, notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         """ Appends a BEGIN message to the output queue.
 
         :param mode: access mode for routing - "READ" or "WRITE" (default)
@@ -717,7 +766,9 @@ class AsyncBolt:
         pass
 
     @abc.abstractmethod
-    def commit(self, dehydration_hooks=None, hydration_hooks=None, **handlers):
+    async def commit(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
         """ Appends a COMMIT message to the output queue.
 
         :param dehydration_hooks:
@@ -732,7 +783,9 @@ class AsyncBolt:
         pass
 
     @abc.abstractmethod
-    def rollback(self, dehydration_hooks=None, hydration_hooks=None, **handlers):
+    async def rollback(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
         """ Appends a ROLLBACK message to the output queue.
 
         :param dehydration_hooks:

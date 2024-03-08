@@ -73,7 +73,7 @@ async def test_extra_in_begin(fake_socket, args, kwargs, expected_fields):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x4.UNPACKER_CLS)
     connection = AsyncBolt4x4(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.begin(*args, **kwargs)
+    await connection.begin(*args, **kwargs)
     await connection.send_all()
     tag, is_fields = await socket.pop_message()
     assert tag == b"\x11"
@@ -94,7 +94,7 @@ async def test_extra_in_run(fake_socket, args, kwargs, expected_fields):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x4.UNPACKER_CLS)
     connection = AsyncBolt4x4(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.run(*args, **kwargs)
+    await connection.run(*args, **kwargs)
     await connection.send_all()
     tag, is_fields = await socket.pop_message()
     assert tag == b"\x10"
@@ -106,7 +106,7 @@ async def test_n_extra_in_discard(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x4.UNPACKER_CLS)
     connection = AsyncBolt4x4(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.discard(n=666)
+    await connection.discard(n=666)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x2F"
@@ -126,7 +126,7 @@ async def test_qid_extra_in_discard(fake_socket, test_input, expected):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x4.UNPACKER_CLS)
     connection = AsyncBolt4x4(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.discard(qid=test_input)
+    await connection.discard(qid=test_input)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x2F"
@@ -146,7 +146,7 @@ async def test_n_and_qid_extras_in_discard(fake_socket, test_input, expected):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x4.UNPACKER_CLS)
     connection = AsyncBolt4x4(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.discard(n=666, qid=test_input)
+    await connection.discard(n=666, qid=test_input)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x2F"
@@ -166,7 +166,7 @@ async def test_n_extra_in_pull(fake_socket, test_input, expected):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x4.UNPACKER_CLS)
     connection = AsyncBolt4x4(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.pull(n=test_input)
+    await connection.pull(n=test_input)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x3F"
@@ -186,7 +186,7 @@ async def test_qid_extra_in_pull(fake_socket, test_input, expected):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x4.UNPACKER_CLS)
     connection = AsyncBolt4x4(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.pull(qid=test_input)
+    await connection.pull(qid=test_input)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x3F"
@@ -199,7 +199,7 @@ async def test_n_and_qid_extras_in_pull(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt4x4.UNPACKER_CLS)
     connection = AsyncBolt4x4(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.pull(n=666, qid=777)
+    await connection.pull(n=666, qid=777)
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x3F"
@@ -240,7 +240,7 @@ async def test_telemetry_message(
     )
     if serv_enabled:
         connection.configuration_hints["telemetry.enabled"] = True
-    connection.telemetry(api)
+    await connection.telemetry(api)
     await connection.send_all()
 
     with pytest.raises(OSError):

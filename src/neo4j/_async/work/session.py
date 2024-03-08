@@ -303,7 +303,7 @@ class AsyncSession(AsyncWorkspace):
             assert self._connection is not None
         cx = self._connection
 
-        cx.telemetry(TelemetryAPI.AUTO_COMMIT)
+        await cx.telemetry(TelemetryAPI.AUTO_COMMIT)
         self._auto_result = AsyncResult(
             cx, self._config.fetch_size, self._result_closed,
             self._result_error
@@ -423,7 +423,7 @@ class AsyncSession(AsyncWorkspace):
         await self._connect(access_mode=access_mode)
         assert self._connection is not None
         if api is not None:
-            self._connection.telemetry(api, on_success=api_success_cb)
+            await self._connection.telemetry(api, on_success=api_success_cb)
         self._transaction = tx_cls(
             self._connection, self._config.fetch_size,
             self._transaction_closed_handler,

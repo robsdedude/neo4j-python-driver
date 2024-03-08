@@ -177,6 +177,8 @@ class AsyncWorkspace(AsyncNonConcurrentMethodChecker):
         acquire_kwargs_.update(acquire_kwargs)
         self._connection = await self._pool.acquire(**acquire_kwargs_)
         self._connection_access_mode = access_mode
+        if self._config.database:
+            self._connection.enable_auto_route(self._config.database)
 
     async def _disconnect(self, sync=False):
         if self._connection:

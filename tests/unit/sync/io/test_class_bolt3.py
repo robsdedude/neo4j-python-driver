@@ -60,6 +60,7 @@ def test_conn_is_not_stale(fake_socket, set_stale):
     assert connection.stale() is set_stale
 
 
+@mark_sync_test
 def test_db_extra_not_supported_in_begin(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     connection = Bolt3(address, fake_socket(address), PoolConfig.max_connection_lifetime)
@@ -67,6 +68,7 @@ def test_db_extra_not_supported_in_begin(fake_socket):
         connection.begin(db="something")
 
 
+@mark_sync_test
 def test_db_extra_not_supported_in_run(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     connection = Bolt3(address, fake_socket(address), PoolConfig.max_connection_lifetime)

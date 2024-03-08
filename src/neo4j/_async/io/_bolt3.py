@@ -225,13 +225,15 @@ class AsyncBolt3(AsyncBolt):
         """Append a LOGOFF message to the outgoing queue."""
         self.assert_re_auth_support()
 
-    def telemetry(self, api: TelemetryAPI, dehydration_hooks=None,
-                  hydration_hooks=None, **handlers) -> None:
+    async def telemetry(
+        self, api: TelemetryAPI, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ) -> None:
         # TELEMETRY not support by this protocol version, so we ignore it.
         pass
 
     async def route(
-        self, database=None, imp_user=None, bookmarks=None,
+        self, database=None, imp_user=None, bookmarks=None, e_tag=None,
         dehydration_hooks=None, hydration_hooks=None
     ):
         if database is not None:
@@ -249,6 +251,7 @@ class AsyncBolt3(AsyncBolt):
                     self.PROTOCOL_VERSION, imp_user
                 )
             )
+        assert e_tag is None, "Driver used routing e_tag with too old protocol"
 
         metadata = {}
         records = []
@@ -256,7 +259,7 @@ class AsyncBolt3(AsyncBolt):
         # Ignoring database and bookmarks because there is no multi-db support.
         # The bookmarks are only relevant for making sure a previously created
         # db exists before querying a routing table for it.
-        self.run(
+        await self.run(
             "CALL dbms.cluster.routing.getRoutingTable($context)",  # This is an internal procedure call. Only available if the Neo4j 3.5 is setup with clustering.
             {"context": self.routing_context},
             mode="r",                                               # Bolt Protocol Version(3, 0) supports mode="r"
@@ -264,18 +267,27 @@ class AsyncBolt3(AsyncBolt):
             hydration_hooks=hydration_hooks,
             on_success=metadata.update
         )
-        self.pull(dehydration_hooks=None, hydration_hooks=None,
-                  on_success=metadata.update, on_records=records.extend)
+        await self.pull(
+            dehydration_hooks=None, hydration_hooks=None,
+            on_success=metadata.update, on_records=records.extend
+        )
         await self.send_all()
         await self.fetch_all()
         routing_info = [dict(zip(metadata.get("fields", ()), values)) for values in records]
         return routing_info
 
-    def run(self, query, parameters=None, mode=None, bookmarks=None,
-            metadata=None, timeout=None, db=None, imp_user=None,
-            notifications_min_severity=None,
-            notifications_disabled_categories=None, dehydration_hooks=None,
-            hydration_hooks=None, **handlers):
+    async def _auto_route(self, dehydration_hooks=None, hydration_hooks=None):
+        raise NotImplementedError(
+            "Driver must not use eager routing with Bolt Protocol {!r}."
+        )
+
+    async def run(
+        self, query, parameters=None, mode=None, bookmarks=None,
+        metadata=None, timeout=None, db=None, imp_user=None,
+        notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         if db is not None:
             raise ConfigurationError(
                 "Database name parameter for selecting database is not "
@@ -318,26 +330,32 @@ class AsyncBolt3(AsyncBolt):
                      Response(self, "run", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def discard(self, n=-1, qid=-1, dehydration_hooks=None,
-                hydration_hooks=None, **handlers):
+    async def discard(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
         # Just ignore n and qid, it is not supported in the Bolt 3 Protocol.
         log.debug("[#%04X]  C: DISCARD_ALL", self.local_port)
         self._append(b"\x2F", (),
                      Response(self, "discard", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def pull(self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
-             **handlers):
+    async def pull(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
         # Just ignore n and qid, it is not supported in the Bolt 3 Protocol.
         log.debug("[#%04X]  C: PULL_ALL", self.local_port)
         self._append(b"\x3F", (),
                      Response(self, "pull", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def begin(self, mode=None, bookmarks=None, metadata=None, timeout=None,
-              db=None, imp_user=None, notifications_min_severity=None,
-              notifications_disabled_categories=None, dehydration_hooks=None,
-              hydration_hooks=None, **handlers):
+    async def begin(
+        self, mode=None, bookmarks=None, metadata=None, timeout=None,
+        db=None, imp_user=None, notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         if db is not None:
             raise ConfigurationError(
                 "Database name parameter for selecting database is not "
@@ -377,15 +395,18 @@ class AsyncBolt3(AsyncBolt):
                      Response(self, "begin", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def commit(self, dehydration_hooks=None, hydration_hooks=None, **handlers):
+    async def commit(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
         log.debug("[#%04X]  C: COMMIT", self.local_port)
         self._append(b"\x12", (),
                      CommitResponse(self, "commit", hydration_hooks,
                                     **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def rollback(self, dehydration_hooks=None, hydration_hooks=None,
-                 **handlers):
+    async def rollback(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
         log.debug("[#%04X]  C: ROLLBACK", self.local_port)
         self._append(b"\x13", (),
                      Response(self, "rollback", hydration_hooks, **handlers),

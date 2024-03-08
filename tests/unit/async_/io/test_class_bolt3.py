@@ -60,18 +60,20 @@ def test_conn_is_not_stale(fake_socket, set_stale):
     assert connection.stale() is set_stale
 
 
-def test_db_extra_not_supported_in_begin(fake_socket):
+@mark_async_test
+async def test_db_extra_not_supported_in_begin(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     connection = AsyncBolt3(address, fake_socket(address), AsyncPoolConfig.max_connection_lifetime)
     with pytest.raises(ConfigurationError):
-        connection.begin(db="something")
+        await connection.begin(db="something")
 
 
-def test_db_extra_not_supported_in_run(fake_socket):
+@mark_async_test
+async def test_db_extra_not_supported_in_run(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     connection = AsyncBolt3(address, fake_socket(address), AsyncPoolConfig.max_connection_lifetime)
     with pytest.raises(ConfigurationError):
-        connection.run("", db="something")
+        await connection.run("", db="something")
 
 
 @mark_async_test
@@ -79,7 +81,7 @@ async def test_simple_discard(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt3.UNPACKER_CLS)
     connection = AsyncBolt3(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.discard()
+    await connection.discard()
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x2F"
@@ -91,7 +93,7 @@ async def test_simple_pull(fake_socket):
     address = neo4j.Address(("127.0.0.1", 7687))
     socket = fake_socket(address, AsyncBolt3.UNPACKER_CLS)
     connection = AsyncBolt3(address, socket, AsyncPoolConfig.max_connection_lifetime)
-    connection.pull()
+    await connection.pull()
     await connection.send_all()
     tag, fields = await socket.pop_message()
     assert tag == b"\x3F"
@@ -113,7 +115,7 @@ async def test_telemetry_message(
     )
     if serv_enabled:
         connection.configuration_hints["telemetry.enabled"] = True
-    connection.telemetry(api)
+    await connection.telemetry(api)
     await connection.send_all()
 
     with pytest.raises(OSError):
@@ -408,16 +410,16 @@ async def test_tracks_last_database(fake_socket_pair, actions):
         await sockets.server.send_message(b"\x70", {})
         if action == "run":
             with raises_if_db(db):
-                connection.run("RETURN 1", db=db)
+                await connection.run("RETURN 1", db=db)
         elif action == "begin":
             with raises_if_db(db):
-                connection.begin(db=db)
+                await connection.begin(db=db)
         elif action == "begin_run":
             with raises_if_db(db):
-                connection.begin(db=db)
+                await connection.begin(db=db)
             assert connection.last_database is None
             await sockets.server.send_message(b"\x70", {})
-            connection.run("RETURN 1")
+            await connection.run("RETURN 1")
         else:
             raise ValueError(action)
 
@@ -431,14 +433,14 @@ async def test_tracks_last_database(fake_socket_pair, actions):
             await connection.reset()
         elif finish == "commit":
             if action == "run":
-                connection.pull()
+                await connection.pull()
             else:
-                connection.commit()
+                await connection.commit()
         elif finish == "rollback":
             if action == "run":
-                connection.pull()
+                await connection.pull()
             else:
-                connection.rollback()
+                await connection.rollback()
         else:
             raise ValueError(finish)
 

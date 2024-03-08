@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+import abc
 import typing as t
 from enum import Enum
 from logging import getLogger
@@ -72,6 +71,8 @@ class Bolt5x0(Bolt):
     supports_re_auth = False
 
     supports_notification_filtering = False
+
+    supports_eager_route_updates = False
 
     bolt_states: t.Any = BoltStates
 
@@ -168,13 +169,19 @@ class Bolt5x0(Bolt):
         """Append a LOGOFF message to the outgoing queue."""
         self.assert_re_auth_support()
 
-    def telemetry(self, api: TelemetryAPI, dehydration_hooks=None,
-                  hydration_hooks=None, **handlers) -> None:
+    def telemetry(
+        self, api: TelemetryAPI, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ) -> None:
         # TELEMETRY not support by this protocol version, so we ignore it.
         pass
 
-    def route(self, database=None, imp_user=None, bookmarks=None,
-                    dehydration_hooks=None, hydration_hooks=None):
+    def route(
+        self, database=None, imp_user=None, bookmarks=None, e_tag=None,
+        dehydration_hooks=None, hydration_hooks=None
+    ):
+        assert e_tag is None, "Driver used routing e_tag with too old protocol"
+
         routing_context = self.routing_context or {}
         db_context = {}
         if database is not None:
@@ -191,16 +198,23 @@ class Bolt5x0(Bolt):
         self._append(b"\x66", (routing_context, bookmarks, db_context),
                      response=Response(self, "route", hydration_hooks,
                                        on_success=metadata.update),
-                     dehydration_hooks=hydration_hooks)
+                     dehydration_hooks=dehydration_hooks)
         self.send_all()
         self.fetch_all()
         return [metadata.get("rt")]
 
-    def run(self, query, parameters=None, mode=None, bookmarks=None,
-            metadata=None, timeout=None, db=None, imp_user=None,
-            notifications_min_severity=None,
-            notifications_disabled_categories=None, dehydration_hooks=None,
-            hydration_hooks=None, **handlers):
+    def _auto_route(self, dehydration_hooks=None, hydration_hooks=None):
+        raise NotImplementedError(
+            "Driver must not use eager routing with Bolt Protocol {!r}."
+        )
+
+    def run(
+        self, query, parameters=None, mode=None, bookmarks=None,
+        metadata=None, timeout=None, db=None, imp_user=None,
+        notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         if (
             notifications_min_severity is not None
             or notifications_disabled_categories is not None
@@ -240,8 +254,10 @@ class Bolt5x0(Bolt):
                      Response(self, "run", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def discard(self, n=-1, qid=-1, dehydration_hooks=None,
-                hydration_hooks=None, **handlers):
+    def discard(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
         extra = {"n": n}
         if qid != -1:
             extra["qid"] = qid
@@ -250,8 +266,10 @@ class Bolt5x0(Bolt):
                      Response(self, "discard", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def pull(self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
-             **handlers):
+    def pull(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
         extra = {"n": n}
         if qid != -1:
             extra["qid"] = qid
@@ -260,10 +278,12 @@ class Bolt5x0(Bolt):
                      Response(self, "pull", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def begin(self, mode=None, bookmarks=None, metadata=None, timeout=None,
-              db=None, imp_user=None, notifications_min_severity=None,
-              notifications_disabled_categories=None, dehydration_hooks=None,
-              hydration_hooks=None, **handlers):
+    def begin(
+        self, mode=None, bookmarks=None, metadata=None, timeout=None,
+        db=None, imp_user=None, notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         if (
             notifications_min_severity is not None
             or notifications_disabled_categories is not None
@@ -295,15 +315,18 @@ class Bolt5x0(Bolt):
                      Response(self, "begin", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def commit(self, dehydration_hooks=None, hydration_hooks=None, **handlers):
+    def commit(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
         log.debug("[#%04X]  C: COMMIT", self.local_port)
         self._append(b"\x12", (),
                      CommitResponse(self, "commit", hydration_hooks,
                                     **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def rollback(self, dehydration_hooks=None, hydration_hooks=None,
-                 **handlers):
+    def rollback(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
         log.debug("[#%04X]  C: ROLLBACK", self.local_port)
         self._append(b"\x13", (),
                      Response(self, "rollback", hydration_hooks, **handlers),
@@ -574,11 +597,13 @@ class Bolt5x2(Bolt5x1):
         self.fetch_all()
         check_supported_server_product(self.server_info.agent)
 
-    def run(self, query, parameters=None, mode=None, bookmarks=None,
-            metadata=None, timeout=None, db=None, imp_user=None,
-            notifications_min_severity=None,
-            notifications_disabled_categories=None, dehydration_hooks=None,
-            hydration_hooks=None, **handlers):
+    def run(
+        self, query, parameters=None, mode=None, bookmarks=None,
+        metadata=None, timeout=None, db=None, imp_user=None,
+        notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         if not parameters:
             parameters = {}
         extra = {}
@@ -619,10 +644,12 @@ class Bolt5x2(Bolt5x1):
                      Response(self, "run", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def begin(self, mode=None, bookmarks=None, metadata=None, timeout=None,
-              db=None, imp_user=None, notifications_min_severity=None,
-              notifications_disabled_categories=None, dehydration_hooks=None,
-              hydration_hooks=None, **handlers):
+    def begin(
+        self, mode=None, bookmarks=None, metadata=None, timeout=None,
+        db=None, imp_user=None, notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         extra = {}
         if mode in (READ_ACCESS, "r"):
             # It will default to mode "w" if nothing is specified
@@ -670,8 +697,11 @@ class Bolt5x4(Bolt5x3):
 
     PROTOCOL_VERSION = Version(5, 4)
 
-    def telemetry(self, api: TelemetryAPI, dehydration_hooks=None,
-                  hydration_hooks=None, **handlers) -> None:
+    # TODO_ remove underscore
+    def _telemetry(
+        self, api: TelemetryAPI, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ) -> None:
         if (
             self.telemetry_disabled
             or not self.configuration_hints.get("telemetry.enabled", False)
@@ -683,3 +713,130 @@ class Bolt5x4(Bolt5x3):
         self._append(b"\x54", (api_raw,),
                      Response(self, "telemetry", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
+
+
+class Bolt5x5(Bolt5x4):
+
+    PROTOCOL_VERSION = Version(5, 5)
+
+    supports_eager_route_updates = True
+
+    def route(
+        self, database=None, imp_user=None, bookmarks=None, e_tag=None,
+        dehydration_hooks=None, hydration_hooks=None
+    ):
+        # bookmarks does not exist anymore; were unused anyway, so it's ignored
+
+        routing_context = self.routing_context or {}
+        db_context = {}
+        if database is not None:
+            db_context.update(db=database)
+        if imp_user is not None:
+            db_context.update(imp_user=imp_user)
+        if e_tag is not None:
+            db_context.update(e_tag=e_tag)
+        log.debug("[#%04X]  C: ROUTE %r %r", self.local_port,
+                  routing_context , db_context)
+        metadata = {}
+        self._append(b"\x66", (routing_context, db_context),
+                     response=Response(self, "route", hydration_hooks,
+                                       on_success=metadata.update),
+                     dehydration_hooks=dehydration_hooks)
+        self.send_all()
+        self.fetch_all()
+        return [metadata.get("rt")]
+
+    def _auto_route(self, dehydration_hooks=None, hydration_hooks=None):
+        if not self._auto_route_enabled:
+            return
+        direct_driver = self.pool.is_direct_pool
+        if direct_driver:
+            # no routing, kthxbye
+            return
+        e_tag = self.pool.get_routing_table_e_tag(self._auto_route_db)
+        if any(
+            response.message == "route"
+            for response in self.responses
+        ):
+            # already routing
+            return
+
+        routing_context = self.routing_context or {}
+        db_context = {"db": self._auto_route_db}
+        if e_tag is not None:
+            db_context.update(e_tag=e_tag)
+        log.debug(
+            "[#%04X]  C: ROUTE %r %r", self.local_port,
+            routing_context, db_context
+        )
+
+        def on_success(metadata):
+            rt = metadata.get("rt")
+            self.pool.auto_route_handler(self._auto_route_db, rt)
+
+        self._append(b"\x66", (routing_context, db_context),
+                     response=Response(self, "route", hydration_hooks,
+                                       on_success=on_success),
+                     dehydration_hooks=dehydration_hooks)
+
+    def run(
+        self, query, parameters=None, mode=None, bookmarks=None,
+        metadata=None, timeout=None, db=None, imp_user=None,
+        notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
+        self._auto_route()
+        super().run(
+            query, parameters, mode, bookmarks, metadata, timeout, db,
+            imp_user, notifications_min_severity,
+            notifications_disabled_categories, dehydration_hooks,
+            hydration_hooks, **handlers
+        )
+
+    def discard(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
+        self._auto_route()
+        super().discard(
+            n, qid, dehydration_hooks, hydration_hooks, **handlers
+        )
+
+    def pull(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
+        self._auto_route()
+        super().pull(
+            n, qid, dehydration_hooks, hydration_hooks, **handlers
+        )
+
+    def begin(
+        self, mode=None, bookmarks=None, metadata=None, timeout=None,
+        db=None, imp_user=None, notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
+        self._auto_route()
+        super().begin(
+            mode, bookmarks, metadata, timeout, db, imp_user,
+            notifications_min_severity, notifications_disabled_categories,
+            dehydration_hooks, hydration_hooks, **handlers
+        )
+
+    def commit(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
+        self._auto_route()
+        super().commit(
+            dehydration_hooks, hydration_hooks, **handlers
+        )
+
+    def rollback(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
+        self._auto_route()
+        super().rollback(
+            dehydration_hooks, hydration_hooks, **handlers
+        )

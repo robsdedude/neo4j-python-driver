@@ -381,6 +381,7 @@ class IOPool(abc.ABC):
         with self.lock:
             for connection in connections:
                 connection.in_use = False
+                connection.disable_auto_route()
                 log.debug(
                     "[#%04X]  _: <POOL> released %s",
                     connection.local_port, connection.connection_id
@@ -466,6 +467,14 @@ class IOPool(abc.ABC):
             if handled:
                 error._retryable = True
 
+    @abc.abstractmethod
+    def get_routing_table_e_tag(self, database):
+        pass
+
+    @abc.abstractmethod
+    def auto_route_handler(self, database, rt):
+        pass
+
     def close(self):
         """ Close all connections and empty the pool.
         This method is thread safe.
@@ -525,6 +534,16 @@ class BoltPool(IOPool):
         deadline = Deadline.from_timeout_or_deadline(timeout)
         return self._acquire(
             self.address, auth, deadline, liveness_check_timeout
+        )
+
+    def get_routing_table_e_tag(self, database):
+        raise NotImplementedError(
+            "Driver must not perform eager routing on a direct pool."
+        )
+
+    def auto_route_handler(self, database, rt):
+        raise NotImplementedError(
+            "Driver must not perform eager routing on a direct pool."
         )
 
 
@@ -674,8 +693,9 @@ class Neo4jPool(IOPool):
             servers = new_routing_info[0]["servers"]
             ttl = new_routing_info[0]["ttl"]
             database = new_routing_info[0].get("db", database)
+            e_tag = new_routing_info[0].get("e_tag")
             new_routing_table = RoutingTable.parse_routing_info(
-                database=database, servers=servers, ttl=ttl
+                database=database, servers=servers, ttl=ttl, e_tag=e_tag
             )
 
         # Parse routing info and count the number of each type of server
@@ -935,6 +955,38 @@ class Neo4jPool(IOPool):
             else:
                 return connection
 
+    def get_routing_table_e_tag(self, database):
+        with self.refresh_lock:
+            routing_table = self.routing_tables.get(database)
+            if not routing_table:
+                return None
+            return routing_table.e_tag
+
+    def auto_route_handler(self, database, routing_info):
+        with self.refresh_lock:
+            if routing_info:
+                # TODO: refactor the parsing into a comon method
+                servers = routing_info["servers"]
+                ttl = routing_info["ttl"]
+                database = routing_info["db"]
+                # e_tag = routing_info["e_tag"]
+                e_tag = None
+                new_routing_table = RoutingTable.parse_routing_info(
+                    database=database, servers=servers, ttl=ttl, e_tag=e_tag
+                )
+                new_database = new_routing_table.database
+                old_routing_table = self.get_or_create_routing_table(
+                    new_database
+                )
+                old_routing_table.update(new_routing_table)
+            else:
+                routing_table = self.routing_tables.get(database)
+                if not routing_table:
+                    log.debug("[#0000]  _: <POOL> auto_route arrived for "
+                              "missing routing table %s", database)
+                    return
+                routing_table.touch()
+
     def deactivate(self, address):
         """ Deactivate an address from the connection pool,
         if present, remove from the routing table and also closing
@@ -945,9 +997,7 @@ class Neo4jPool(IOPool):
         # will not fail if the address has already been removed.
         with self.refresh_lock:
             for database in self.routing_tables.keys():
-                self.routing_tables[database].routers.discard(address)
-                self.routing_tables[database].readers.discard(address)
-                self.routing_tables[database].writers.discard(address)
+                self.routing_tables[database].remove(address)
         log.debug("[#0000]  _: <POOL> table=%r", self.routing_tables)
         super(Neo4jPool, self).deactivate(address)
 
@@ -959,5 +1009,5 @@ class Neo4jPool(IOPool):
         with self.refresh_lock:
             table = self.routing_tables.get(database)
             if table is not None:
-                self.routing_tables[database].writers.discard(address)
+                self.routing_tables[database].remove_writer(address)
         log.debug("[#0000]  _: <POOL> table=%r", self.routing_tables)

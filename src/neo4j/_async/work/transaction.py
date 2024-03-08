@@ -78,7 +78,7 @@ class AsyncTransactionBase(AsyncNonConcurrentMethodChecker):
         pipelined=False,
     ):
         self._database = database
-        self._connection.begin(
+        await self._connection.begin(
             bookmarks=bookmarks, metadata=metadata, timeout=timeout,
             mode=access_mode, db=database, imp_user=imp_user,
             notifications_min_severity=notifications_min_severity,
@@ -181,7 +181,7 @@ class AsyncTransactionBase(AsyncNonConcurrentMethodChecker):
         try:
             # DISCARD pending records then do a commit.
             await self._consume_results()
-            self._connection.commit(on_success=metadata.update)
+            await self._connection.commit(on_success=metadata.update)
             await self._connection.send_all()
             await self._connection.fetch_all()
             self._bookmark = metadata.get("bookmark")
@@ -207,7 +207,7 @@ class AsyncTransactionBase(AsyncNonConcurrentMethodChecker):
                     or self._connection.is_reset):
                 # DISCARD pending records then do a rollback.
                 await self._consume_results()
-                self._connection.rollback(on_success=metadata.update)
+                await self._connection.rollback(on_success=metadata.update)
                 await self._connection.send_all()
                 await self._connection.fetch_all()
         except asyncio.CancelledError:

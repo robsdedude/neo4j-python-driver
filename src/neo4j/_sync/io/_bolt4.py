@@ -146,13 +146,15 @@ class Bolt4x0(Bolt):
         """Append a LOGOFF message to the outgoing queue."""
         self.assert_re_auth_support()
 
-    def telemetry(self, api: TelemetryAPI, dehydration_hooks=None,
-                  hydration_hooks=None, **handlers) -> None:
+    def telemetry(
+        self, api: TelemetryAPI, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ) -> None:
         # TELEMETRY not support by this protocol version, so we ignore it.
         pass
 
     def route(
-        self, database=None, imp_user=None, bookmarks=None,
+        self, database=None, imp_user=None, bookmarks=None, e_tag=None,
         dehydration_hooks=None, hydration_hooks=None
     ):
         if imp_user is not None:
@@ -162,6 +164,8 @@ class Bolt4x0(Bolt):
                     self.PROTOCOL_VERSION, imp_user
                 )
             )
+        assert e_tag is None, "Driver used routing e_tag with too old protocol"
+
         metadata = {}
         records = []
 
@@ -194,11 +198,18 @@ class Bolt4x0(Bolt):
         routing_info = [dict(zip(metadata.get("fields", ()), values)) for values in records]
         return routing_info
 
-    def run(self, query, parameters=None, mode=None, bookmarks=None,
-            metadata=None, timeout=None, db=None, imp_user=None,
-            notifications_min_severity=None,
-            notifications_disabled_categories=None, dehydration_hooks=None,
-            hydration_hooks=None, **handlers):
+    def _auto_route(self, dehydration_hooks=None, hydration_hooks=None):
+        raise NotImplementedError(
+            "Driver must not use eager routing with Bolt Protocol {!r}."
+        )
+
+    def run(
+        self, query, parameters=None, mode=None, bookmarks=None,
+        metadata=None, timeout=None, db=None, imp_user=None,
+        notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         if imp_user is not None:
             raise ConfigurationError(
                 "Impersonation is not supported in Bolt Protocol {!r}. "
@@ -238,8 +249,10 @@ class Bolt4x0(Bolt):
                      Response(self, "run", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def discard(self, n=-1, qid=-1, dehydration_hooks=None,
-                hydration_hooks=None, **handlers):
+    def discard(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
         extra = {"n": n}
         if qid != -1:
             extra["qid"] = qid
@@ -248,8 +261,10 @@ class Bolt4x0(Bolt):
                      Response(self, "discard", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def pull(self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
-             **handlers):
+    def pull(
+        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+        **handlers
+    ):
         extra = {"n": n}
         if qid != -1:
             extra["qid"] = qid
@@ -258,10 +273,12 @@ class Bolt4x0(Bolt):
                      Response(self, "pull", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def begin(self, mode=None, bookmarks=None, metadata=None, timeout=None,
-              db=None, imp_user=None, notifications_min_severity=None,
-              notifications_disabled_categories=None, dehydration_hooks=None,
-              hydration_hooks=None, **handlers):
+    def begin(
+        self, mode=None, bookmarks=None, metadata=None, timeout=None,
+        db=None, imp_user=None, notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         if imp_user is not None:
             raise ConfigurationError(
                 "Impersonation is not supported in Bolt Protocol {!r}. "
@@ -297,15 +314,18 @@ class Bolt4x0(Bolt):
                      Response(self, "begin", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def commit(self, dehydration_hooks=None, hydration_hooks=None, **handlers):
+    def commit(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
         log.debug("[#%04X]  C: COMMIT", self.local_port)
         self._append(b"\x12", (),
                      CommitResponse(self, "commit", hydration_hooks,
                                     **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def rollback(self, dehydration_hooks=None, hydration_hooks=None,
-                 **handlers):
+    def rollback(
+        self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    ):
         log.debug("[#%04X]  C: ROLLBACK", self.local_port)
         self._append(b"\x13", (),
                      Response(self, "rollback", hydration_hooks, **handlers),
@@ -433,7 +453,7 @@ class Bolt4x3(Bolt4x2):
         return headers
 
     def route(
-        self, database=None, imp_user=None, bookmarks=None,
+        self, database=None, imp_user=None, bookmarks=None, e_tag=None,
         dehydration_hooks=None, hydration_hooks=None
     ):
         if imp_user is not None:
@@ -443,6 +463,7 @@ class Bolt4x3(Bolt4x2):
                     self.PROTOCOL_VERSION, imp_user
                 )
             )
+        assert e_tag is None, "Driver used routing e_tag with too old protocol"
 
         routing_context = self.routing_context or {}
         log.debug("[#%04X]  C: ROUTE %r %r %r", self.local_port,
@@ -510,9 +531,11 @@ class Bolt4x4(Bolt4x3):
     PROTOCOL_VERSION = Version(4, 4)
 
     def route(
-        self, database=None, imp_user=None, bookmarks=None,
+        self, database=None, imp_user=None, bookmarks=None, e_tag=None,
         dehydration_hooks=None, hydration_hooks=None
     ):
+        assert e_tag is None, "Driver used routing e_tag with too old protocol"
+
         routing_context = self.routing_context or {}
         db_context = {}
         if database is not None:
@@ -534,11 +557,13 @@ class Bolt4x4(Bolt4x3):
         self.fetch_all()
         return [metadata.get("rt")]
 
-    def run(self, query, parameters=None, mode=None, bookmarks=None,
-            metadata=None, timeout=None, db=None, imp_user=None,
-            notifications_min_severity=None,
-            notifications_disabled_categories=None, dehydration_hooks=None,
-            hydration_hooks=None, **handlers):
+    def run(
+        self, query, parameters=None, mode=None, bookmarks=None,
+        metadata=None, timeout=None, db=None, imp_user=None,
+        notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         if (
             notifications_min_severity is not None
             or notifications_disabled_categories is not None
@@ -578,10 +603,12 @@ class Bolt4x4(Bolt4x3):
                      Response(self, "run", hydration_hooks, **handlers),
                      dehydration_hooks=dehydration_hooks)
 
-    def begin(self, mode=None, bookmarks=None, metadata=None, timeout=None,
-              db=None, imp_user=None, notifications_min_severity=None,
-              notifications_disabled_categories=None, dehydration_hooks=None,
-              hydration_hooks=None, **handlers):
+    def begin(
+        self, mode=None, bookmarks=None, metadata=None, timeout=None,
+        db=None, imp_user=None, notifications_min_severity=None,
+        notifications_disabled_categories=None, dehydration_hooks=None,
+        hydration_hooks=None, **handlers
+    ):
         if (
             notifications_min_severity is not None
             or notifications_disabled_categories is not None
