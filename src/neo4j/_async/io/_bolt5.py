@@ -747,37 +747,38 @@ class AsyncBolt5x5(AsyncBolt5x4):
         return [metadata.get("rt")]
 
     async def _auto_route(self, dehydration_hooks=None, hydration_hooks=None):
-        if not self._auto_route_enabled:
-            return
-        direct_driver = self.pool.is_direct_pool
-        if direct_driver:
-            # no routing, kthxbye
-            return
-        e_tag = await self.pool.get_routing_table_e_tag(self._auto_route_db)
-        if any(
-            response.message == "route"
-            for response in self.responses
-        ):
-            # already routing
-            return
-
-        routing_context = self.routing_context or {}
-        db_context = {"db": self._auto_route_db}
-        if e_tag is not None:
-            db_context.update(e_tag=e_tag)
-        log.debug(
-            "[#%04X]  C: ROUTE %r %r", self.local_port,
-            routing_context, db_context
-        )
-
-        async def on_success(metadata):
-            rt = metadata.get("rt")
-            await self.pool.auto_route_handler(self._auto_route_db, rt)
-
-        self._append(b"\x66", (routing_context, db_context),
-                     response=Response(self, "route", hydration_hooks,
-                                       on_success=on_success),
-                     dehydration_hooks=dehydration_hooks)
+        raise NotImplementedError("not using eager routing")
+        # if not self._auto_route_enabled:
+        #     return
+        # direct_driver = self.pool.is_direct_pool
+        # if direct_driver:
+        #     # no routing, kthxbye
+        #     return
+        # e_tag = await self.pool.get_routing_table_e_tag(self._auto_route_db)
+        # if any(
+        #     response.message == "route"
+        #     for response in self.responses
+        # ):
+        #     # already routing
+        #     return
+        #
+        # routing_context = self.routing_context or {}
+        # db_context = {"db": self._auto_route_db}
+        # if e_tag is not None:
+        #     db_context.update(e_tag=e_tag)
+        # log.debug(
+        #     "[#%04X]  C: ROUTE %r %r", self.local_port,
+        #     routing_context, db_context
+        # )
+        #
+        # async def on_success(metadata):
+        #     rt = metadata.get("rt")
+        #     await self.pool.auto_route_handler(self._auto_route_db, rt)
+        #
+        # self._append(b"\x66", (routing_context, db_context),
+        #              response=Response(self, "route", hydration_hooks,
+        #                                on_success=on_success),
+        #              dehydration_hooks=dehydration_hooks)
 
     # async def run(
     #     self, query, parameters=None, mode=None, bookmarks=None,
@@ -812,18 +813,18 @@ class AsyncBolt5x5(AsyncBolt5x4):
     #         n, qid, dehydration_hooks, hydration_hooks, **handlers
     #     )
 
-    async def begin(
-        self, mode=None, bookmarks=None, metadata=None, timeout=None,
-        db=None, imp_user=None, notifications_min_severity=None,
-        notifications_disabled_categories=None, dehydration_hooks=None,
-        hydration_hooks=None, **handlers
-    ):
-        await self._auto_route()
-        await super().begin(
-            mode, bookmarks, metadata, timeout, db, imp_user,
-            notifications_min_severity, notifications_disabled_categories,
-            dehydration_hooks, hydration_hooks, **handlers
-        )
+    # async def begin(
+    #     self, mode=None, bookmarks=None, metadata=None, timeout=None,
+    #     db=None, imp_user=None, notifications_min_severity=None,
+    #     notifications_disabled_categories=None, dehydration_hooks=None,
+    #     hydration_hooks=None, **handlers
+    # ):
+    #     await self._auto_route()
+    #     await super().begin(
+    #         mode, bookmarks, metadata, timeout, db, imp_user,
+    #         notifications_min_severity, notifications_disabled_categories,
+    #         dehydration_hooks, hydration_hooks, **handlers
+    #     )
 
     # async def commit(
     #     self, dehydration_hooks=None, hydration_hooks=None, **handlers
