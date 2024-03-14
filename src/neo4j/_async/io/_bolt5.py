@@ -779,38 +779,38 @@ class AsyncBolt5x5(AsyncBolt5x4):
                                        on_success=on_success),
                      dehydration_hooks=dehydration_hooks)
 
-    async def run(
-        self, query, parameters=None, mode=None, bookmarks=None,
-        metadata=None, timeout=None, db=None, imp_user=None,
-        notifications_min_severity=None,
-        notifications_disabled_categories=None, dehydration_hooks=None,
-        hydration_hooks=None, **handlers
-    ):
-        await self._auto_route()
-        await super().run(
-            query, parameters, mode, bookmarks, metadata, timeout, db,
-            imp_user, notifications_min_severity,
-            notifications_disabled_categories, dehydration_hooks,
-            hydration_hooks, **handlers
-        )
-
-    async def discard(
-        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
-        **handlers
-    ):
-        await self._auto_route()
-        await super().discard(
-            n, qid, dehydration_hooks, hydration_hooks, **handlers
-        )
-
-    async def pull(
-        self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
-        **handlers
-    ):
-        await self._auto_route()
-        await super().pull(
-            n, qid, dehydration_hooks, hydration_hooks, **handlers
-        )
+    # async def run(
+    #     self, query, parameters=None, mode=None, bookmarks=None,
+    #     metadata=None, timeout=None, db=None, imp_user=None,
+    #     notifications_min_severity=None,
+    #     notifications_disabled_categories=None, dehydration_hooks=None,
+    #     hydration_hooks=None, **handlers
+    # ):
+    #     await self._auto_route()
+    #     await super().run(
+    #         query, parameters, mode, bookmarks, metadata, timeout, db,
+    #         imp_user, notifications_min_severity,
+    #         notifications_disabled_categories, dehydration_hooks,
+    #         hydration_hooks, **handlers
+    #     )
+    #
+    # async def discard(
+    #     self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+    #     **handlers
+    # ):
+    #     await self._auto_route()
+    #     await super().discard(
+    #         n, qid, dehydration_hooks, hydration_hooks, **handlers
+    #     )
+    #
+    # async def pull(
+    #     self, n=-1, qid=-1, dehydration_hooks=None, hydration_hooks=None,
+    #     **handlers
+    # ):
+    #     await self._auto_route()
+    #     await super().pull(
+    #         n, qid, dehydration_hooks, hydration_hooks, **handlers
+    #     )
 
     async def begin(
         self, mode=None, bookmarks=None, metadata=None, timeout=None,
@@ -825,18 +825,18 @@ class AsyncBolt5x5(AsyncBolt5x4):
             dehydration_hooks, hydration_hooks, **handlers
         )
 
-    async def commit(
-        self, dehydration_hooks=None, hydration_hooks=None, **handlers
-    ):
-        await self._auto_route()
-        await super().commit(
-            dehydration_hooks, hydration_hooks, **handlers
-        )
-
-    async def rollback(
-        self, dehydration_hooks=None, hydration_hooks=None, **handlers
-    ):
-        await self._auto_route()
-        await super().rollback(
-            dehydration_hooks, hydration_hooks, **handlers
-        )
+    # async def commit(
+    #     self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    # ):
+    #     await self._auto_route()
+    #     await super().commit(
+    #         dehydration_hooks, hydration_hooks, **handlers
+    #     )
+    #
+    # async def rollback(
+    #     self, dehydration_hooks=None, hydration_hooks=None, **handlers
+    # ):
+    #     await self._auto_route()
+    #     await super().rollback(
+    #         dehydration_hooks, hydration_hooks, **handlers
+    #     )
