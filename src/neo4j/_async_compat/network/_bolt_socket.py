@@ -83,7 +83,7 @@ class AsyncBoltSocket:
         self._writer = writer  # type: asyncio.StreamWriter
         # 0 - non-blocking
         # None infinitely blocking
-        # int - seconds to wait for data
+        # float - seconds to wait for data
         self._timeout = None
         self._deadline = None
 
@@ -125,10 +125,10 @@ class AsyncBoltSocket:
         return self._writer.transport.get_extra_info("socket")
 
     def getsockname(self):
-        return self._writer.transport.get_extra_info("sockname")
+        return self._socket.getsockname()
 
     def getpeername(self):
-        return self._writer.transport.get_extra_info("peername")
+        return self._socket.getpeername()
 
     def getpeercert(self, *args, **kwargs):
         return self._writer.transport.get_extra_info("ssl_object")\
