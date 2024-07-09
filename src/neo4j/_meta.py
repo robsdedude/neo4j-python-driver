@@ -24,7 +24,7 @@ from functools import wraps
 from inspect import isclass
 from warnings import warn
 
-from ._codec.packstream import RUST_AVAILABLE
+from ._optional_deps import rust_available
 
 
 if t.TYPE_CHECKING:
@@ -32,9 +32,9 @@ if t.TYPE_CHECKING:
 
 
 # Can be automatically overridden in builds
-package = "neo4j"
-version = "5.22.dev0"
-deprecated_package = False
+package = "neo4j"  # [script-set]
+version = "5.22.dev0"  # [script-set]
+deprecated_package = False  # [script-set]
 
 
 def _compute_bolt_agent() -> t.Dict[str, str]:
@@ -42,7 +42,7 @@ def _compute_bolt_agent() -> t.Dict[str, str]:
         return "{}.{}.{}-{}-{}".format(*version_info)
 
     language = "Python"
-    if RUST_AVAILABLE:
+    if rust_available:
         language += "-Rust"
 
     return {

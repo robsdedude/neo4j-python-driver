@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 [project]
 name = "neo4j"
+version = "5.22.dev0"  # [script-set]
 description = "Neo4j Bolt driver for Python"
-license = {text = "Apache License, Version 2.0"}
-#TODO: 6.0 - static readme
-#readme = "README.rst"
+license = {text = "Apache License, Version 2.0 AND Python Software Foundation License Version 2"}
+readme = "README.md"
 authors = [
     {name = "Neo4j, Inc.", email = "drivers@neo4j.com"},
 ]
@@ -30,6 +31,7 @@ classifiers = [
     "Framework :: AsyncIO",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: Python Software Foundation License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
@@ -37,11 +39,11 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
     "Topic :: Database",
     "Topic :: Software Development",
     "Typing :: Typed",
 ]
-dynamic = ["version", "readme"]
 
 [project.urls]
 Homepage = "https://neo4j.com/"
@@ -64,30 +66,38 @@ pyarrow = ["pyarrow >= 1.0.0"]
 
 [build-system]
 requires = [
-    "setuptools >= 66.1.0",
-    # TODO: 6.0 - can be removed once `setup.py` is simplified
-    "tomlkit ~= 0.11.6",
+    "setuptools == 68.0.0",
+    "setuptools-rust == 1.7.0",
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "neo4j._meta.version"}
+[tool.maturin]
+# only used for cross-compilation in CI
+features = ["pyo3/extension-module", "pyo3/generate-import-lib"]
+module-name = "neo4j._rust"
+manifest-path = "pkg_rust/Cargo.toml"
+python-source = "src"
 
+
+[tool.coverage.paths]
+source = [
+    "src",
+    "*/site-packages",
+]
 
 [tool.coverage]
 show_missing = true
 
 [tool.coverage.run]
 branch = true
-omit = [
-    ".*/*",
-    "tests/*",
-    "src/neo4j/meta.py",
-    "*virtualenv*",
-    "*venv*",
+parallel = true
+source = [
+    "neo4j",
 ]
 
 [tool.coverage.report]
+show_missing = true
+precision = 2
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
@@ -127,7 +137,7 @@ asyncio_mode = "auto"
 [[tool.mypy.overrides]]
 module = [
     "pandas.*",
-    "neo4j._codec.packstream._rust",
-    "neo4j._codec.packstream._rust.*",
+    "neo4j_py",
+    "neo4j_rust_ext.*",
 ]
 ignore_missing_imports = true

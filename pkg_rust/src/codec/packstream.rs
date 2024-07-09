@@ -20,32 +20,14 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyTuple};
 
-/// A Python module implemented in Rust.
-#[pymodule]
-#[pyo3(name = "_rust")]
-fn packstream(m: &Bound<PyModule>) -> PyResult<()> {
-    let py = m.py();
+use crate::make_module_in_package;
 
+pub(crate) fn register(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<Structure>()?;
 
-    let mod_v1 = PyModule::new_bound(py, "v1")?;
+    let mod_v1 = make_module_in_package(m, "v1")?;
     v1::register(&mod_v1)?;
     m.add_submodule(&mod_v1)?;
-    register_package(&mod_v1, "v1")?;
-
-    Ok(())
-}
-
-// hack to make python pick up the submodule as a package
-// https://github.com/PyO3/pyo3/issues/1517#issuecomment-808664021
-fn register_package(m: &Bound<PyModule>, name: &str) -> PyResult<()> {
-    let py = m.py();
-    let module_name = format!("neo4j._codec.packstream._rust.{name}").into_py(py);
-
-    py.import_bound("sys")?
-        .getattr("modules")?
-        .set_item(&module_name, m)?;
-    m.setattr("__name__", &module_name)?;
 
     Ok(())
 }

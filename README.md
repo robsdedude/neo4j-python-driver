@@ -33,10 +33,22 @@ pip install neo4j
 > Make sure to install ``neo4j`` as shown above.
 
 
-## Alternative Installation for Better Performance
-You may want to have a look at the available Rust extensions for this driver for better performance.
-The Rust extensions are not installed by default.
-For more information, see [neo4j-rust-ext](https://github.com/neo4j-drivers/neo4j-python-driver-rust-ext).
+## Rust Extensions for Better Performance
+The driver comes with optional Rust extensions that can significantly improve performance.
+
+For many operating systems and architectures, the pre-built wheels will work out of the box, and pip will be able to download pre-compiled binaries.
+If they don't, pip (or any other Python packaging front-end) will try to build the extensions from source.
+Here's what you'll need for this:
+* Rust 1.65.0 or later:  
+  https://www.rust-lang.org/tools/install
+* Further build tools (depending on the platform).  
+  E.g., `gcc` on Ubuntu: `sudo apt install gcc`
+
+If compilation fails, the driver will fall back to the pure Python implementation.
+If you'd rather not have the Rust extensions at all, you can install the pure Python version of the driver via
+[neo4j-py](https://pypi.org/project/neo4j-py/).
+Especially for debugging purposes, this can prove useful.
+If, however, you'd rather want the installation process to fail if the Rust extensions can't be installed/built, you can install [neo4j-rust-ext](https://pypi.org/project/neo4j-rust-ext/) instead.
 
 
 ## Quick Example

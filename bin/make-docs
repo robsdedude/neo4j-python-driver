@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-ROOT=$(dirname "$0")/..
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
 
 pip install --quiet --upgrade sphinx
-make -C ${ROOT}/docs html
+make -C "${ROOT}/docs" html
 
 echo ""
 INDEX_FILE="${ROOT}/docs/build/html/index.html"
-echo "Documentation index file can be found at file://$(cd "$(dirname "${INDEX_FILE}")"; pwd)/$(basename "${INDEX_FILE}")"
+echo "Documentation index file can be found at file://${INDEX_FILE}"

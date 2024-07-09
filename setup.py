@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (c) "Neo4j"
 # Neo4j Sweden AB [https://neo4j.com]
 #
@@ -26,6 +24,7 @@ from contextlib import contextmanager
 
 import tomlkit
 from setuptools import setup
+from setuptools_rust import RustExtension
 
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent / "src"))
@@ -79,4 +78,13 @@ def changed_package_name(new_name):
 
 
 with changed_package_name(package):
-    setup(long_description=readme)
+    setup(
+        long_description=readme,
+        rust_extensions=[
+            RustExtension(
+                "neo4j._rust",
+                path="pkg_rust/Cargo.toml",
+                optional=True,
+            ),
+        ],
+    )

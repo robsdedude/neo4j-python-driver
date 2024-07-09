@@ -21,19 +21,17 @@ from struct import (
     unpack as struct_unpack,
 )
 
+from ...._optional_deps import rust_ext
 from ...hydration import DehydrationHooks
 from .._common import Structure
 from .types import *
 
 
-try:
-    from .._rust.v1 import (
-        pack as _rust_pack,
-        unpack as _rust_unpack,
-    )
-except ImportError:
-    _rust_pack = None
-    _rust_unpack = None
+_rust_pack = None
+_rust_unpack = None
+if rust_ext is not None:
+    _rust_pack = rust_ext.codec.packstream.v1.pack
+    _rust_unpack = rust_ext.codec.packstream.v1.unpack
 
 
 PACKED_UINT_8 = [struct_pack(">B", value) for value in range(0x100)]

@@ -14,9 +14,18 @@
 # limitations under the License.
 
 
-try:
-    from ._rust import Structure
-    RUST_AVAILABLE = True
-except ImportError:
+from ..._optional_deps import rust_ext
+
+
+__all__ = [
+    "Structure",
+]
+
+
+from ._python import Structure
+
+
+if rust_ext is None:
     from ._python import Structure
-    RUST_AVAILABLE = False
+else:
+    Structure = rust_ext.codec.packstream.Structure  # type: ignore
