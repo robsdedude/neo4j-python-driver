@@ -22,7 +22,7 @@ from ._data import (
     RecordExporter,
     RecordTableRowExporter,
 )
-from ._meta import deprecation_warn
+from ._warnings import deprecation_warn as _deprecation_warn
 
 
 __all__ = [
@@ -32,7 +32,7 @@ __all__ = [
     "RecordTableRowExporter",
 ]
 
-deprecation_warn(
+_deprecation_warn(
     "The module `neo4j.data` was made internal and will "
     "no longer be available for import in future versions. "
     "`neo4j.data.Record` should be imported directly from `neo4j`.",

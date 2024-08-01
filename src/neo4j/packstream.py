@@ -29,7 +29,7 @@ from ._codec.packstream.v1 import (
     UNPACKED_UINT_16,
     Unpacker,
 )
-from ._meta import deprecation_warn
+from ._warnings import deprecation_warn as _deprecation_warn
 
 
 __all__ = [
@@ -45,7 +45,7 @@ __all__ = [
     "UnpackableBuffer",
 ]
 
-deprecation_warn(
+_deprecation_warn(
     "The module `neo4j.packstream` was made internal and will "
     "no longer be available for import in future versions.",
     stack_level=2

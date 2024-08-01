@@ -48,11 +48,7 @@ from ._conf import (
 from ._data import Record
 from ._meta import (
     deprecated_package as _deprecated_package,
-    deprecation_warn as _deprecation_warn,
-    ExperimentalWarning,
     get_user_agent,
-    preview_warn as _preview_warn,
-    PreviewWarning,
     version as __version__,
 )
 from ._sync.config import PoolConfig as _PoolConfig
@@ -68,6 +64,10 @@ from ._sync.work import (
     Session,
     Transaction,
 )
+from ._warnings import (
+    deprecation_warn as _deprecation_warn,
+    preview_warn as _preview_warn,
+)
 from ._work import (
     EagerResult,
     GqlStatusObject as _GqlStatusObject,
@@ -78,6 +78,10 @@ from ._work import (
     SummaryInputPosition,
     SummaryNotification,
     unit_of_work,
+)
+from .warnings import (
+    ExperimentalWarning,
+    PreviewWarning as _PreviewWarning,
 )
 
 
@@ -205,6 +209,13 @@ def __getattr__(name):
             stack_level=2
         )
         return SummaryInputPosition
+    if name == "PreviewWarning":
+        _deprecation_warn(
+            "Importing PreviewWarning from neo4j is deprecated. "
+            "Import PreviewWarning from neo4j.warnings instead.",
+            stack_level=2
+        )
+        return _PreviewWarning
     if name in (
         "NotificationClassification",
         "GqlStatusObject",

@@ -44,7 +44,7 @@ from .._conf import (
     WorkspaceConfig,
 )
 from .._debug import ENABLED as DEBUG_ENABLED
-from .._meta import (
+from .._warnings import (
     deprecation_warn,
     experimental_warn,
     preview_warn,

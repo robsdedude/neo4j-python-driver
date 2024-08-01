@@ -3,7 +3,8 @@
 See also https://github.com/neo4j/neo4j-python-driver/wiki for a full changelog.
 
 ## NEXT RELEASE
-- No breaking or major changes.
+- Importing `PreviewWarning` from `neo4j` is deprecated.
+  Import it from `neo4j.warnings` instead.
 
 
 ## Version 5.23

@@ -19,7 +19,7 @@ import re
 
 import pytest
 
-from neo4j import PreviewWarning
+from neo4j.warnings import PreviewWarning
 
 
 def test_import_neo4j():
@@ -67,7 +67,7 @@ NEO4J_ATTRIBUTES = (
     ("NotificationMinimumSeverity", None),
     ("NotificationSeverity", None),
     ("PoolConfig", DeprecationWarning),
-    ("PreviewWarning", None),
+    ("PreviewWarning", DeprecationWarning),
     ("Query", None),
     ("READ_ACCESS", None),
     ("Record", None),
@@ -129,13 +129,13 @@ def test_dir():
 def test_import_star():
     with pytest.warns() as warnings:
         importlib.__import__("neo4j", fromlist=("*",))
-    assert len(warnings) == 9
+    assert len(warnings) == 10
     assert all(issubclass(w.category, (DeprecationWarning, PreviewWarning))
                for w in warnings)
 
     for name in (
         "log", "Config", "PoolConfig", "SessionConfig", "WorkspaceConfig",
-        "SummaryNotificationPosition",
+        "SummaryNotificationPosition", "PreviewWarning",
     ):
         assert sum(
             bool(re.match(rf".*\b{name}\b.*", str(w.message)))

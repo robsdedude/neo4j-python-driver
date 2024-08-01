@@ -21,7 +21,7 @@ import time
 import typing as t
 from dataclasses import dataclass
 
-from ._meta import preview
+from ._warnings import preview
 from .exceptions import Neo4jError
 
 

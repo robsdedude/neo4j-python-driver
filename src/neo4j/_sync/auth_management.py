@@ -30,7 +30,7 @@ from .._auth_management import (
     expiring_auth_has_expired,
     ExpiringAuth,
 )
-from .._meta import preview
+from .._warnings import preview
 
 
 if t.TYPE_CHECKING:

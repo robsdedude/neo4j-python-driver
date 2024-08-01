@@ -21,7 +21,7 @@ import logging
 
 from ..._async_compat.util import Util
 from ..._conf import WorkspaceConfig
-from ..._meta import (
+from ..._warnings import (
     deprecation_warn,
     unclosed_resource_warn,
 )

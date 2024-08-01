@@ -18,6 +18,17 @@
 This module defines spatial data types.
 """
 
+from functools import wraps as _wraps
+
+from .._codec.hydration.v1 import spatial as _hydration
+from .._spatial import (
+    CartesianPoint,
+    Point,
+    point_type as _point_type,
+    WGS84Point,
+)
+from .._warnings import deprecated as _deprecated
+
 
 __all__ = [
     "CartesianPoint",
@@ -28,20 +39,9 @@ __all__ = [
     "WGS84Point",
 ]
 
-from functools import wraps
-
-from .._codec.hydration.v1 import spatial as _hydration
-from .._meta import deprecated
-from .._spatial import (
-    CartesianPoint,
-    Point,
-    point_type as _point_type,
-    WGS84Point,
-)
-
 
 # TODO: 6.0 - remove
-@deprecated(
+@_deprecated(
     "hydrate_point is considered an internal function and will be removed in "
     "a future version"
 )
@@ -55,11 +55,11 @@ def hydrate_point(srid, *coordinates):
 
 
 # TODO: 6.0 - remove
-@deprecated(
+@_deprecated(
     "hydrate_point is considered an internal function and will be removed in "
     "a future version"
 )
-@wraps(_hydration.dehydrate_point)
+@_wraps(_hydration.dehydrate_point)
 def dehydrate_point(value):
     """ Dehydrator for Point data.
 
@@ -71,10 +71,10 @@ def dehydrate_point(value):
 
 
 # TODO: 6.0 - remove
-@deprecated(
+@_deprecated(
     "point_type is considered an internal function and will be removed in "
     "a future version"
 )
-@wraps(_point_type)
+@_wraps(_point_type)
 def point_type(name, fields, srid_map):
     return _point_type(name, fields, srid_map)

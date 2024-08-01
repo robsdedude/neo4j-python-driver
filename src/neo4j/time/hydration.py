@@ -30,7 +30,7 @@ from .._codec.hydration.v1.temporal import (
     hydrate_duration,
     hydrate_time,
 )
-from .._meta import deprecation_warn
+from .._warnings import deprecation_warn as _deprecation_warn
 
 
 __all__ = [
@@ -48,7 +48,7 @@ __all__ = [
     "dehydrate_timedelta",
 ]
 
-deprecation_warn(
+_deprecation_warn(
     "The module `neo4j.time.hydration` was made internal and will "
     "no longer be available for import in future versions.",
     stack_level=2

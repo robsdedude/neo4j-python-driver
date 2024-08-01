@@ -20,7 +20,7 @@ import typing as t
 from abc import ABCMeta
 from collections.abc import Mapping
 
-from ._meta import (
+from ._warnings import (
     deprecation_warn,
     experimental_warn,
 )

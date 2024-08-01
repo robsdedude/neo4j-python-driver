@@ -24,7 +24,6 @@ from freezegun.api import FrozenDateTimeFactory
 from neo4j import (
     Auth,
     basic_auth,
-    PreviewWarning,
 )
 from neo4j._meta import copy_signature
 from neo4j.auth_management import (
@@ -37,6 +36,7 @@ from neo4j.auth_management import (
     RotatingClientCertificateProvider,
 )
 from neo4j.exceptions import Neo4jError
+from neo4j.warnings import PreviewWarning
 
 from ..._async_compat import mark_sync_test
 

@@ -19,7 +19,6 @@ import ssl
 import pytest
 
 from neo4j import (
-    PreviewWarning,
     TrustAll,
     TrustCustomCAs,
     TrustSystemCAs,
@@ -39,6 +38,7 @@ from neo4j.auth_management import (
 )
 from neo4j.debug import watch
 from neo4j.exceptions import ConfigurationError
+from neo4j.warnings import PreviewWarning
 
 from ..._async_compat import mark_async_test
 from ..common.test_conf import test_session_config

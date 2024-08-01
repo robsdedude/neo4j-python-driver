@@ -16,10 +16,37 @@
 
 from __future__ import annotations
 
-import typing as t
+import typing as _t
 
-from ._debug import NotificationPrinter
-from ._work.summary import SummaryNotification
+
+if _t.TYPE_CHECKING:
+    from ._work.summary import SummaryNotification
+
+
+__all__ = [
+    "ExperimentalWarning",
+    "PreviewWarning",
+    "Neo4jWarning",
+    "Neo4jDeprecationWarning",
+]
+
+
+# TODO: 6.0 - remove this class, replace usage with PreviewWarning
+class ExperimentalWarning(Warning):
+    """ Base class for warnings about experimental features.
+
+    .. deprecated:: 5.8
+        we now use "preview" instead of "experimental":
+        :class:`.PreviewWarning`.
+    """
+
+
+class PreviewWarning(Warning):
+    """A driver feature in preview has been used.
+
+    It might be changed without following the deprecation policy.
+    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
+    """
 
 
 class Neo4jWarning(Warning):
@@ -27,7 +54,7 @@ class Neo4jWarning(Warning):
     Warning emitted for notifications sent by the server.
 
     Which notifications trigger a warning can be controlled by a
-    configuration: :ref:`driver-warn-notification-severity-ref`
+    configuration option: :ref:`driver-warn-notification-severity-ref`
 
     **This is experimental** (see :ref:`filter-warnings-ref`).
     It might be changed or removed any time even without prior notice.
@@ -46,8 +73,10 @@ class Neo4jWarning(Warning):
     def __init__(
         self,
         notification: SummaryNotification,
-        query: t.Optional[str] = None,
+        query: _t.Optional[str] = None,
     ) -> None:
+        from ._debug import NotificationPrinter
+
         msg = str(NotificationPrinter(notification, query))
         super().__init__(msg)
         self.notification = notification

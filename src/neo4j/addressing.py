@@ -16,26 +16,36 @@
 
 from __future__ import annotations
 
-import typing as t
+import typing as _t
 from socket import (
-    AddressFamily,
-    AF_INET,
-    AF_INET6,
-    getservbyname,
+    AddressFamily as _AddressFamily,
+    AF_INET as _AF_INET,
+    AF_INET6 as _AF_INET6,
+    getservbyname as _getservbyname,
 )
 
 
-if t.TYPE_CHECKING:
+if _t.TYPE_CHECKING:
     import typing_extensions as te
 
 
-_T = t.TypeVar("_T")
+_T = _t.TypeVar("_T")
 
 
-if t.TYPE_CHECKING:
+if _t.TYPE_CHECKING:
 
     class _WithPeerName(te.Protocol):
         def getpeername(self) -> tuple: ...
+
+
+__all__ = [
+    "Address",
+    "IPv4Address",
+    "IPv6Address",
+    "ResolvedAddress",
+    "ResolvedIPv4Address",
+    "ResolvedIPv6Address",
+]
 
 
 class _AddressMeta(type(tuple)):  # type: ignore[misc]
@@ -62,13 +72,13 @@ class _AddressMeta(type(tuple)):  # type: ignore[misc]
     @property
     def ipv4_cls(self):
         if self._ipv4_cls is None:
-            self._ipv4_cls = self._subclass_by_family(AF_INET)
+            self._ipv4_cls = self._subclass_by_family(_AF_INET)
         return self._ipv4_cls
 
     @property
     def ipv6_cls(self):
         if self._ipv6_cls is None:
-            self._ipv6_cls = self._subclass_by_family(AF_INET6)
+            self._ipv6_cls = self._subclass_by_family(_AF_INET6)
         return self._ipv6_cls
 
 
@@ -90,9 +100,9 @@ class Address(tuple, metaclass=_AddressMeta):
     """
 
     #: Address family (:data:`socket.AF_INET` or :data:`socket.AF_INET6`).
-    family: t.Optional[AddressFamily] = None
+    family: _t.Optional[_AddressFamily] = None
 
-    def __new__(cls, iterable: t.Collection) -> Address:
+    def __new__(cls, iterable: _t.Collection) -> Address:
         if isinstance(iterable, cls):
             return iterable
         n_parts = len(iterable)
@@ -123,8 +133,8 @@ class Address(tuple, metaclass=_AddressMeta):
     def parse(
         cls,
         s: str,
-        default_host: t.Optional[str] = None,
-        default_port: t.Optional[int] = None
+        default_host: _t.Optional[str] = None,
+        default_port: _t.Optional[int] = None
     ) -> Address:
         """Parse a string into an address.
 
@@ -154,7 +164,7 @@ class Address(tuple, metaclass=_AddressMeta):
             raise TypeError("Address.parse requires a string argument")
         if s.startswith("["):
             # IPv6
-            port: t.Union[str, int]
+            port: _t.Union[str, int]
             host, _, port = s[1:].rpartition("]")
             port = port.lstrip(":")
             try:
@@ -177,9 +187,9 @@ class Address(tuple, metaclass=_AddressMeta):
     def parse_list(
         cls,
         *s: str,
-        default_host: t.Optional[str] = None,
-        default_port: t.Optional[int] = None
-    ) -> t.List[Address]:
+        default_host: _t.Optional[str] = None,
+        default_port: _t.Optional[int] = None
+    ) -> _t.List[Address]:
         """Parse multiple addresses into a list.
 
         See :meth:`.parse` for details on the string format.
@@ -209,11 +219,11 @@ class Address(tuple, metaclass=_AddressMeta):
         return "{}({!r})".format(self.__class__.__name__, tuple(self))
 
     @property
-    def _host_name(self) -> t.Any:
+    def _host_name(self) -> _t.Any:
         return self[0]
 
     @property
-    def host(self) -> t.Any:
+    def host(self) -> _t.Any:
         """The host part of the address.
 
         This is the first part of the address tuple.
@@ -224,7 +234,7 @@ class Address(tuple, metaclass=_AddressMeta):
         return self[0]
 
     @property
-    def port(self) -> t.Any:
+    def port(self) -> _t.Any:
         """The port part of the address.
 
         This is the second part of the address tuple.
@@ -272,10 +282,10 @@ class Address(tuple, metaclass=_AddressMeta):
         :raise ValueError: If the port cannot be resolved.
         :raise TypeError: If the port cannot be resolved.
         """
-        error_cls: t.Type = TypeError
+        error_cls: _t.Type = TypeError
 
         try:
-            return getservbyname(self[1])
+            return _getservbyname(self[1])
         except OSError:
             # OSError: service/proto not found
             error_cls = ValueError
@@ -304,25 +314,26 @@ class IPv4Address(Address):
     :class:`.Address` or one of its factory methods.
     """
 
-    family = AF_INET
+    family = _AF_INET
 
     def __str__(self) -> str:
         return "{}:{}".format(*self)
 
 
 class IPv6Address(Address):
-    """An IPv6 address (family ``AF_INETl``).
+    """An IPv6 address (family ``AF_INET6``).
 
     This class should not be instantiated directly. Instead, use
     :class:`.Address` or one of its factory methods.
     """
 
-    family = AF_INET6
+    family = _AF_INET6
 
     def __str__(self) -> str:
         return "[{}]:{}".format(*self)
 
 
+# TODO: 6.0 - make this class private
 class ResolvedAddress(Address):
 
     _unresolved_host_name: str
@@ -337,14 +348,16 @@ class ResolvedAddress(Address):
 
     def __new__(cls, iterable, *, host_name: str) -> ResolvedAddress:
         new = super().__new__(cls, iterable)
-        new = t.cast(ResolvedAddress, new)
+        new = _t.cast(ResolvedAddress, new)
         new._unresolved_host_name = host_name
         return new
 
 
+# TODO: 6.0 - make this class private
 class ResolvedIPv4Address(IPv4Address, ResolvedAddress):
     pass
 
 
+# TODO: 6.0 - make this class private
 class ResolvedIPv6Address(IPv6Address, ResolvedAddress):
     pass

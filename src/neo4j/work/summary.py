@@ -16,7 +16,7 @@
 # TODO: 6.0 - remove this file
 
 
-from .._meta import deprecation_warn
+from .._warnings import deprecation_warn as _deprecation_warn
 from .._work import (
     ResultSummary,
     SummaryCounters,
@@ -28,7 +28,7 @@ __all__ = [
     "SummaryCounters",
 ]
 
-deprecation_warn(
+_deprecation_warn(
     "The module `neo4j.work.summary` was made internal and will "
     "no longer be available for import in future versions. "
     "Everything from there should be imported directly from `neo4j`.",

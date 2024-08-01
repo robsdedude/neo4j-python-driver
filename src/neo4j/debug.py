@@ -16,20 +16,20 @@
 
 from __future__ import annotations
 
-import asyncio
-import typing as t
+import asyncio as _asyncio
+import typing as _t
 from logging import (
-    CRITICAL,
-    DEBUG,
-    ERROR,
-    Filter,
-    Formatter,
-    getLogger,
-    INFO,
-    StreamHandler,
-    WARNING,
+    CRITICAL as _CRITICAL,
+    DEBUG as _DEBUG,
+    ERROR as _ERROR,
+    Filter as _Filter,
+    Formatter as _Formatter,
+    getLogger as _getLogger,
+    INFO as _INFO,
+    StreamHandler as _StreamHandler,
+    WARNING as _WARNING,
 )
-from sys import stderr
+from sys import stderr as _stderr
 
 
 __all__ = [
@@ -38,32 +38,32 @@ __all__ = [
 ]
 
 
-class ColourFormatter(Formatter):
+class ColourFormatter(_Formatter):
     """ Colour formatter for pretty log output.
     """
 
     def format(self, record):
         s = super().format(record)
-        if record.levelno == CRITICAL:
+        if record.levelno == _CRITICAL:
             return "\x1b[31;1m%s\x1b[0m" % s  # bright red
-        elif record.levelno == ERROR:
+        elif record.levelno == _ERROR:
             return "\x1b[33;1m%s\x1b[0m" % s  # bright yellow
-        elif record.levelno == WARNING:
+        elif record.levelno == _WARNING:
             return "\x1b[33m%s\x1b[0m" % s    # yellow
-        elif record.levelno == INFO:
+        elif record.levelno == _INFO:
             return "\x1b[37m%s\x1b[0m" % s    # white
-        elif record.levelno == DEBUG:
+        elif record.levelno == _DEBUG:
             return "\x1b[36m%s\x1b[0m" % s    # cyan
         else:
             return s
 
 
-class TaskIdFilter(Filter):
+class TaskIdFilter(_Filter):
     """Injecting async task id into log records."""
 
     def filter(self, record):
         try:
-            record.task = id(asyncio.current_task())
+            record.task = id(_asyncio.current_task())
         except RuntimeError:
             record.task = None
         return True
@@ -112,19 +112,19 @@ class Watcher:
 
     def __init__(
         self,
-        *logger_names: t.Optional[str],
-        default_level: int = DEBUG,
-        default_out: t.TextIO = stderr,
+        *logger_names: _t.Optional[str],
+        default_level: int = _DEBUG,
+        default_out: _t.TextIO = _stderr,
         colour: bool = False,
         thread_info: bool = True,
         task_info: bool = True,
     ) -> None:
         super(Watcher, self).__init__()
         self.logger_names = logger_names
-        self._loggers = [getLogger(name) for name in self.logger_names]
+        self._loggers = [_getLogger(name) for name in self.logger_names]
         self.default_level = default_level
         self.default_out = default_out
-        self._handlers: t.Dict[str, StreamHandler] = {}
+        self._handlers: _t.Dict[str, _StreamHandler] = {}
         self._task_info = task_info
 
         format_ = "%(asctime)s  %(message)s"
@@ -134,7 +134,7 @@ class Watcher:
             format_ = "[Thread %(thread)d] " + format_
         if not colour:
             format_ = "[%(levelname)-8s] " + format_
-        formatter_cls = ColourFormatter if colour else Formatter
+        formatter_cls = ColourFormatter if colour else _Formatter
         self.formatter = formatter_cls(format_)
 
     def __enter__(self) -> Watcher:
@@ -147,7 +147,7 @@ class Watcher:
         self.stop()
 
     def watch(
-        self, level: t.Optional[int] = None, out: t.Optional[t.TextIO] = None
+        self, level: _t.Optional[int] = None, out: _t.Optional[_t.TextIO] = None
     ) -> None:
         """Enable logging for all loggers.
 
@@ -162,7 +162,7 @@ class Watcher:
         if out is None:
             out = self.default_out
         self.stop()
-        handler = StreamHandler(out)
+        handler = _StreamHandler(out)
         handler.setFormatter(self.formatter)
         handler.setLevel(level)
         if self._task_info:
@@ -183,9 +183,9 @@ class Watcher:
 
 
 def watch(
-    *logger_names: t.Optional[str],
-    level: int = DEBUG,
-    out: t.TextIO = stderr,
+    *logger_names: _t.Optional[str],
+    level: int = _DEBUG,
+    out: _t.TextIO = _stderr,
     colour: bool = False,
     thread_info: bool = True,
     task_info: bool = True,

@@ -16,7 +16,7 @@
 # TODO: 6.0 - remove this file
 
 
-from .._meta import deprecation_warn
+from .._warnings import deprecation_warn as _deprecation_warn
 from ._clock_implementations import (
     LibCClock,
     PEP564Clock,
@@ -30,7 +30,7 @@ __all__ = [
     "LibCClock",
 ]
 
-deprecation_warn(
+_deprecation_warn(
     "The module `neo4j.time.clock_implementations` was made internal and will "
     "no longer be available for import in future versions.",
     stack_level=2

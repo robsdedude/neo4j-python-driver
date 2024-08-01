@@ -26,8 +26,8 @@ from ..._api import TelemetryAPI
 from ..._async_compat import sleep
 from ..._async_compat.util import Util
 from ..._conf import SessionConfig
-from ..._meta import deprecated
 from ..._util import ContextBool
+from ..._warnings import deprecated
 from ..._work import Query
 from ...api import (
     Bookmarks,

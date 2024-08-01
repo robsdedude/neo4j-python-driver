@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-from .._meta import deprecation_warn
+from .._warnings import deprecation_warn as _deprecation_warn
 from ._metaclasses import (
     DateTimeType,
     DateType,
@@ -28,7 +28,7 @@ __all__ = [
     "DateTimeType",
 ]
 
-deprecation_warn(
+_deprecation_warn(
     "The module `neo4j.time.metaclasses` was made internal and will "
     "no longer be available for import in future versions.",
     stack_level=2

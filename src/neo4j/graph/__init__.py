@@ -24,9 +24,9 @@ from __future__ import annotations
 import typing as t
 from collections.abc import Mapping
 
-from .._meta import (
-    deprecated,
-    deprecation_warn,
+from .._warnings import (
+    deprecated as _deprecated,
+    deprecation_warn as _deprecation_warn,
 )
 
 
@@ -140,7 +140,7 @@ class Entity(t.Mapping[str, t.Any]):
         return self._graph
 
     @property  # type: ignore
-    @deprecated("`id` is deprecated, use `element_id` instead")
+    @_deprecated("`id` is deprecated, use `element_id` instead")
     def id(self) -> int:
         """The legacy identity of this entity in its container :class:`.Graph`.
 
@@ -206,7 +206,7 @@ class EntitySetView(Mapping, t.Generic[_T]):
     def __getitem__(self, e_id: t.Union[int, str]) -> _T:
         # TODO: 6.0 - remove this compatibility shim
         if isinstance(e_id, (int, float, complex)):
-            deprecation_warn(
+            _deprecation_warn(
                 "Accessing entities by an integer id is deprecated, "
                 "use the new style element_id (str) instead"
             )

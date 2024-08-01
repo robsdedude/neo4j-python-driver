@@ -71,12 +71,12 @@ Connector API Errors
 
 from __future__ import annotations
 
-import typing as t
+import typing as _t
 
-from ._meta import deprecated
+from ._warnings import deprecated as _deprecated
 
 
-if t.TYPE_CHECKING:
+if _t.TYPE_CHECKING:
     import typing_extensions as te
 
     from ._async.work import (
@@ -92,15 +92,57 @@ if t.TYPE_CHECKING:
         Transaction,
     )
 
-    _TTransaction = t.Union[AsyncManagedTransaction, AsyncTransaction,
+    _TTransaction = _t.Union[AsyncManagedTransaction, AsyncTransaction,
                             ManagedTransaction, Transaction]
-    _TResult = t.Union[AsyncResult, Result]
-    _TSession = t.Union[AsyncSession, Session]
+    _TResult = _t.Union[AsyncResult, Result]
+    _TSession = _t.Union[AsyncSession, Session]
 else:
-    _TTransaction = t.Union["AsyncManagedTransaction", "AsyncTransaction",
+    _TTransaction = _t.Union["AsyncManagedTransaction", "AsyncTransaction",
                             "ManagedTransaction", "Transaction"]
-    _TResult = t.Union["AsyncResult", "Result"]
-    _TSession = t.Union["AsyncSession", "Session"]
+    _TResult = _t.Union["AsyncResult", "Result"]
+    _TSession = _t.Union["AsyncSession", "Session"]
+
+
+__all__ = [
+    # TODO: 6.0 - make these constants private
+    "CLASSIFICATION_CLIENT",
+    "CLASSIFICATION_TRANSIENT",
+    "CLASSIFICATION_DATABASE",
+    "ERROR_REWRITE_MAP",
+
+    "Neo4jError",
+    "ClientError",
+    "CypherSyntaxError",
+    "CypherTypeError",
+    "ConstraintError",
+    "AuthError",
+    "TokenExpired",
+    "Forbidden",
+    "DatabaseError",
+    "TransientError",
+    "DatabaseUnavailable",
+    "NotALeader",
+    "ForbiddenOnReadOnlyDatabase",
+    "DriverError",
+    "SessionError",
+    "TransactionError",
+    "TransactionNestingError",
+    "ResultError",
+    "ResultFailedError",
+    "ResultConsumedError",
+    "ResultNotSingleError",
+    "BrokenRecordError",
+    "SessionExpired",
+    "ServiceUnavailable",
+    "RoutingServiceUnavailable",
+    "WriteServiceUnavailable",
+    "ReadServiceUnavailable",
+    "IncompleteCommit",
+    "ConfigurationError",
+    "AuthConfigurationError",
+    "CertificateConfigurationError",
+    "UnsupportedServerProduct",
+]
 
 
 CLASSIFICATION_CLIENT: te.Final[str] = "ClientError"
@@ -108,7 +150,7 @@ CLASSIFICATION_TRANSIENT: te.Final[str] = "TransientError"
 CLASSIFICATION_DATABASE: te.Final[str] = "DatabaseError"
 
 
-ERROR_REWRITE_MAP: t.Dict[str, t.Tuple[str, t.Optional[str]]] = {
+ERROR_REWRITE_MAP: _t.Dict[str, _t.Tuple[str, _t.Optional[str]]] = {
     # This error can be retried ed. The driver just needs to re-authenticate
     # with the same credentials.
     "Neo.ClientError.Security.AuthorizationExpired": (
@@ -151,9 +193,9 @@ class Neo4jError(Exception):
     @classmethod
     def hydrate(
         cls,
-        message: t.Optional[str] = None,
-        code: t.Optional[str] = None,
-        **metadata: t.Any
+        message: _t.Optional[str] = None,
+        code: _t.Optional[str] = None,
+        **metadata: _t.Any
     ) -> Neo4jError:
         message = message or "An unknown error occurred"
         code = code or "Neo.DatabaseError.General.UnknownError"
@@ -203,7 +245,7 @@ class Neo4jError(Exception):
             return cls
 
     # TODO: 6.0 - Remove this alias
-    @deprecated(
+    @_deprecated(
         "Neo4jError.is_retriable is deprecated and will be removed in a "
         "future version. Please use Neo4jError.is_retryable instead."
     )
@@ -239,7 +281,7 @@ class Neo4jError(Exception):
         return self.code == "Neo.ClientError.Security.AuthorizationExpired"
 
     # TODO: 6.0 - Remove this alias
-    invalidates_all_connections = deprecated(
+    invalidates_all_connections = _deprecated(
         "Neo4jError.invalidates_all_connections is deprecated and will be "
         "removed in a future version. It is an internal method and not meant "
         "for external use."
@@ -269,7 +311,7 @@ class Neo4jError(Exception):
         return self.code.startswith("Neo.ClientError.Security.")
 
     # TODO: 6.0 - Remove this alias
-    is_fatal_during_discovery = deprecated(
+    is_fatal_during_discovery = _deprecated(
         "Neo4jError.is_fatal_during_discovery is deprecated and will be "
         "removed in a future version. It is an internal method and not meant "
         "for external use."
@@ -357,7 +399,7 @@ class ForbiddenOnReadOnlyDatabase(TransientError):
     """
 
 
-client_errors: t.Dict[str, t.Type[Neo4jError]] = {
+client_errors: _t.Dict[str, _t.Type[Neo4jError]] = {
 
     # ConstraintError
     "Neo.ClientError.Schema.ConstraintValidationFailed": ConstraintError,
@@ -393,7 +435,7 @@ client_errors: t.Dict[str, t.Type[Neo4jError]] = {
     "Neo.ClientError.Cluster.NotALeader": NotALeader,
 }
 
-transient_errors: t.Dict[str, t.Type[Neo4jError]] = {
+transient_errors: _t.Dict[str, _t.Type[Neo4jError]] = {
 
     # DatabaseUnavailableError
     "Neo.TransientError.General.DatabaseUnavailable": DatabaseUnavailable

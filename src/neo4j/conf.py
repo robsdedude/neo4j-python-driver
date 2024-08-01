@@ -27,8 +27,8 @@ from ._conf import (
     TransactionConfig,
     WorkspaceConfig,
 )
-from ._meta import deprecation_warn as _deprecation_warn
 from ._sync.config import PoolConfig
+from ._warnings import deprecation_warn as _deprecation_warn
 
 
 __all__ = [

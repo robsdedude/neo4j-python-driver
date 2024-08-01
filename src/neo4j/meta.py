@@ -17,14 +17,16 @@
 
 
 from ._meta import (
-    deprecated,
-    deprecation_warn,
-    experimental,
-    ExperimentalWarning,
     get_user_agent,
     package,
     version,
 )
+from ._warnings import (
+    deprecated,
+    deprecation_warn,
+    experimental,
+)
+from .warnings import ExperimentalWarning
 
 
 __all__ = [
@@ -40,7 +42,7 @@ __all__ = [
 deprecation_warn(
     "The module `neo4j.meta` was made internal and will "
     "no longer be available for import in future versions."
-    "`ExperimentalWarning` can be imported from `neo4j` directly and "
-    "`neo4j.meta.version` is exposed as `neo4j.__version__`.",
+    "`ExperimentalWarning` can be imported from `neo4j.warnings` and "
+    "`neo4j.meta.version` is exposed through `neo4j.__version__`.",
     stack_level=2
 )

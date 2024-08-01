@@ -16,11 +16,11 @@
 # TODO: 6.0 - remove this file
 
 
-from ._meta import deprecation_warn as _deprecation_warn
 from ._routing import (
     OrderedSet,
     RoutingTable,
 )
+from ._warnings import deprecation_warn as _deprecation_warn
 
 
 __all__ = [
