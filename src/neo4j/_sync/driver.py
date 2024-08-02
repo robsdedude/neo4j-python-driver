@@ -92,6 +92,10 @@ from .bookmark_manager import (
     TBmSupplier as _TBmSupplier,
 )
 from .config import PoolConfig
+from .ogm import (
+    OGM,
+    OGMRegistry,
+)
 from .work import (
     ManagedTransaction,
     Result,
@@ -320,6 +324,15 @@ class GraphDatabase:
             routing_context = parse_routing_context(parsed.query)
             return cls.neo4j_driver(parsed.netloc,
                                     routing_context=routing_context, **config)
+
+    @classmethod
+    def object_graph_mapper(
+        cls,
+        driver: Driver,
+        registry: OGMRegistry,
+    ) -> OGM:
+        ogm = OGM._new(driver, registry)
+        return ogm
 
     @classmethod
     def bookmark_manager(

@@ -93,6 +93,10 @@ from .bookmark_manager import (
     TBmSupplier as _TBmSupplier,
 )
 from .config import AsyncPoolConfig
+from .ogm import (
+    AsyncOGM,
+    AsyncOGMRegistry,
+)
 from .work import (
     AsyncManagedTransaction,
     AsyncResult,
@@ -321,6 +325,15 @@ class AsyncGraphDatabase:
             routing_context = parse_routing_context(parsed.query)
             return cls.neo4j_driver(parsed.netloc,
                                     routing_context=routing_context, **config)
+
+    @classmethod
+    def object_graph_mapper(
+        cls,
+        driver: AsyncDriver,
+        registry: AsyncOGMRegistry,
+    ) -> AsyncOGM:
+        ogm = AsyncOGM._new(driver, registry)
+        return ogm
 
     @classmethod
     def bookmark_manager(

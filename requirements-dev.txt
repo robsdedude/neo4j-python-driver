@@ -1,5 +1,5 @@
 # the driver itself
--e .[pandas,numpy,pyarrow]
+-e .[pandas,numpy,pyarrow,ogm]
 
 # needed for packaging
 build

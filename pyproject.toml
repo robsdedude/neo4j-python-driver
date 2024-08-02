@@ -60,6 +60,7 @@ pandas = [
     "numpy >= 1.7.0, < 2.0.0",
 ]
 pyarrow = ["pyarrow >= 1.0.0"]
+ogm = ["pydantic >= 2.5.3, < 3.0.0"]
 
 
 [build-system]
