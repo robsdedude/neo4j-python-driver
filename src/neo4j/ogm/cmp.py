@@ -14,15 +14,8 @@
 # limitations under the License.
 
 
-from ._async import ogm as _async_ogm
-from ._async.ogm import *
-from ._ogm.model import Model
-from ._sync import ogm as _sync_ogm
-from ._sync.ogm import *
+from .._ogm import cmp as _cmp
+from .._ogm.cmp import *
 
 
-__all__ = [
-    *_async_ogm.__all__,
-    *_sync_ogm.__all__,
-    "Model",
-]
+__all__ = _cmp.__all__
