@@ -19,16 +19,23 @@ from __future__ import annotations
 import typing as t
 
 from .base import (
+    Expr,
+    Param,
+    ParamAttribute,
     Part,
     Var,
+    VarAttribute,
 )
 from .builder import CypherBuilder
 from .clause import (
     Create,
+    Delete,
     Match,
+    Merge,
     ReturnArg,
-    ReturnEntityArg,
     SetArg,
+    Unwind,
+    With,
 )
 from .entity import (
     Entity,
@@ -37,6 +44,7 @@ from .entity import (
     Path,
     Relationship,
 )
+from .func import Func
 from .name_registry import NameRegistry
 
 
@@ -54,12 +62,19 @@ __all__ = [
     "CypherBuilder",
     "Create",
     "Match",
+    "Merge",
+    "Delete",
+    "With",
+    "Unwind",
     "Part",
     "NameRegistry",
     "ReturnArg",
-    "ReturnEntityArg",
     "SetArg",
+    "Param",
+    "ParamAttribute",
     "Var",
+    "VarAttribute",
+    "Func",
 ]
 
 

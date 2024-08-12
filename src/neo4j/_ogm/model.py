@@ -85,33 +85,58 @@ class _NodeMeta(type(BaseModel)):  # type: ignore[misc]
         namespace["__ogm_cls__"] = _OGMClsData(
             pk=pk,
             rels=rels,
+            labels=(cls_name,),  # TODO: enable multiple/custom label(s)
         )
 
         kls = super().__new__(cls, cls_name, bases, namespace, **kwargs)
-        # for field in kls.model_fields.keys():
-        #     setattr(kls, field, f"Hello, {field}")
         assert issubclass(kls, Node)
 
         pk._validate_model(kls)
-        # pk_strategy = getattr(kls, "__ogm_pk_strategy__", None)
-        # if not isinstance(pk_strategy, PKStrategy):
-        #     raise TypeError(
-        #         f"Class {kls.__name} must have a valid "
-        #         f"`__ogm_pk_strategy__` attribute"
-        #     )
-        # pk_strategy._model_init(kls)
+        cls._process_rels(kls)
+
         return kls
+
+    @classmethod
+    def _process_rels(cls, kls: t.Type[Node]) -> None:
+        for rel_name, rel_data in kls.__ogm_cls__.rels.items():
+            annotation = kls.model_fields[rel_name].annotation
+            if not (
+                annotations
+                and getattr(annotation, "__origin__", None) is list
+            ):
+                raise TypeError(
+                    f"Relationship field `{kls.__name__}.{rel_name}` "
+                    f"must be annotated as a list"
+                )
+            assert annotation
+            assert len(annotation.__args__) == 1
+            rel_type = annotation.__args__[0]
+            if not issubclass(rel_type, Node):
+                raise TypeError(
+                    f"Relationship field `{kls.__name__}.{rel_name}`'s "
+                    f"generic argument must be a subclass of `Node`"
+                )
+            rel_data.target = rel_type
 
 
 @dataclass
 class _OGMClsData:
     pk: PK
     rels: t.Dict[str, _Related]
+    labels: t.Tuple[str]
 
 
 @dataclass
 class _OGMObjData:
     pk: PK
+
+
+def clean_node_dump(node: Node):
+    dump = node.model_dump()
+    dump.pop("pk", None)
+    for rel_name in node.__ogm_cls__.rels.keys():
+        dump.pop(rel_name, None)
+    return dump
 
 
 class Node(BaseModel, abc.ABC, metaclass=_NodeMeta):
@@ -123,6 +148,9 @@ class Node(BaseModel, abc.ABC, metaclass=_NodeMeta):
         self.__ogm_obj__ = _OGMObjData(
             pk=self.__ogm_cls__.pk._new_with_value(None),
         )
+        for rel_name, rel_data in self.__ogm_cls__.rels.items():
+            if isinstance(getattr(self, rel_name, None), _Related):
+                setattr(self, rel_name, [])
 
     # @property
     # def pk(self) -> t.Optional[PK]:
@@ -174,6 +202,7 @@ class Direction(str, enum.Enum):
 class _Related:
     direction: Direction
     label: str
+    target: t.Type[Node] = None  # type: ignore[assignment]
 
 
 def Related(

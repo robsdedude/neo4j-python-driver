@@ -25,9 +25,8 @@ from pydantic_core import (
     CoreSchema,
 )
 
-from .. import Record
 from . import cypher as cy
-from .cypher import filters as cy_f
+from .cypher import expr as cy_x
 
 
 if t.TYPE_CHECKING:
@@ -61,7 +60,7 @@ class PK(abc.ABC, t.Generic[T]):
         ...
 
     @abc.abstractmethod
-    def _cy_return(self, node: cy.Node) -> t.Optional[cy.ReturnArg]:
+    def _cy_return(self, node: cy.Node) -> t.Optional[cy_x.Expr]:
         ...
 
     @abc.abstractmethod
@@ -73,7 +72,11 @@ class PK(abc.ABC, t.Generic[T]):
     #     ...
 
     @abc.abstractmethod
-    def _cy_filter(self, value: te.Self, node: cy.Node) -> cy_f.Filter:
+    def _cy_filter(self, value: te.Self, node: cy.Node) -> cy_x.Expr:
+        ...
+
+    @abc.abstractmethod
+    def _cy_var_filter(self, var: cy.Var, node: cy.Node) -> cy_x.Expr:
         ...
 
     def __repr__(self) -> str:
@@ -112,7 +115,7 @@ class PKField(PK[tuple]):
             if field not in model.model_fields:
                 raise ValueError(f"Field `{field}` not found in model {model}")
 
-    def _cy_return(self, node: cy.Node) -> t.Optional[cy.ReturnArg]:
+    def _cy_return(self, node: cy.Node) -> t.Optional[cy_x.Expr]:
         return None
 
     def _load(self, model: Node, cy_return: t.Optional[t.Any]) -> None:
@@ -121,18 +124,32 @@ class PKField(PK[tuple]):
             for field in self._fields
         )
 
-    def _cy_filter(self, value: te.Self, node: cy.Node) -> cy_f.Filter:
+    def _cy_filter(self, value: te.Self, node: cy.Node) -> cy_x.Expr:
         assert value._value is not None
         attr_filters = tuple(
-            cy_f.BinaryFilter(
-                cy_f.FilterLiteral(node.attr(self._fields[i])),
-                cy_f.BinaryOp.EQ,
-                cy_f.FilterLiteral(cy.Var(value._value[i]))
+            cy_x.BinaryExpr(
+                cy_x.ExprLiteral(node.attr(self._fields[i])),
+                cy_x.BinaryOp.EQ,
+                cy_x.ExprLiteral(cy.Param(value._value[i]))
             )
             for i in range(len(self._fields))
         )
-        return cy_f.FilterChain(
-            cy_f.BinaryOp.AND,
+        return cy_x.ExprChain(
+            cy_x.BinaryOp.AND,
+            attr_filters
+        )
+
+    def _cy_var_filter(self, var: cy.Var, node: cy.Node) -> cy_x.Expr:
+        attr_filters = tuple(
+            cy_x.BinaryExpr(
+                cy_x.ExprLiteral(node.attr(self._fields[i])),
+                cy_x.BinaryOp.EQ,
+                cy_x.ExprLiteral(var.attr(self._fields[i]))
+            )
+            for i in range(len(self._fields))
+        )
+        return cy_x.ExprChain(
+            cy_x.BinaryOp.AND,
             attr_filters
         )
 

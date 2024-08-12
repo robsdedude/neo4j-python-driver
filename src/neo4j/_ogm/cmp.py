@@ -21,7 +21,7 @@ import typing as t
 from dataclasses import dataclass
 
 from . import cypher as cy
-from .cypher import filters as cy_f
+from .cypher import expr as cy_x
 
 
 if t.TYPE_CHECKING:
@@ -38,18 +38,18 @@ __all__ = [
 
 @dataclass
 class _Cmp:
-    _to_filter: t.Callable[[cy.EntityAttribute, t.Any], cy_f.Filter]
+    _to_filter: t.Callable[[cy.EntityAttribute, t.Any], cy_x.Expr]
     _value: t.Any
 
-    def to_filter(self, e: cy.EntityAttribute) -> cy_f.Filter:
+    def to_filter(self, e: cy.EntityAttribute) -> cy_x.Expr:
         return self._to_filter(e, self._value)
 
 
-def _eq_to_filter(e: cy.EntityAttribute, value: t.Any) -> cy_f.Filter:
-    return cy_f.BinaryFilter(
-        cy_f.FilterLiteral(e),
-        cy_f.BinaryOp.EQ,
-        cy_f.FilterLiteral(cy.Var(value))
+def _eq_to_filter(e: cy.EntityAttribute, value: t.Any) -> cy_x.Expr:
+    return cy_x.BinaryExpr(
+        cy_x.ExprLiteral(e),
+        cy_x.BinaryOp.EQ,
+        cy_x.ExprLiteral(cy.Param(value))
     )
 
 
@@ -57,11 +57,11 @@ def eq(value: t.Any) -> _Cmp:
     return _Cmp(_eq_to_filter, value)
 
 
-def _ge_to_filter(e: cy.EntityAttribute, value: t.Any) -> cy_f.Filter:
-    return cy_f.BinaryFilter(
-        cy_f.FilterLiteral(e),
-        cy_f.BinaryOp.GE,
-        cy_f.FilterLiteral(cy.Var(value))
+def _ge_to_filter(e: cy.EntityAttribute, value: t.Any) -> cy_x.Expr:
+    return cy_x.BinaryExpr(
+        cy_x.ExprLiteral(e),
+        cy_x.BinaryOp.GE,
+        cy_x.ExprLiteral(cy.Param(value))
     )
 
 
@@ -69,11 +69,11 @@ def ge(value: t.Any) -> _Cmp:
     return _Cmp(_ge_to_filter, value)
 
 
-def _contains_to_filter(e: cy.EntityAttribute, value: t.Any) -> cy_f.Filter:
-    return cy_f.BinaryFilter(
-        cy_f.FilterLiteral(e),
-        cy_f.BinaryOp.CONTAINS,
-        cy_f.FilterLiteral(cy.Var(value))
+def _contains_to_filter(e: cy.EntityAttribute, value: t.Any) -> cy_x.Expr:
+    return cy_x.BinaryExpr(
+        cy_x.ExprLiteral(e),
+        cy_x.BinaryOp.CONTAINS,
+        cy_x.ExprLiteral(cy.Param(value))
     )
 
 

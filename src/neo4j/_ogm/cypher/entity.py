@@ -23,6 +23,7 @@ import typing as t
 from .base import (
     OGMQuery,
     Part,
+    Ref,
 )
 
 
@@ -37,22 +38,58 @@ __all__ = [
     "Node",
     "Relationship",
     "Path",
+    "EntityRef",
     "EntityAttribute",
 ]
 
 
 class Entity(Part, abc.ABC):
     def attr(self, name: str) -> EntityAttribute:
-        return EntityAttribute(self, name)
+        return _EntityAttribute(self, name)
+
+    def ref(self) -> EntityRef:
+        return _EntityRef(self)
+
+    def _encode_labels(
+        self,
+        labels: t.Optional[t.Sequence[str]],
+        version: t.Tuple[int, int],
+    ) -> str:
+        if not labels:
+            return ""
+        escaped_labels = (f":{self._escape_literal(label, version)}"
+                          for label in labels)
+        return "".join(escaped_labels)
+
+    def _encode_properties(
+        self,
+        name_space: str,
+        properties: t.Optional[t.Dict[str, t.Any]],
+        version: t.Tuple[int, int],
+    ) -> OGMQuery:
+        if not properties:
+            return OGMQuery("", {})
+        param_map_entries = (
+            (self._escape_literal(k, version), f"${name_space}_p{i}")
+            for i, k in enumerate(properties.keys())
+        )
+        param_map = ", ".join(f"{k}: {v}" for k , v in param_map_entries)
+        return OGMQuery(
+            f" {{{param_map}}}",
+            {
+                f"{name_space}_p{i}": v
+                for i, v in enumerate(properties.values())
+            },
+        )
 
 
 class Node(Entity):
-    labels: t.Optional[t.List[str]]
+    labels: t.Optional[t.Sequence[str]]
     properties: t.Optional[t.Dict[str, t.Any]]
 
     def __init__(
         self,
-        labels: t.Optional[t.List[str]] = None,
+        labels: t.Optional[t.Sequence[str]] = None,
         properties: t.Optional[t.Dict[str, t.Any]] = None,
     ) -> None:
         self.labels = labels
@@ -61,49 +98,79 @@ class Node(Entity):
     def _to_cypher(
         self,
         name_reg: NameRegistry,
-        version: t.Tuple[int, int]
+        version: t.Tuple[int, int],
     ) -> OGMQuery:
         name = name_reg.get_or_register(self)
-        labels = self.labels or ()
-        escaped_labels = (f":{self._escape_literal(label, version)}"
-                          for label in labels)
-
-        properties = self.properties or {}
-        param_map_entries = (
-            (self._escape_literal(k, version), f"${name}_p{i}")
-            for i, k in enumerate(properties.keys())
-        )
-        param_map = ", ".join(f"{k}: {v}" for k , v in param_map_entries)
-        if param_map:
-            param_map = f" {{{param_map}}}"
+        escaped_labels = self._encode_labels(self.labels, version)
+        param_query = self._encode_properties(name, self.properties, version)
         return OGMQuery(
-            f"({name}{''.join(escaped_labels)}{param_map})",
-            {
-                f"{name}_p{i}": v
-                for i, v in enumerate(properties.values())
-            },
+            f"({name}{''.join(escaped_labels)}{param_query.query})",
+            param_query.parameters
         )
+
+    def ref(self) -> NodeRef:
+        return _NodeRef(self)
 
 
 class Relationship(Entity):
     label: t.Optional[str]
     properties: t.Optional[t.Dict[str, t.Any]]
+    start_node: t.Union[Entity, NodeRef, str, None]
+    end_node: t.Union[Entity, NodeRef, str, None]
+    directed: bool
 
     def __init__(
         self,
         label: t.Optional[str] = None,
         properties: t.Optional[t.Dict[str, t.Any]] = None,
+        start_node: t.Union[Entity, NodeRef, str, None] = None,
+        end_node: t.Union[Entity, NodeRef, str, None] = None,
+        directed: bool = True,
     ) -> None:
         self.label = label
         self.properties = properties
+        self.start_node = start_node
+        self.end_node = end_node
+        self.directed = directed
+
+    @staticmethod
+    def _encode_node(
+        node: t.Union[Entity, NodeRef, str, None],
+        name_reg: NameRegistry,
+        version: t.Tuple[int, int],
+    ) -> OGMQuery:
+        if node is None:
+            return OGMQuery("()", {})
+        if isinstance(node, str):
+            return OGMQuery(node, {})
+        if isinstance(node, NodeRef):
+            q = node._to_cypher(name_reg, version)
+            return OGMQuery(f"({q.query})", q.parameters)
+        return node._to_cypher(name_reg, version)
 
     def _to_cypher(
         self,
         name_reg: NameRegistry,
-        version: t.Tuple[int, int]
+        version: t.Tuple[int, int],
     ) -> OGMQuery:
-        raise NotImplementedError
-
+        name = name_reg.get_or_register(self)
+        labels = () if self.label is None else (self.label,)
+        escaped_label = self._encode_labels(labels, version)
+        param_query = self._encode_properties(name, self.properties, version)
+        params = param_query.parameters
+        start_q = self._encode_node(self.start_node, name_reg, version)
+        params.update(start_q.parameters)
+        end_q = self._encode_node(self.end_node, name_reg, version)
+        params.update(end_q.parameters)
+        directed = ">" if self.directed else ""
+        return OGMQuery(
+            (
+                f"{start_q.query}"
+                f"-[{name}{escaped_label}{param_query.query}]-{directed}"
+                f"{end_q.query}"
+            ),
+            params
+        )
 
 
 class _Direction(enum.Enum):
@@ -143,30 +210,70 @@ class Path(Entity):
     def _to_cypher(
         self,
         name_reg: NameRegistry,
-        version: t.Tuple[int, int]
+        version: t.Tuple[int, int],
     ) -> OGMQuery:
         raise NotImplementedError
 
 
-class EntityAttribute(Entity):
-    _parent: Entity
-    _name: str
+class EntityRef(Ref, abc.ABC):
+    pass
 
-    def __init__(self, parent: Entity, name: str) -> None:
-        self._parent = parent
-        self._name = name
+
+class NodeRef(EntityRef, abc.ABC):
+    pass
+
+
+class _EntityRef(EntityRef):
+    _entity: Entity
+
+    def __init__(self, entity: Entity) -> None:
+        self._entity = entity
 
     def _to_cypher(
         self,
         name_reg: NameRegistry,
-        version: t.Tuple[int, int]
+        version: t.Tuple[int, int],
     ) -> OGMQuery:
-        this: Entity = self
-        path = []
-        while isinstance(this, EntityAttribute):
+        return OGMQuery(
+            name_reg.get_or_register(self._entity),
+            {}
+        )
+
+
+class _NodeRef(_EntityRef, NodeRef, abc.ABC):
+    _entity: Node
+
+    def __init__(self, entity: Node) -> None:
+        self._entity = entity
+
+
+class EntityAttribute(EntityRef, abc.ABC):
+    pass
+
+
+class _EntityAttribute(EntityAttribute):
+    _parent: t.Union[Entity, EntityRef]
+    _name: str
+
+    def __init__(self, parent: t.Union[Entity, EntityRef], name: str) -> None:
+        self._parent = parent
+        self._name = name
+
+    def attr(self, name: str) -> EntityAttribute:
+        return _EntityAttribute(self, name)
+
+    def _to_cypher(
+        self,
+        name_reg: NameRegistry,
+        version: t.Tuple[int, int],
+    ) -> OGMQuery:
+        this: _EntityAttribute = self
+        path = [self._escape_literal(self._name, version)]
+        while isinstance(this._parent, _EntityAttribute):
             path.append(self._escape_literal(self._name, version))
             this = this._parent
-        path.append(name_reg.get_or_register(this))
+        assert isinstance(this._parent, Entity)
+        path.append(name_reg.get_or_register(this._parent))
 
         return OGMQuery(
             ".".join(reversed(path)),

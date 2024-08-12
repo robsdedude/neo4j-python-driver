@@ -19,14 +19,17 @@ from __future__ import annotations
 import typing as t
 from collections import defaultdict
 
-from .base import Var
+from .base import (
+    Param,
+    Var,
+)
 from .entity import (
     Entity,
     Node,
     Path,
     Relationship,
 )
-from .filters import Filter
+from .expr import Expr
 
 
 if t.TYPE_CHECKING:
@@ -38,7 +41,7 @@ __all__ = [
 ]
 
 
-_TReg: te.TypeAlias = t.Union[Entity, Var]
+_TReg: te.TypeAlias = t.Union[Entity, Param, Var]
 
 
 class NameRegistry:
@@ -59,11 +62,15 @@ class NameRegistry:
             prefix = "r"
         elif isinstance(obj, Path):
             prefix = "p"
+        elif isinstance(obj, Param):
+            prefix = "in"
         elif isinstance(obj, Var):
-            prefix = "v"
+            prefix = f"_{obj._prefix}"
         else:
             raise NotImplementedError(f"Unsupported entity type: {type(obj)}")
         self._counters[prefix] += 1
+        if self._counters[prefix] == 1:
+            return prefix
         return f"{prefix}{self._counters[prefix]}"
 
     def register(self, obj: _TReg) -> str:

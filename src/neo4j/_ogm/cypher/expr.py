@@ -21,9 +21,11 @@ import enum
 import typing as t
 
 from .base import (
+    Expr,
     OGMQuery,
+    Param,
     Part,
-    Var,
+    Ref,
 )
 
 
@@ -38,8 +40,12 @@ if t.TYPE_CHECKING:
 
 
 __all__ = [
+    "UnaryOp",
     "BinaryOp",
-    "Filter",
+    "ExprLiteral",
+    "UnaryExpr",
+    "BinaryExpr",
+    "ExprChain",
 ]
 
 
@@ -76,10 +82,12 @@ class BinaryOp(enum.Enum):
     STARTS_WITH = "STARTS_WITH"
     ENDS_WITH = "ENDS_WITH"
     CONTAINS = "CONTAINS"
+    IN = "IN"
     REGEX = "REGEX"
     AND = "AND"
     OR = "OR"
     XOR = "XOR"
+    PLUS = "+"
 
     _TRANSLATION: t.ClassVar[t.Dict[BinaryOp, str]]
 
@@ -97,10 +105,12 @@ class BinaryOp(enum.Enum):
                 cls.STARTS_WITH: "STARTS WITH",
                 cls.ENDS_WITH: "ENDS WITH",
                 cls.CONTAINS: "CONTAINS",
+                cls.IN: "IN",
                 cls.REGEX: "=~",
                 cls.AND: "AND",
                 cls.OR: "OR",
                 cls.XOR: "XOR",
+                cls.PLUS: "+",
             }
         return cls._TRANSLATION  # type: ignore[return-value]
 
@@ -108,40 +118,30 @@ class BinaryOp(enum.Enum):
         return self._translation(version)[self]
 
 
-class Filter(Part, abc.ABC):
-    @abc.abstractmethod
-    def _to_cypher(
-        self,
-        name_reg: NameRegistry,
-        version: t.Tuple[int, int]
-    ) -> OGMQuery:
-        ...
+class ExprLiteral(Expr):
+    _literal: t.Union[Ref, str]
 
-
-class FilterLiteral(Filter):
-    _literal: t.Union[Var, EntityAttribute, str]
-
-    def __init__(self, literal: t.Union[Var, EntityAttribute, str]) -> None:
+    def __init__(self, literal: t.Union[Ref, str]) -> None:
         self._literal = literal
 
     def _to_cypher(
         self,
         name_reg: NameRegistry,
-        version: t.Tuple[int, int]
+        version: t.Tuple[int, int],
     ) -> OGMQuery:
         if isinstance(self._literal, str):
             return OGMQuery(self._literal, {})
         return self._literal._to_cypher(name_reg, version)
 
 
-class UnaryFilter(Filter):
+class UnaryExpr(Expr):
     _op: UnaryOp
-    _target: Filter
+    _target: Expr
 
     def __init__(
         self,
         op: UnaryOp,
-        target: Filter
+        target: Expr
     ) -> None:
         self._op = op
         self._target = target
@@ -149,7 +149,7 @@ class UnaryFilter(Filter):
     def _to_cypher(
         self,
         name_reg: NameRegistry,
-        version: t.Tuple[int, int]
+        version: t.Tuple[int, int],
     ) -> OGMQuery:
         op = self._op._to_cypher(version)
         target = self._target._to_cypher(name_reg, version)
@@ -165,12 +165,12 @@ class UnaryFilter(Filter):
             )
 
 
-class BinaryFilter(Filter):
+class BinaryExpr(Expr):
     _op: BinaryOp
-    _left: Filter
-    _right: Filter
+    _left: Expr
+    _right: Expr
 
-    def __init__(self, left: Filter, op: BinaryOp, right: Filter) -> None:
+    def __init__(self, left: Expr, op: BinaryOp, right: Expr) -> None:
         self._op = op
         self._left = left
         self._right = right
@@ -178,7 +178,7 @@ class BinaryFilter(Filter):
     def _to_cypher(
         self,
         name_reg: NameRegistry,
-        version: t.Tuple[int, int]
+        version: t.Tuple[int, int],
     ) -> OGMQuery:
         left = self._left._to_cypher(name_reg, version)
         right = self._right._to_cypher(name_reg, version)
@@ -193,11 +193,11 @@ class BinaryFilter(Filter):
         )
 
 
-class FilterChain(Filter):
+class ExprChain(Expr):
     _op: BinaryOp
-    _targets: t.Sequence[Filter]
+    _targets: t.Sequence[Expr]
 
-    def __init__(self, op: BinaryOp, targets: t.Sequence[Filter]) -> None:
+    def __init__(self, op: BinaryOp, targets: t.Sequence[Expr]) -> None:
         if len(targets) < 1:
             raise ValueError("FilterChain must have at least one target")
         self._op = op
@@ -206,7 +206,7 @@ class FilterChain(Filter):
     def _to_cypher(
         self,
         name_reg: NameRegistry,
-        version: t.Tuple[int, int]
+        version: t.Tuple[int, int],
     ) -> OGMQuery:
         if len(self._targets) == 1:
             return self._targets[0]._to_cypher(name_reg, version)
