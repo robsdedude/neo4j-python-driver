@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import typing as t
+from urllib.parse import urlparse as _urlparse
 
 
 if t.TYPE_CHECKING:
@@ -31,6 +32,7 @@ if t.TYPE_CHECKING:
 
 from .._api import (
     NotificationMinimumSeverity,
+    parse_routing_context,
     RoutingControl,
     TelemetryAPI,
 )
@@ -45,6 +47,7 @@ from .._conf import (
 )
 from .._debug import ENABLED as DEBUG_ENABLED
 from .._meta import (
+    deprecated,
     deprecation_warn,
     experimental_warn,
     preview_warn,
@@ -62,8 +65,6 @@ from ..api import (
     Bookmarks,
     DRIVER_BOLT,
     DRIVER_NEO4J,
-    parse_neo4j_uri,
-    parse_routing_context,
     READ_ACCESS,
     SECURITY_TYPE_SECURE,
     SECURITY_TYPE_SELF_SIGNED_CERTIFICATE,
@@ -85,6 +86,7 @@ from ..auth_management import (
     ClientCertificateProvider,
 )
 from ..exceptions import Neo4jError
+from .addressing import _MultiAddress
 from .auth_management import _StaticClientCertificateProvider
 from .bookmark_manager import (
     Neo4jBookmarkManager,
@@ -107,6 +109,7 @@ if t.TYPE_CHECKING:
 
     from .._api import T_RoutingControl
     from ..api import _TAuth
+    from .addressing import MultiAddress
 
     class _DefaultEnum(Enum):
         default = "default"
@@ -127,7 +130,7 @@ class GraphDatabase:
         @classmethod
         def driver(
             cls,
-            uri: str,
+            uri: str | MultiAddress,
             *,
             auth: _TAuth | AuthManager = ...,
             max_connection_lifetime: float = ...,
@@ -183,7 +186,7 @@ class GraphDatabase:
         @classmethod
         def driver(
             cls,
-            uri: str,
+            uri: str | MultiAddress,
             *,
             auth: _TAuth | AuthManager = None,
             **config,
@@ -199,7 +202,29 @@ class GraphDatabase:
                 see :ref:`driver-configuration-ref` for available
                 key-word arguments.
             """
-            driver_type, security_type, parsed = parse_neo4j_uri(uri)
+            if isinstance(uri, _MultiAddress):
+                multi_addr = uri
+            else:
+                parsed = _urlparse(uri)
+                # TODO: 6.0 - don't strip routing context here but let
+                #             exception be raised when routing context is
+                #             passed along with direct scheme
+                routing_context = parse_routing_context(parsed.query)
+                multi_addr = _MultiAddress._from_url(
+                    parsed._replace(query="")
+                )
+                assert multi_addr._driver_type in {DRIVER_BOLT, DRIVER_NEO4J}
+                if multi_addr._driver_type == DRIVER_NEO4J:
+                    multi_addr._routing_context = routing_context
+                elif routing_context:
+                    # TODO: 6.0 - remove this warning (raise above instead)
+                    deprecation_warn(
+                        'Creating a direct driver ("bolt://" scheme) with '
+                        "routing context (URI parameters) is deprecated. They "
+                        "will be ignored. This will raise an error in a "
+                        f'future release. Given URI "{uri}"',
+                        stack_level=2,
+                    )
 
             if not isinstance(auth, AuthManager):
                 auth = AuthManagers.static(auth)
@@ -238,7 +263,7 @@ class GraphDatabase:
                     )
                 )
 
-            if security_type in {
+            if multi_addr._security_type in {
                 SECURITY_TYPE_SELF_SIGNED_CERTIFICATE,
                 SECURITY_TYPE_SECURE,
             } and (
@@ -266,9 +291,12 @@ class GraphDatabase:
                     )
                 )
 
-            if security_type == SECURITY_TYPE_SECURE:
+            if multi_addr._security_type == SECURITY_TYPE_SECURE:
                 config["encrypted"] = True
-            elif security_type == SECURITY_TYPE_SELF_SIGNED_CERTIFICATE:
+            elif (
+                multi_addr._security_type
+                == SECURITY_TYPE_SELF_SIGNED_CERTIFICATE
+            ):
                 config["encrypted"] = True
                 config["trusted_certificates"] = TrustAll()
 
@@ -296,27 +324,11 @@ class GraphDatabase:
                     f"{liveness_check_timeout}."
                 )
 
-            assert driver_type in {DRIVER_BOLT, DRIVER_NEO4J}
-            if driver_type == DRIVER_BOLT:
-                if parse_routing_context(parsed.query):
-                    deprecation_warn(
-                        'Creating a direct driver ("bolt://" scheme) with '
-                        "routing context (URI parameters) is deprecated. They "
-                        "will be ignored. This will raise an error in a "
-                        f'future release. Given URI "{uri}"',
-                        stack_level=2,
-                    )
-                    # TODO: 6.0 - raise instead of warning
-                    # raise ValueError(
-                    #     'Routing parameters are not supported with scheme '
-                    #     '"bolt". Given URI "{}".'.format(uri)
-                    # )
-                return cls.bolt_driver(parsed.netloc, **config)
+            assert multi_addr._driver_type in {DRIVER_BOLT, DRIVER_NEO4J}
+            if multi_addr._driver_type == DRIVER_BOLT:
+                return cls._bolt_driver(multi_addr, **config)
             # else driver_type == DRIVER_NEO4J
-            routing_context = parse_routing_context(parsed.query)
-            return cls.neo4j_driver(
-                parsed.netloc, routing_context=routing_context, **config
-            )
+            return cls._neo4j_driver(multi_addr, **config)
 
     @classmethod
     def bookmark_manager(
@@ -402,8 +414,25 @@ class GraphDatabase:
             bookmarks_consumer=bookmarks_consumer,
         )
 
+    # TODO: 6.0 - remove this unused, undocumented method
     @classmethod
+    @deprecated(
+        "bold_driver is considered an internal function, "
+        "and will be removed in a future version"
+    )
     def bolt_driver(cls, target, **config):
+        """
+        Create a direct driver.
+
+        Create a driver for direct Bolt server access that uses
+        socket I/O and thread-based concurrency.
+        """
+        return cls._bolt_driver(
+            _MultiAddress("bolt", (target,)), **config
+        )
+
+    @classmethod
+    def _bolt_driver(cls, multi_addr, **config):
         """
         Create a direct driver.
 
@@ -416,13 +445,18 @@ class GraphDatabase:
         )
 
         try:
-            return BoltDriver.open(target, **config)
+            return BoltDriver._open(multi_addr, **config)
         except (BoltHandshakeError, BoltSecurityError) as error:
             from ..exceptions import ServiceUnavailable
 
             raise ServiceUnavailable(str(error)) from error
 
+    # TODO: 6.0 - remove this unused, undocumented method
     @classmethod
+    @deprecated(
+        "neo4j_driver is considered an internal function, "
+        "and will be removed in a future version"
+    )
     def neo4j_driver(cls, *targets, routing_context=None, **config):
         """
         Create a routing driver.
@@ -430,23 +464,31 @@ class GraphDatabase:
         Create a driver for routing-capable Neo4j service access
         that uses socket I/O and thread-based concurrency.
         """
-        # TODO: 6.0 - adjust signature to only take one target
-        if len(targets) > 1:
-            deprecation_warn(
-                "Creating a routing driver with multiple targets is "
-                "deprecated. The driver only uses the first target anyway. "
-                "The method signature will change in a future release.",
-            )
+        return cls._neo4j_driver(
+            _MultiAddress(
+                "neo4j",
+                targets,
+                routing_context=routing_context,
+            ),
+            routing_context=routing_context,
+            **config,
+        )
 
+    @classmethod
+    def _neo4j_driver(cls, multi_addr, **config):
+        """
+        Create a routing driver.
+
+        Create a driver for routing-capable Neo4j service access
+        that uses socket I/O and thread-based concurrency.
+        """
         from .._exceptions import (
             BoltHandshakeError,
             BoltSecurityError,
         )
 
         try:
-            return Neo4jDriver.open(
-                *targets, routing_context=routing_context, **config
-            )
+            return Neo4jDriver._open(multi_addr, **config)
         except (BoltHandshakeError, BoltSecurityError) as error:
             from ..exceptions import ServiceUnavailable
 
@@ -454,20 +496,43 @@ class GraphDatabase:
 
 
 class _Direct:
-    # TODO: 6.0 - those attributes should be private
+    # TODO: 6.0 - remove these unused, undocumented attributes
     default_host = "localhost"
     default_port = 7687
     default_target = ":"
 
-    def __init__(self, address):
-        self._address = address
+    def __init__(self, multi_addr):
+        self._multi_addr = multi_addr
 
+    # TODO: 6.0 - remove this property
     @property
+    @deprecated("address is deprecated without replacement")
     def address(self):
-        return self._address
+        if callable(self._initial_addresses._addresses):
+            raise NotImplementedError(
+                "Cannot access address when the driver is "
+                "configured with a dynamic address provider."
+            )
+        addresses = list(self._initial_addresses._addresses)
+        if len(addresses) != 1:
+            raise NotImplementedError(
+                "Cannot access address when the driver is "
+                "configured with multiple addresses."
+            )
+        return addresses[0]
+
+    # TODO: 6.0 - remove this unused, undocumented method
+    @classmethod
+    @deprecated(
+        "parse_target is considered an internal function, "
+        "and will be removed in a future version"
+    )
+    def parse_target(cls, target):
+        """Parse a target string to produce an address."""
+        return cls._parse_target(target)
 
     @classmethod
-    def parse_target(cls, target):
+    def _parse_target(cls, target):
         """Parse a target string to produce an address."""
         if not target:
             target = cls.default_target
@@ -479,7 +544,7 @@ class _Direct:
 
 
 class _Routing:
-    # TODO: 6.0 - those attributes should be private
+    # TODO: 6.0 - remove these unused, undocumented attributes
     default_host = "localhost"
     default_port = 7687
     default_targets = ": :17601 :17687"
@@ -487,12 +552,29 @@ class _Routing:
     def __init__(self, initial_addresses):
         self._initial_addresses = initial_addresses
 
+    # TODO: 6.0 - remove this property
     @property
+    @deprecated("initial_addresses is deprecated without replacement")
     def initial_addresses(self):
-        return self._initial_addresses
+        if callable(self._initial_addresses._addresses):
+            raise NotImplementedError(
+                "Cannot access initial addresses when the driver is "
+                "configured with a dynamic address provider."
+            )
+        return list(self._initial_addresses._addresses)
+
+    # TODO: 6.0 - remove this unused, undocumented method
+    @classmethod
+    @deprecated(
+        "parse_target is considered an internal function, "
+        "and will be removed in a future version"
+    )
+    def parse_targets(cls, *targets):
+        """Parse a sequence of target strings to produce an address list."""
+        return cls._parse_targets(*targets)
 
     @classmethod
-    def parse_targets(cls, *targets):
+    def _parse_targets(cls, *targets):
         """Parse a sequence of target strings to produce an address list."""
         targets = " ".join(targets)
         if not targets:
@@ -1321,23 +1403,32 @@ class BoltDriver(_Direct, Driver):
     :meth:`GraphDatabase.driver` instead.
     """
 
+    # TODO: 6.0 - remove this unused, undocumented method
     @classmethod
+    @deprecated(
+        "open is considered an internal function, "
+        "and will be removed in a future version"
+    )
     def open(cls, target, **config):
+        address = cls.parse_target(target)
+        return cls._open(address, **config)
+
+    @classmethod
+    def _open(cls, multi_addr, **config):
         from .io import BoltPool
 
-        address = cls.parse_target(target)
         pool_config, default_workspace_config = Config.consume_chain(
             config, PoolConfig, WorkspaceConfig
         )
         pool = BoltPool.open(
-            address,
+            multi_addr,
             pool_config=pool_config,
             workspace_config=default_workspace_config,
         )
         return cls(pool, default_workspace_config)
 
     def __init__(self, pool, default_workspace_config):
-        _Direct.__init__(self, pool.address)
+        _Direct.__init__(self, pool.multi_addr)
         Driver.__init__(self, pool, default_workspace_config)
         self._default_workspace_config = default_workspace_config
 
@@ -1355,24 +1446,35 @@ class Neo4jDriver(_Routing, Driver):
     :meth:`GraphDatabase.driver` instead.
     """
 
+    # TODO: 6.0 - remove this unused, undocumented method
     @classmethod
+    @deprecated(
+        "open is considered an internal function, "
+        "and will be removed in a future version"
+    )
     def open(cls, *targets, routing_context=None, **config):
+        targets = cls.parse_targets(*targets)
+        multi_addr = _MultiAddress(
+            "neo4j", targets, routing_context=routing_context
+        )
+        cls._open(multi_addr, **config)
+
+    @classmethod
+    def _open(cls, multi_addr, **config):
         from .io import Neo4jPool
 
-        addresses = cls.parse_targets(*targets)
         pool_config, default_workspace_config = Config.consume_chain(
             config, PoolConfig, WorkspaceConfig
         )
         pool = Neo4jPool.open(
-            *addresses,
-            routing_context=routing_context,
+            multi_addr,
             pool_config=pool_config,
             workspace_config=default_workspace_config,
         )
         return cls(pool, default_workspace_config)
 
     def __init__(self, pool, default_workspace_config):
-        _Routing.__init__(self, [pool.address])
+        _Routing.__init__(self, pool.multi_addr)
         Driver.__init__(self, pool, default_workspace_config)
 
 

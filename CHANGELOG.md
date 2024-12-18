@@ -5,6 +5,15 @@ See also https://github.com/neo4j/neo4j-python-driver/wiki for a full changelog.
 ## NEXT RELEASE
 - Since the types of `Relationship`s are tied to the `Graph` object they belong to, fixing `pickle` support for graph types means that `Relationship`s with the same name will have a different type after `deepcopy`ing or pickling and unpickling them or their graph.
   For more details, see https://github.com/neo4j/neo4j-python-driver/pull/1133
+- Deprecated undocumented class methods
+  - `GraphDatabase.bolt_driver`, `GraphDatabase.neo4j_driver`
+  - `BoltDriver.open`, `BoltDriver.parse_target`
+  - `Neo4jDriver.open`, `Neo4jDriver.parse_targets`
+  - All async counterparts
+  They're internal and should not be used by client code.
+- Deprecated undocumented properties without replacement
+  - `Neo4jDriver.initial_addresses`, `BoltDriver.address`
+  - All async counterparts
 
 
 ## Version 5.27

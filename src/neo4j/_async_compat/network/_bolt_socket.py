@@ -48,6 +48,11 @@ from ssl import (
 )
 
 from ... import addressing
+from ..._async.addressing import _AsyncMultiAddress
+from ..._async_compat.util import (
+    AsyncUtil,
+    Util,
+)
 from ..._deadline import Deadline
 from ..._exceptions import (
     BoltError,
@@ -55,6 +60,7 @@ from ..._exceptions import (
     BoltSecurityError,
     SocketDeadlineExceededError,
 )
+from ..._sync.addressing import _MultiAddress
 from ...exceptions import (
     DriverError,
     ServiceUnavailable,
@@ -400,8 +406,15 @@ class AsyncBoltSocket:
         # Catches refused connections see:
         # https://docs.python.org/2/library/errno.html
 
-        resolved_addresses = AsyncNetworkUtil.resolve_address(
-            addressing.Address(address), resolver=custom_resolver
+        if isinstance(address, _AsyncMultiAddress):
+            addresses = await address.addresses()
+        else:
+            addresses = (address,)
+        resolved_addresses = AsyncUtil.chain_iter(
+            AsyncNetworkUtil.resolve_address(
+                addressing.Address(address), resolver=custom_resolver
+            )
+            for address in addresses
         )
         async for resolved_address in resolved_addresses:
             deadline_timeout = deadline.to_timeout()
@@ -733,8 +746,15 @@ class BoltSocket:
         # Catches refused connections see:
         # https://docs.python.org/2/library/errno.html
 
-        resolved_addresses = NetworkUtil.resolve_address(
-            addressing.Address(address), resolver=custom_resolver
+        if isinstance(address, _MultiAddress):
+            addresses = address.addresses()
+        else:
+            addresses = (address,)
+        resolved_addresses = Util.chain_iter(
+            NetworkUtil.resolve_address(
+                addressing.Address(address), resolver=custom_resolver
+            )
+            for address in addresses
         )
         for resolved_address in resolved_addresses:
             deadline_timeout = deadline.to_timeout()

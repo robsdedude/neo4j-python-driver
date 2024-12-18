@@ -683,7 +683,7 @@ async def test_driver_factory_with_notification_filters(
     open_mock = mocker.patch.object(
         pool_cls, "open", return_value=mocker.AsyncMock(spec=pool_cls)
     )
-    open_mock.return_value.address = mocker.Mock()
+    open_mock.return_value.multi_addr = mocker.Mock()
     mocker.patch.object(AsyncBoltPool, "open", new=open_mock)
 
     filter_kwargs: NotificationFilter = {}
@@ -866,7 +866,7 @@ async def test_session_factory_with_notification_filter(
     pool_cls = AsyncNeo4jPool if uri.startswith("neo4j://") else AsyncBoltPool
     pool_mock: t.Any = mocker.AsyncMock(spec=pool_cls)
     mocker.patch.object(pool_cls, "open", return_value=pool_mock)
-    pool_mock.address = mocker.Mock()
+    pool_mock.multi_addr = mocker.Mock()
 
     filter_kwargs: NotificationFilter = {}
     if min_sev is not ...:

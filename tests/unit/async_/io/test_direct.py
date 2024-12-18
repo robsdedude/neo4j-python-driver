@@ -37,6 +37,9 @@ from ...._async_compat import mark_async_test
 class AsyncFakeBoltPool(AsyncIOPool):
     is_direct_pool = False
 
+    def _pool_key_by_address(self, address):
+        return address
+
     def __init__(self, connection_gen, address, *, auth=None, **config):
         self.buffered_connection_mocks = []
         config["auth"] = static_auth(None)
