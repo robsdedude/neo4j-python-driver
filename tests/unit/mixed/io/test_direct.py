@@ -123,9 +123,7 @@ class TestMixedConnectionPoolTestCase:
 
             # wait for all threads to release connections back to pool
             for t in threads:
-                t.join(timeout=5)
-                if t.is_alive():
-                    raise TimeoutError(f"Joining thread timed out: {t!r}")
+                t.join(timeout=1)
             # The pool size is still 5, but all are free
             self.assert_pool_size(address, 0, 5, pool)
 

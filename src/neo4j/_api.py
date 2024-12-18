@@ -18,6 +18,9 @@ from __future__ import annotations
 
 import typing as t
 from enum import Enum
+from urllib.parse import parse_qs
+
+from .exceptions import ConfigurationError as _ConfigurationError
 
 
 if t.TYPE_CHECKING:
@@ -25,6 +28,18 @@ if t.TYPE_CHECKING:
 
 
 __all__ = [
+    "DRIVER_BOLT",
+    "DRIVER_NEO4J",
+    "SECURITY_TYPE_NOT_SECURE",
+    "SECURITY_TYPE_SECURE",
+    "SECURITY_TYPE_SELF_SIGNED_CERTIFICATE",
+    "URI_SCHEME_BOLT",
+    "URI_SCHEME_BOLT_ROUTING",
+    "URI_SCHEME_BOLT_SECURE",
+    "URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE",
+    "URI_SCHEME_NEO4J",
+    "URI_SCHEME_NEO4J_SECURE",
+    "URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE",
     "NotificationCategory",
     "NotificationClassification",
     "NotificationDisabledCategory",
@@ -33,6 +48,8 @@ __all__ = [
     "NotificationSeverity",
     "RoutingControl",
     "TelemetryAPI",
+    "parse_routing_context",
+    "parse_uri_scheme",
 ]
 
 
@@ -348,3 +365,97 @@ if t.TYPE_CHECKING:
         te.Literal["r", "w"],
     ]
     __all__.append("T_RoutingControl")
+
+
+# TODO: 6.0 - make these 2 constants private and use an enum
+DRIVER_BOLT: te.Final[str] = "DRIVER_BOLT"
+DRIVER_NEO4J: te.Final[str] = "DRIVER_NEO4J"
+
+# TODO: 6.0 - make these 3 constants private and use an enum
+SECURITY_TYPE_NOT_SECURE: te.Final[str] = "SECURITY_TYPE_NOT_SECURE"
+SECURITY_TYPE_SELF_SIGNED_CERTIFICATE: te.Final[str] = (
+    "SECURITY_TYPE_SELF_SIGNED_CERTIFICATE"
+)
+SECURITY_TYPE_SECURE: te.Final[str] = "SECURITY_TYPE_SECURE"
+
+URI_SCHEME_BOLT: te.Final[str] = "bolt"
+URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE: te.Final[str] = "bolt+ssc"
+URI_SCHEME_BOLT_SECURE: te.Final[str] = "bolt+s"
+
+URI_SCHEME_NEO4J: te.Final[str] = "neo4j"
+URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE: te.Final[str] = "neo4j+ssc"
+URI_SCHEME_NEO4J_SECURE: te.Final[str] = "neo4j+s"
+
+URI_SCHEME_BOLT_ROUTING: te.Final[str] = "bolt+routing"
+
+
+def parse_uri_scheme(scheme: str) -> tuple[str, str]:
+    if scheme == URI_SCHEME_BOLT_ROUTING:
+        raise _ConfigurationError(
+            f"Uri scheme {scheme!r} has been renamed. "
+            f"Use {URI_SCHEME_NEO4J!r}"
+        )
+    elif scheme == URI_SCHEME_BOLT:
+        driver_type = DRIVER_BOLT
+        security_type = SECURITY_TYPE_NOT_SECURE
+    elif scheme == URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE:
+        driver_type = DRIVER_BOLT
+        security_type = SECURITY_TYPE_SELF_SIGNED_CERTIFICATE
+    elif scheme == URI_SCHEME_BOLT_SECURE:
+        driver_type = DRIVER_BOLT
+        security_type = SECURITY_TYPE_SECURE
+    elif scheme == URI_SCHEME_NEO4J:
+        driver_type = DRIVER_NEO4J
+        security_type = SECURITY_TYPE_NOT_SECURE
+    elif scheme == URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE:
+        driver_type = DRIVER_NEO4J
+        security_type = SECURITY_TYPE_SELF_SIGNED_CERTIFICATE
+    elif scheme == URI_SCHEME_NEO4J_SECURE:
+        driver_type = DRIVER_NEO4J
+        security_type = SECURITY_TYPE_SECURE
+    else:
+        supported_schemes = [
+            URI_SCHEME_BOLT,
+            URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE,
+            URI_SCHEME_BOLT_SECURE,
+            URI_SCHEME_NEO4J,
+            URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE,
+            URI_SCHEME_NEO4J_SECURE,
+        ]
+        raise _ConfigurationError(
+            f"URI scheme {scheme!r} is not supported. "
+            f"Supported URI schemes are {supported_schemes}. "
+            "Examples: bolt://host[:port] or "
+            "neo4j://host[:port][?routing_context]"
+        )
+
+    return driver_type, security_type
+
+
+def parse_routing_context(query):
+    """
+    Parse the query portion of a URI.
+
+    Generates a routing context dictionary.
+    """
+    if not query:
+        return {}
+
+    context = {}
+    parameters = parse_qs(query, True)
+    for key in parameters:
+        value_list = parameters[key]
+        if len(value_list) != 1:
+            raise _ConfigurationError(
+                f"Duplicated query parameters with key '{key}', value "
+                f"'{value_list}' found in query string '{query}'"
+            )
+        value = value_list[0]
+        if not value:
+            raise _ConfigurationError(
+                f"Invalid parameters:'{key}={value}' in query string "
+                f"'{query}'."
+            )
+        context[key] = value
+
+    return context

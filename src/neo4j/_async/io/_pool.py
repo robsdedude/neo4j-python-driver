@@ -146,6 +146,12 @@ class AsyncIOPool(abc.ABC):
         with self.lock:
             return self._ssr_feature_tracker.has_feature
 
+    @abc.abstractmethod
+    def _pool_key_by_address(self, address): ...
+
+    def _pool_key_by_connection(self, connection):
+        return self._pool_key_by_address(connection.unresolved_address)
+
     async def __aenter__(self):
         return self
 
@@ -155,9 +161,9 @@ class AsyncIOPool(abc.ABC):
     async def get_auth(self):
         return await AsyncUtil.callback(self.pool_config.auth.get_auth)
 
-    async def _acquire_from_pool(self, address):
+    async def _acquire_from_pool(self, pool_key):
         with self.lock:
-            for connection in self.connections[address]:
+            for connection in self.connections[pool_key]:
                 if connection.in_use:
                     continue
                 connection.pool = self
@@ -166,12 +172,12 @@ class AsyncIOPool(abc.ABC):
         return None  # no free connection available
 
     def _remove_connection(self, connection):
-        address = connection.unresolved_address
+        pool_key = self._pool_key_by_connection(connection)
         with self.lock:
             log.debug(
                 "[#%04X]  _: <POOL> remove connection from pool %r %s",
                 connection.local_port,
-                address,
+                pool_key,
                 connection.connection_id,
             )
             # If closure fails (e.g. because the server went
@@ -179,27 +185,27 @@ class AsyncIOPool(abc.ABC):
             # be removed. Therefore, we silently ignore if the
             # connection isn't in the pool anymore.
             with suppress(ValueError):
-                self.connections.get(address, []).remove(connection)
+                self.connections.get(pool_key, []).remove(connection)
                 self._ssr_feature_tracker.remove_connection(connection)
 
-    def _add_connections(self, address, *connections):
+    def _add_connections(self, pool_key, *connections):
         with self.lock:
-            self.connections[address].extend(connections)
+            self.connections[pool_key].extend(connections)
             for connection in connections:
                 self._ssr_feature_tracker.add_connection(connection)
 
-    def _remove_connections(self, address, *connections):
+    def _remove_connections(self, pool_key, *connections):
         with self.lock:
-            existing_connections = self.connections.get(address, [])
+            existing_connections = self.connections.get(pool_key, [])
             for connection in connections:
                 existing_connections.remove(connection)
                 self._ssr_feature_tracker.remove_connection(connection)
 
     async def _acquire_from_pool_checked(
-        self, address, health_check, deadline
+        self, pool_key, health_check, deadline
     ):
         while not deadline.expired():
-            connection = await self._acquire_from_pool(address)
+            connection = await self._acquire_from_pool(pool_key)
             if not connection:
                 return None  # no free connection available
             if not await health_check(connection, deadline):
@@ -225,7 +231,7 @@ class AsyncIOPool(abc.ABC):
                 return connection
         return None
 
-    def _acquire_new_later(self, address, auth, deadline):
+    def _acquire_new_later(self, pool_key, address, auth, deadline):
         async def connection_creator():
             released_reservation = False
             try:
@@ -252,25 +258,25 @@ class AsyncIOPool(abc.ABC):
                 connection.pool = self
                 connection.in_use = True
                 with self.lock:
-                    self.connections_reservations[address] -= 1
+                    self.connections_reservations[pool_key] -= 1
                     released_reservation = True
-                    self._add_connections(address, connection)
+                    self._add_connections(pool_key, connection)
                 return connection
             finally:
                 if not released_reservation:
                     with self.lock:
-                        self.connections_reservations[address] -= 1
+                        self.connections_reservations[pool_key] -= 1
 
         max_pool_size = self.pool_config.max_connection_pool_size
         infinite_pool_size = max_pool_size < 0 or max_pool_size == float("inf")
         with self.lock:
-            connections = self.connections[address]
+            connections = self.connections[pool_key]
             pool_size = (
-                len(connections) + self.connections_reservations[address]
+                len(connections) + self.connections_reservations[pool_key]
             )
             if infinite_pool_size or pool_size < max_pool_size:
                 # there's room for a new connection
-                self.connections_reservations[address] += 1
+                self.connections_reservations[pool_key] += 1
                 return connection_creator
         return None
 
@@ -334,6 +340,7 @@ class AsyncIOPool(abc.ABC):
             auth = AcquisitionAuth(None)
         force_auth = auth.force_auth
         auth = auth.auth
+        pool_key = self._pool_key_by_address(address)
         if liveness_check_timeout is None:
             liveness_check_timeout = self.pool_config.liveness_check_timeout
 
@@ -361,7 +368,7 @@ class AsyncIOPool(abc.ABC):
         while True:
             # try to find a free connection in the pool
             connection = await self._acquire_from_pool_checked(
-                address, health_check, deadline
+                pool_key, health_check, deadline
             )
             if connection:
                 log.debug(
@@ -396,6 +403,7 @@ class AsyncIOPool(abc.ABC):
             # all connections in pool are in-use
             with self.lock:
                 connection_creator = self._acquire_new_later(
+                    pool_key,
                     address,
                     auth,
                     deadline,
@@ -523,10 +531,10 @@ class AsyncIOPool(abc.ABC):
         if cancelled is not None:
             raise cancelled
 
-    def in_use_connection_count(self, address):
-        """Count the connections currently in use to a given address."""
+    def in_use_connection_count(self, pool_key):
+        """Count the connections currently in use to a given pool_key."""
         with self.lock:
-            connections = self.connections.get(address, ())
+            connections = self.connections.get(pool_key, ())
             return sum(connection.in_use for connection in connections)
 
     async def mark_all_stale(self):
@@ -558,9 +566,10 @@ class AsyncIOPool(abc.ABC):
 
         If present, close all idle connections to that address.
         """
+        pool_key = self._pool_key_by_address(address)
         with self.lock:
             try:
-                connections = self.connections[address]
+                connections = self.connections[pool_key]
             except KeyError:  # already removed from the connection pool
                 return
             closable_connections = [
@@ -569,9 +578,9 @@ class AsyncIOPool(abc.ABC):
             # First remove all connections in question, then try to close them.
             # If closing of a connection fails, we will end up in this method
             # again.
-            self._remove_connections(address, *closable_connections)
-            if not self.connections[address]:
-                del self.connections[address]
+            self._remove_connections(pool_key, *closable_connections)
+            if not self.connections[pool_key]:
+                del self.connections[pool_key]
 
         await self._close_connections(closable_connections)
 
@@ -583,14 +592,14 @@ class AsyncIOPool(abc.ABC):
     async def on_neo4j_error(self, error, connection):
         assert isinstance(error, Neo4jError)
         if error._unauthenticates_all_connections():
-            address = connection.unresolved_address
+            pool_key = self._pool_key_by_connection(connection)
             log.debug(
                 "[#0000]  _: <POOL> mark all connections to %r as "
                 "unauthenticated",
-                address,
+                pool_key,
             )
             with self.lock:
-                for connection_ in self.connections.get(address, ()):
+                for connection_ in self.connections.get(pool_key, ()):
                     connection_.mark_unauthenticated()
         if error._has_security_code():
             handled = await AsyncUtil.callback(
@@ -612,8 +621,8 @@ class AsyncIOPool(abc.ABC):
             with self.lock:
                 connections = [
                     connection
-                    for address in list(self.connections)
-                    for connection in self.connections.pop(address, ())
+                    for pool_key in list(self.connections)
+                    for connection in self.connections.pop(pool_key, ())
                 ]
                 for connection in connections:
                     self._ssr_feature_tracker.remove_connection(connection)
@@ -624,6 +633,9 @@ class AsyncIOPool(abc.ABC):
 
 class AsyncBoltPool(AsyncIOPool):
     is_direct_pool = True
+
+    def _pool_key_by_address(self, address):
+        return None
 
     @classmethod
     def open(cls, address, *, pool_config, workspace_config):
@@ -680,16 +692,24 @@ class AsyncBoltPool(AsyncIOPool):
             self.address, auth, deadline, liveness_check_timeout, unprepared
         )
 
+    async def deactivate(self, address):
+        log.debug("[#0000]  _: <POOL> deactivating (direct pool)")
+        await super().deactivate(address)
+
 
 class AsyncNeo4jPool(AsyncIOPool):
     """Connection pool with routing table."""
 
     is_direct_pool = False
 
+    def _pool_key_by_address(self, address):
+        return address
+
+    def _pool_key_by_connection(self, connection):
+        return connection.unresolved_address
+
     @classmethod
-    def open(
-        cls, *addresses, pool_config, workspace_config, routing_context=None
-    ):
+    def open(cls, multi_addr, pool_config, workspace_config):
         """
         Create a new AsyncNeo4jPool.
 
@@ -699,41 +719,38 @@ class AsyncNeo4jPool(AsyncIOPool):
         :param routing_context:
         :returns: Neo4jPool
         """
-        address = addresses[0]
-        if routing_context is None:
-            routing_context = {}
-        elif "address" in routing_context:
-            raise ConfigurationError(
-                "The key 'address' is reserved for routing context."
-            )
-        routing_context["address"] = str(address)
 
         async def opener(addr, auth_manager, deadline):
             return await AsyncBolt.open(
                 addr,
                 auth_manager=auth_manager,
                 deadline=deadline,
-                routing_context=routing_context,
+                routing_context={
+                    "address": str(addr._unresolved),
+                    **multi_addr.routing_context,
+                },
                 pool_config=pool_config,
             )
 
-        pool = cls(opener, pool_config, workspace_config, address)
-        log.debug("[#0000]  _: <POOL> created, routing address %r", address)
+        pool = cls(opener, pool_config, workspace_config, multi_addr)
+        log.debug(
+            "[#0000]  _: <POOL> created, routing addresses %r", multi_addr
+        )
         return pool
 
-    def __init__(self, opener, pool_config, workspace_config, address):
+    def __init__(self, opener, pool_config, workspace_config, multi_addr):
         """
         Initialize a AsyncNeo4jPool.
 
         :param opener:
         :param pool_config:
         :param workspace_config:
-        :param address:
+        :param multi_addr:
         """
         super().__init__(opener, pool_config, workspace_config)
         # Each database have a routing table, the default database is a special
         # case.
-        self.address = address
+        self.multi_addr = multi_addr
         self.routing_tables = {}
         self.refresh_lock = AsyncRLock()
         self.is_direct_pool = False
@@ -745,13 +762,14 @@ class AsyncNeo4jPool(AsyncIOPool):
         :returns: The representation
         :rtype: str
         """
-        return f"<{self.__class__.__name__} address={self.address!r}>"
+        return f"<{self.__class__.__name__} addresses={self.multi_addr!r}>"
 
     async def get_or_create_routing_table(self, database):
         async with self.refresh_lock:
             if database not in self.routing_tables:
+                addresses = self.multi_addr.addresses
                 self.routing_tables[database] = RoutingTable(
-                    database=database, routers=[self.address]
+                    database=database, routers=addresses
                 )
             return self.routing_tables[database]
 
@@ -904,14 +922,16 @@ class AsyncNeo4jPool(AsyncIOPool):
         :returns: True if the routing table is successfully updated,
         otherwise False
         """
-        if routers:
-            log.debug(
-                (
-                    "[#0000]  _: <POOL> "
-                    "attempting to update routing table from %s"
-                ),
-                ", ".join(map(repr, routers)),
-            )
+        if not routers:
+            return False
+
+        log.debug(
+            (
+                "[#0000]  _: <POOL> "
+                "attempting to update routing table from %s"
+            ),
+            ", ".join(map(repr, routers)),
+        )
         for router in routers:
             async for address in AsyncNetworkUtil.resolve_address(
                 router, resolver=self.pool_config.resolver
@@ -969,24 +989,25 @@ class AsyncNeo4jPool(AsyncIOPool):
 
         :raise neo4j.exceptions.ServiceUnavailable:
         """
+        addresses = self.multi_addr.addresses
         async with self.refresh_lock:
             routing_table = await self.get_routing_table(database)
             if routing_table is not None:
                 # copied because it can be modified
                 existing_routers = set(routing_table.routers)
-                prefer_initial_routing_address = (
+                prefer_initial_routing_addresses = (
                     routing_table.initialized_without_writers
                 )
             else:
-                existing_routers = {self.address}
-                prefer_initial_routing_address = True
+                existing_routers = set()
+                prefer_initial_routing_addresses = True
 
             if (
-                prefer_initial_routing_address
+                prefer_initial_routing_addresses
                 and
                 # TODO: Test this state
                 await self._update_routing_table_from(
-                    self.address,
+                    *addresses,
                     database=database,
                     imp_user=imp_user,
                     bookmarks=bookmarks,
@@ -998,7 +1019,7 @@ class AsyncNeo4jPool(AsyncIOPool):
                 # Why is only the first initial routing address used?
                 return
             if await self._update_routing_table_from(
-                *(existing_routers - {self.address}),
+                *(existing_routers - set(addresses)),
                 database=database,
                 imp_user=imp_user,
                 bookmarks=bookmarks,
@@ -1009,9 +1030,9 @@ class AsyncNeo4jPool(AsyncIOPool):
                 return
 
             if (
-                not prefer_initial_routing_address
+                not prefer_initial_routing_addresses
                 and await self._update_routing_table_from(
-                    self.address,
+                    *addresses,
                     database=database,
                     imp_user=imp_user,
                     bookmarks=bookmarks,
@@ -1033,7 +1054,7 @@ class AsyncNeo4jPool(AsyncIOPool):
 
         servers = set.union(
             *(rt.servers() for rt in routing_tables),
-            self.address,
+            self.multi_addr.addresses,
         )
         for address in list(self.connections):
             if address._unresolved not in servers:

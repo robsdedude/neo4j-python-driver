@@ -3,7 +3,15 @@
 See also https://github.com/neo4j/neo4j-python-driver/wiki for a full changelog.
 
 ## NEXT RELEASE
-- No breaking or major changes.
+- Deprecated undocumented class methods
+  - `GraphDatabase.bolt_driver`, `GraphDatabase.neo4j_driver`
+  - `BoltDriver.open`, `BoltDriver.parse_target`
+  - `Neo4jDriver.open`, `Neo4jDriver.parse_targets`
+  - All async counterparts
+  They're internal and should not be used by client code.
+- Deprecated undocumented properties without replacement
+  - `Neo4jDriver.initial_addresses`, `BoltDriver.address`
+  - All async counterparts
 
 
 ## Version 5.28

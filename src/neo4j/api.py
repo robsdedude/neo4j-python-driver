@@ -20,26 +20,44 @@ from __future__ import annotations
 
 import abc
 import typing as t
-from urllib.parse import (
-    parse_qs,
-    urlparse,
+from urllib.parse import urlparse
+
+from ._api import (
+    DRIVER_BOLT,
+    DRIVER_NEO4J,
+    SECURITY_TYPE_NOT_SECURE,
+    SECURITY_TYPE_SECURE,
+    SECURITY_TYPE_SELF_SIGNED_CERTIFICATE,
+    URI_SCHEME_BOLT,
+    URI_SCHEME_BOLT_ROUTING,
+    URI_SCHEME_BOLT_SECURE,
+    URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE,
+    URI_SCHEME_NEO4J,
+    URI_SCHEME_NEO4J_SECURE,
+    URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE,
 )
 
 
-if t.TYPE_CHECKING:
-    from typing_extensions import deprecated
-else:
-    from ._meta import deprecated
+# isort: off
+# TODO: 7.0 - remove this public export
+from ._api import parse_routing_context
 
+# isort: on
+from ._addressing import _MultiAddress
 from .exceptions import ConfigurationError
 
 
 if t.TYPE_CHECKING:
     import typing_extensions as te
-    from typing_extensions import Protocol as _Protocol
+    from typing_extensions import (
+        deprecated,
+        Protocol as _Protocol,
+    )
 
     from .addressing import Address
 else:
+    from ._meta import deprecated
+
     _Protocol = object
 
 
@@ -77,32 +95,12 @@ __all__ = [
     "kerberos_auth",
     "parse_neo4j_uri",
     "parse_routing_context",
+    "parse_routing_context",
 ]
 
 
 READ_ACCESS: te.Final[str] = "READ"
 WRITE_ACCESS: te.Final[str] = "WRITE"
-
-# TODO: 6.0 - make these 2 constants private
-DRIVER_BOLT: te.Final[str] = "DRIVER_BOLT"
-DRIVER_NEO4J: te.Final[str] = "DRIVER_NEO4J"
-
-# TODO: 6.0 - make these 3 constants private
-SECURITY_TYPE_NOT_SECURE: te.Final[str] = "SECURITY_TYPE_NOT_SECURE"
-SECURITY_TYPE_SELF_SIGNED_CERTIFICATE: te.Final[str] = (
-    "SECURITY_TYPE_SELF_SIGNED_CERTIFICATE"
-)
-SECURITY_TYPE_SECURE: te.Final[str] = "SECURITY_TYPE_SECURE"
-
-URI_SCHEME_BOLT: te.Final[str] = "bolt"
-URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE: te.Final[str] = "bolt+ssc"
-URI_SCHEME_BOLT_SECURE: te.Final[str] = "bolt+s"
-
-URI_SCHEME_NEO4J: te.Final[str] = "neo4j"
-URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE: te.Final[str] = "neo4j+ssc"
-URI_SCHEME_NEO4J_SECURE: te.Final[str] = "neo4j+s"
-
-URI_SCHEME_BOLT_ROUTING: te.Final[str] = "bolt+routing"
 
 # TODO: 6.0 - remove TRUST constants
 TRUST_SYSTEM_CA_SIGNED_CERTIFICATES: te.Final[str] = (
@@ -550,56 +548,12 @@ class AsyncBookmarkManager(_Protocol, metaclass=abc.ABCMeta):
     get_bookmarks.__doc__ = BookmarkManager.get_bookmarks.__doc__
 
 
-# TODO: 6.0 - make this function private
+# TODO: 6.0 - remove this function
 def parse_neo4j_uri(uri):
     parsed = urlparse(uri)
+    addr = _MultiAddress._from_url(parsed._replace(query=""))
 
-    if parsed.username:
-        raise ConfigurationError("Username is not supported in the URI")
-
-    if parsed.password:
-        raise ConfigurationError("Password is not supported in the URI")
-
-    if parsed.scheme == URI_SCHEME_BOLT_ROUTING:
-        raise ConfigurationError(
-            f"Uri scheme {parsed.scheme!r} has been renamed. "
-            f"Use {URI_SCHEME_NEO4J!r}"
-        )
-    elif parsed.scheme == URI_SCHEME_BOLT:
-        driver_type = DRIVER_BOLT
-        security_type = SECURITY_TYPE_NOT_SECURE
-    elif parsed.scheme == URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE:
-        driver_type = DRIVER_BOLT
-        security_type = SECURITY_TYPE_SELF_SIGNED_CERTIFICATE
-    elif parsed.scheme == URI_SCHEME_BOLT_SECURE:
-        driver_type = DRIVER_BOLT
-        security_type = SECURITY_TYPE_SECURE
-    elif parsed.scheme == URI_SCHEME_NEO4J:
-        driver_type = DRIVER_NEO4J
-        security_type = SECURITY_TYPE_NOT_SECURE
-    elif parsed.scheme == URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE:
-        driver_type = DRIVER_NEO4J
-        security_type = SECURITY_TYPE_SELF_SIGNED_CERTIFICATE
-    elif parsed.scheme == URI_SCHEME_NEO4J_SECURE:
-        driver_type = DRIVER_NEO4J
-        security_type = SECURITY_TYPE_SECURE
-    else:
-        supported_schemes = [
-            URI_SCHEME_BOLT,
-            URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE,
-            URI_SCHEME_BOLT_SECURE,
-            URI_SCHEME_NEO4J,
-            URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE,
-            URI_SCHEME_NEO4J_SECURE,
-        ]
-        raise ConfigurationError(
-            f"URI scheme {parsed.scheme!r} is not supported. "
-            f"Supported URI schemes are {supported_schemes}. "
-            "Examples: bolt://host[:port] or "
-            "neo4j://host[:port][?routing_context]"
-        )
-
-    return driver_type, security_type, parsed
+    return addr._driver_type, addr._security_type, parsed
 
 
 # TODO: 6.0 - make this function private
@@ -611,33 +565,3 @@ def check_access_mode(access_mode):
         raise ConfigurationError(msg)
 
     return access_mode
-
-
-# TODO: 6.0 - make this function private
-def parse_routing_context(query):
-    """
-    Parse the query portion of a URI.
-
-    Generates a routing context dictionary.
-    """
-    if not query:
-        return {}
-
-    context = {}
-    parameters = parse_qs(query, True)
-    for key in parameters:
-        value_list = parameters[key]
-        if len(value_list) != 1:
-            raise ConfigurationError(
-                f"Duplicated query parameters with key '{key}', value "
-                f"'{value_list}' found in query string '{query}'"
-            )
-        value = value_list[0]
-        if not value:
-            raise ConfigurationError(
-                f"Invalid parameters:'{key}={value}' in query string "
-                f"'{query}'."
-            )
-        context[key] = value
-
-    return context

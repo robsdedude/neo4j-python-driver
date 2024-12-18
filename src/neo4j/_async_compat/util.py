@@ -38,16 +38,16 @@ __all__ = [
 
 class AsyncUtil:
     @staticmethod
-    async def iter(it):
+    async def iter(it: t.AsyncIterable[_T]) -> t.AsyncIterator[_T]:
         async for x in it:
             yield x
 
     @staticmethod
-    async def next(it):
+    async def next(it: t.AsyncIterator[_T]) -> _T:
         return await it.__anext__()
 
     @staticmethod
-    async def list(it):
+    async def list(it: t.AsyncIterable[_T]) -> list[_T]:
         return [x async for x in it]
 
     @staticmethod
@@ -85,7 +85,7 @@ class AsyncUtil:
 
         return shielded_function
 
-    is_async_code: t.ClassVar = True
+    is_async_code: t.ClassVar[bool] = True
 
     @staticmethod
     def extract_stack(limit=None):
@@ -121,7 +121,7 @@ class Util:
     def shielded(coro_function):
         return coro_function
 
-    is_async_code: t.ClassVar = False
+    is_async_code: t.ClassVar[bool] = False
 
     @staticmethod
     def extract_stack(limit=None):
