@@ -135,6 +135,8 @@ class AsyncBolt:
     # results for it.
     most_recent_qid = None
 
+    _address_callback = None
+
     def __init__(
         self,
         unresolved_address,
@@ -148,8 +150,9 @@ class AsyncBolt:
         notifications_min_severity=None,
         notifications_disabled_classifications=None,
         telemetry_disabled=False,
+        address_callback=None,
     ):
-        self.unresolved_address = unresolved_address
+        self._unresolved_address = unresolved_address
         self.socket = sock
         self.local_port = self.socket.getsockname()[1]
         self.server_info = ServerInfo(
@@ -190,6 +193,7 @@ class AsyncBolt:
         self.auth_dict = self._to_auth_dict(auth)
         self.auth_manager = auth_manager
         self.telemetry_disabled = telemetry_disabled
+        self._address_callback = address_callback
 
         self.notifications_min_severity = notifications_min_severity
         self.notifications_disabled_classifications = (
@@ -199,6 +203,15 @@ class AsyncBolt:
     def __del__(self):
         if not asyncio.iscoroutinefunction(self.close):
             self.close()
+
+    @property
+    def unresolved_address(self):
+        return self._unresolved_address
+
+    @unresolved_address.setter
+    def unresolved_address(self, value):
+        self._unresolved_address = value
+        self.server_info._address = value
 
     @abc.abstractmethod
     def _get_server_state_manager(self) -> ServerStateManagerBase: ...
@@ -308,6 +321,7 @@ class AsyncBolt:
             AsyncBolt5x5,
             AsyncBolt5x6,
             AsyncBolt5x7,
+            AsyncBolt5x8,
         )
 
         handlers = {
@@ -325,6 +339,7 @@ class AsyncBolt:
             AsyncBolt5x5.PROTOCOL_VERSION: AsyncBolt5x5,
             AsyncBolt5x6.PROTOCOL_VERSION: AsyncBolt5x6,
             AsyncBolt5x7.PROTOCOL_VERSION: AsyncBolt5x7,
+            AsyncBolt5x8.PROTOCOL_VERSION: AsyncBolt5x8,
         }
 
         if protocol_version is None:
@@ -424,6 +439,7 @@ class AsyncBolt:
         deadline=None,
         routing_context=None,
         pool_config=None,
+        address_callback=None,
     ):
         """
         Open a new Bolt connection to a given server address.
@@ -433,6 +449,7 @@ class AsyncBolt:
         :param deadline: how long to wait for the connection to be established
         :param routing_context: dict containing routing context
         :param pool_config:
+        :param address_callback:
 
         :returns: connected AsyncBolt instance
 
@@ -461,7 +478,10 @@ class AsyncBolt:
 
         # avoid new lines after imports for better readability and conciseness
         # fmt: off
-        if protocol_version == (5, 7):
+        if protocol_version == (5, 8):
+            from ._bolt5 import AsyncBolt5x8
+            bolt_cls = AsyncBolt5x8
+        elif protocol_version == (5, 7):
             from ._bolt5 import AsyncBolt5x7
             bolt_cls = AsyncBolt5x7
         elif protocol_version == (5, 6):
@@ -542,7 +562,7 @@ class AsyncBolt:
             raise
 
         connection = bolt_cls(
-            address,
+            address._unresolved,
             s,
             pool_config.max_connection_lifetime,
             auth=auth,
@@ -552,6 +572,7 @@ class AsyncBolt:
             notifications_min_severity=pool_config.notifications_min_severity,
             notifications_disabled_classifications=pool_config.notifications_disabled_classifications,
             telemetry_disabled=pool_config.telemetry_disabled,
+            address_callback=address_callback,
         )
 
         try:

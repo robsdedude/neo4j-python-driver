@@ -24,6 +24,7 @@ from ..._async_compat.util import Util
 from ..._codec.hydration import v2 as hydration_v2
 from ..._exceptions import BoltProtocolError
 from ..._meta import BOLT_AGENT_DICT
+from ...addressing import Address
 from ...api import (
     READ_ACCESS,
     Version,
@@ -1225,3 +1226,49 @@ class Bolt5x7(Bolt5x6):
             )
 
         return len(details), 1
+
+
+class Bolt5x8(Bolt5x7):
+    PROTOCOL_VERSION = Version(5, 8)
+
+    def logon(self, dehydration_hooks=None, hydration_hooks=None):
+        dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
+            dehydration_hooks, hydration_hooks
+        )
+        logged_auth_dict = dict(self.auth_dict)
+        if "credentials" in logged_auth_dict:
+            logged_auth_dict["credentials"] = "*******"
+        log.debug("[#%04X]  C: LOGON %r", self.local_port, logged_auth_dict)
+        self._append(
+            b"\x6a",
+            (self.auth_dict,),
+            response=LogonResponse(
+                self, "logon", hydration_hooks, on_success=self._logon_success
+            ),
+            dehydration_hooks=dehydration_hooks,
+        )
+
+    def _logon_success(self, meta: object) -> None:
+        if not isinstance(meta, dict):
+            log.warning(
+                "[#%04X]  _: <NON-FATAL PROTOCOL VIOLATION> "
+                "LOGON expected dictionary metadata, got %r",
+                self.local_port,
+                meta,
+            )
+            return
+        address = meta.get("advertised_address", ...)
+        if address is ...:
+            return
+        if not isinstance(address, str):
+            log.warning(
+                "[#%04X]  _: <NON-FATAL PROTOCOL VIOLATION> "
+                "LOGON expected string advertised_address, got %r",
+                self.local_port,
+                address,
+            )
+            return
+        address = Address.parse(address, default_port=7687)
+        if address != self.unresolved_address:
+            Util.callback(self._address_callback, self, address)
+            self.unresolved_address = address
