@@ -866,10 +866,10 @@ async def test_address_callback(
 ):
     cb_calls = []
 
-    async def cb(connection_, address_):
+    async def cb(connection_):
         assert connection_ is connection
-        assert connection.unresolved_address == address
-        cb_calls.append(address_)
+        assert connection.address == address
+        cb_calls.append(connection_.advertised_address)
 
     address = neo4j.Address(("127.0.0.1", 7687))
     sockets = fake_socket_pair(
@@ -882,7 +882,8 @@ async def test_address_callback(
         success_meta["advertised_address"] = advertised_address
     await sockets.server.send_message(b"\x70", success_meta)
 
-    connection = AsyncBolt5x8(address, sockets.client, 0, address_callback=cb)
+    connection = AsyncBolt5x8(address, sockets.client, 0)
+    connection.address_callback = cb
 
     connection.logon()
     await connection.send_all()
@@ -903,4 +904,4 @@ async def test_address_callback(
         return
 
     assert cb_calls == [expected_call]
-    assert connection.unresolved_address == expected_call
+    assert connection.address == address

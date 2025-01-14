@@ -497,12 +497,12 @@ class Bolt5x0(Bolt):
                 response.on_failure(summary_metadata or {})
             except (ServiceUnavailable, DatabaseUnavailable):
                 if self.pool:
-                    self.pool.deactivate(address=self.unresolved_address)
+                    self.pool.deactivate(address=self.address)
                 raise
             except (NotALeader, ForbiddenOnReadOnlyDatabase):
                 if self.pool:
                     self.pool.on_write_failure(
-                        address=self.unresolved_address,
+                        address=self.address,
                         database=self.last_database,
                     )
                 raise
@@ -514,7 +514,7 @@ class Bolt5x0(Bolt):
             sig_int = ord(summary_signature)
             raise BoltProtocolError(
                 f"Unexpected response message with signature {sig_int:02X}",
-                self.unresolved_address,
+                self.address,
             )
 
         return len(details), 1
@@ -1205,12 +1205,12 @@ class Bolt5x7(Bolt5x6):
                 response.on_failure(summary_metadata or {})
             except (ServiceUnavailable, DatabaseUnavailable):
                 if self.pool:
-                    self.pool.deactivate(address=self.unresolved_address)
+                    self.pool.deactivate(address=self.address)
                 raise
             except (NotALeader, ForbiddenOnReadOnlyDatabase):
                 if self.pool:
                     self.pool.on_write_failure(
-                        address=self.unresolved_address,
+                        address=self.address,
                         database=self.last_database,
                     )
                 raise
@@ -1222,7 +1222,7 @@ class Bolt5x7(Bolt5x6):
             sig_int = ord(summary_signature)
             raise BoltProtocolError(
                 f"Unexpected response message with signature {sig_int:02X}",
-                self.unresolved_address,
+                self.address,
             )
 
         return len(details), 1
@@ -1268,7 +1268,5 @@ class Bolt5x8(Bolt5x7):
                 address,
             )
             return
-        address = Address.parse(address, default_port=7687)
-        if address != self.unresolved_address:
-            Util.callback(self._address_callback, self, address)
-            self.unresolved_address = address
+        self.advertised_address = Address.parse(address, default_port=7687)
+        Util.callback(self.address_callback, self)

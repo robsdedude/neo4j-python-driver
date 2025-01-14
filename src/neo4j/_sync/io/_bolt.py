@@ -61,6 +61,7 @@ from ._common import (
 
 if t.TYPE_CHECKING:
     from ..._api import TelemetryAPI
+    from ...addressing import Address
 
 
 # Set up logger
@@ -135,11 +136,12 @@ class Bolt:
     # results for it.
     most_recent_qid = None
 
-    _address_callback = None
+    address_callback = None
+    advertised_address: Address | None = None
 
     def __init__(
         self,
-        unresolved_address,
+        address,
         sock,
         max_connection_lifetime,
         *,
@@ -150,14 +152,13 @@ class Bolt:
         notifications_min_severity=None,
         notifications_disabled_classifications=None,
         telemetry_disabled=False,
-        address_callback=None,
     ):
-        self._unresolved_address = unresolved_address
+        self._address = address
         self.socket = sock
         self.local_port = self.socket.getsockname()[1]
         self.server_info = ServerInfo(
             ResolvedAddress(
-                sock.getpeername(), host_name=unresolved_address.host
+                sock.getpeername(), host_name=address._unresolved.host
             ),
             self.PROTOCOL_VERSION,
         )
@@ -193,7 +194,6 @@ class Bolt:
         self.auth_dict = self._to_auth_dict(auth)
         self.auth_manager = auth_manager
         self.telemetry_disabled = telemetry_disabled
-        self._address_callback = address_callback
 
         self.notifications_min_severity = notifications_min_severity
         self.notifications_disabled_classifications = (
@@ -205,13 +205,13 @@ class Bolt:
             self.close()
 
     @property
-    def unresolved_address(self):
-        return self._unresolved_address
+    def address(self):
+        return self._address
 
-    @unresolved_address.setter
-    def unresolved_address(self, value):
-        self._unresolved_address = value
-        self.server_info._address = value
+    @address.setter
+    def address(self, value):
+        self._address = value
+        self.server_info._address = value._unresolved
 
     @abc.abstractmethod
     def _get_server_state_manager(self) -> ServerStateManagerBase: ...
@@ -439,7 +439,6 @@ class Bolt:
         deadline=None,
         routing_context=None,
         pool_config=None,
-        address_callback=None,
     ):
         """
         Open a new Bolt connection to a given server address.
@@ -449,7 +448,6 @@ class Bolt:
         :param deadline: how long to wait for the connection to be established
         :param routing_context: dict containing routing context
         :param pool_config:
-        :param address_callback:
 
         :returns: connected Bolt instance
 
@@ -562,7 +560,7 @@ class Bolt:
             raise
 
         connection = bolt_cls(
-            address._unresolved,
+            address,
             s,
             pool_config.max_connection_lifetime,
             auth=auth,
@@ -572,7 +570,6 @@ class Bolt:
             notifications_min_severity=pool_config.notifications_min_severity,
             notifications_disabled_classifications=pool_config.notifications_disabled_classifications,
             telemetry_disabled=pool_config.telemetry_disabled,
-            address_callback=address_callback,
         )
 
         try:
@@ -975,12 +972,12 @@ class Bolt:
         if self.closed():
             raise ServiceUnavailable(
                 "Failed to write to closed connection "
-                f"{self.unresolved_address!r} ({self.server_info.address!r})"
+                f"{self.address!r} ({self.server_info.address!r})"
             )
         if self.defunct():
             raise ServiceUnavailable(
                 "Failed to write to defunct connection "
-                f"{self.unresolved_address!r} ({self.server_info.address!r})"
+                f"{self.address!r} ({self.server_info.address!r})"
             )
 
         self._send_all()
@@ -998,12 +995,12 @@ class Bolt:
         if self._closed:
             raise ServiceUnavailable(
                 "Failed to read from closed connection "
-                f"{self.unresolved_address!r} ({self.server_info.address!r})"
+                f"{self.address!r} ({self.server_info.address!r})"
             )
         if self._defunct:
             raise ServiceUnavailable(
                 "Failed to read from defunct connection "
-                f"{self.unresolved_address!r} ({self.server_info.address!r})"
+                f"{self.address!r} ({self.server_info.address!r})"
             )
         if not self.responses:
             return 0, 0
@@ -1035,14 +1032,14 @@ class Bolt:
     def _set_defunct_read(self, error=None, silent=False):
         message = (
             "Failed to read from defunct connection "
-            f"{self.unresolved_address!r} ({self.server_info.address!r})"
+            f"{self.address!r} ({self.server_info.address!r})"
         )
         self._set_defunct(message, error=error, silent=silent)
 
     def _set_defunct_write(self, error=None, silent=False):
         message = (
             "Failed to write data to connection "
-            f"{self.unresolved_address!r} ({self.server_info.address!r})"
+            f"{self.address!r} ({self.server_info.address!r})"
         )
         self._set_defunct(message, error=error, silent=silent)
 
@@ -1081,7 +1078,7 @@ class Bolt:
             # connection again.
             self.close()
             if self.pool and not self._get_server_state_manager().failed():
-                self.pool.deactivate(address=self.unresolved_address)
+                self.pool.deactivate(address=self.address)
 
         # Iterate through the outstanding responses, and if any correspond
         # to COMMIT requests then raise an error to signal that we are

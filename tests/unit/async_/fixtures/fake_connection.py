@@ -55,7 +55,8 @@ def async_fake_connection_generator(session_mocker):
             self.attach_mock(
                 mock.AsyncMock(spec=AsyncAuthManager), "auth_manager"
             )
-            self.unresolved_address = next(iter(args), "localhost")
+            self.address = next(iter(args), "localhost")
+            self.advertised_address = None
 
             self.callbacks = []
 
