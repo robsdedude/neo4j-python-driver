@@ -57,6 +57,7 @@ def fake_connection_generator(session_mocker):
             )
             self.address = next(iter(args), "localhost")
             self.advertised_address = None
+            self.address_callback = None
 
             self.callbacks = []
 

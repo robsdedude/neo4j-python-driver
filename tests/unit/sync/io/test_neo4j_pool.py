@@ -33,7 +33,10 @@ from neo4j._sync.io import (
     Bolt,
     Neo4jPool,
 )
-from neo4j.addressing import ResolvedAddress
+from neo4j.addressing import (
+    Address,
+    ResolvedAddress,
+)
 from neo4j.auth_management import AuthManagers
 from neo4j.exceptions import (
     Neo4jError,
@@ -55,7 +58,7 @@ WRITER1_ADDRESS = ResolvedAddress(("1.2.3.1", 9020), host_name="host")
 
 @pytest.fixture
 def custom_routing_opener(fake_connection_generator, mocker):
-    def make_opener(failures=None, get_readers=None):
+    def make_opener(failures=None, get_readers=None, on_open=None):
         def routing_side_effect(*args, **kwargs):
             nonlocal failures
             res = next(failures, None)
@@ -92,6 +95,10 @@ def custom_routing_opener(fake_connection_generator, mocker):
             route_mock.side_effect = routing_side_effect
             connection.attach_mock(route_mock, "route")
             opener_.connections.append(connection)
+
+            if on_open is not None:
+                on_open(connection)
+
             return connection
 
         failures = iter(failures or [])
@@ -767,3 +774,32 @@ def test_pool_does_not_close_connections_dropped_from_rt_for_other_server(  # no
     assert len(pool.connections[READER1_ADDRESS]) == 1
     assert len(pool.connections[READER2_ADDRESS]) == reader2_connection_count
     assert len(pool.connections[READER3_ADDRESS]) == 1
+
+
+@mark_sync_test
+def test_configures_address_cb_on_connection(opener):
+    pool = _simple_pool(opener)
+    cx = pool.acquire(READ_ACCESS, 30, "test_db", None, None, None)
+
+    assert cx.address_callback == pool._move_connection
+
+
+@mark_sync_test
+def test_moves_connection_to_advertised_address_after_open(
+    custom_routing_opener,
+):
+    advertised_address = Address(("example.com", 1234))
+
+    def on_open(connection):
+        assert connection.address != advertised_address  # sanity check
+        connection.advertised_address = advertised_address
+
+    opener = custom_routing_opener(on_open=on_open)
+    pool = _simple_pool(opener)
+    cx = pool.acquire(READ_ACCESS, 30, "test_db", None, None, None)
+
+    # assert has been moved
+    assert cx.address == advertised_address
+    assert len(pool.connections[READER1_ADDRESS]) == 0
+    assert len(pool.connections[advertised_address]) == 1
+    assert cx in pool.connections[advertised_address]
