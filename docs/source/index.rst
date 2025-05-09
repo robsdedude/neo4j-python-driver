@@ -36,6 +36,8 @@ Topics
 
 + :ref:`temporal-data-types`
 
++ :ref:`vector-data-types`
+
 + :ref:`breaking-changes`
 
 
@@ -47,6 +49,7 @@ Topics
    async_api.rst
    types/spatial.rst
    types/temporal.rst
+   types/vector.rst
    breaking_changes.rst
 
 

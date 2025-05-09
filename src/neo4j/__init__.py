@@ -69,6 +69,7 @@ from ._sync.work import (
     Session,
     Transaction,
 )
+from ._vector import Vector
 from ._work import (  # noqa: F401 dynamic attribute
     EagerResult,
     GqlStatusObject as _GqlStatusObject,
@@ -172,6 +173,7 @@ __all__ = [
     "TrustAll",
     "TrustCustomCAs",
     "TrustSystemCAs",
+    "Vector",
     "Version",
     "WorkspaceConfig",  # noqa: F822 dynamic attribute
     "__version__",
