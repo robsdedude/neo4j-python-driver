@@ -598,6 +598,8 @@ class Driver:
             initial_retry_delay: float = ...,
             retry_delay_multiplier: float = ...,
             retry_delay_jitter_factor: float = ...,
+            # FIXME: tmp!
+            auto_transform_vec: bool = ...,
         ) -> Session: ...
 
     else:
@@ -676,6 +678,8 @@ class Driver:
         result_transformer_: t.Callable[
             [Result], t.Union[EagerResult]
         ] = ...,
+        # FIXME: tmp!
+        auto_transform_vec_: bool = ...,
         **kwargs: t.Any,
     ) -> EagerResult: ...
 
@@ -692,6 +696,8 @@ class Driver:
         ) = ...,
         auth_: _TAuth = None,
         result_transformer_: t.Callable[[Result], t.Union[_T]] = ...,
+        # FIXME: tmp!
+        auto_transform_vec_: bool = ...,
         **kwargs: t.Any,
     ) -> _T: ...
 
@@ -712,6 +718,8 @@ class Driver:
         result_transformer_: t.Callable[
             [Result], t.Union[t.Any]
         ] = Result.to_eager_result,
+        # FIXME: tmp!
+        auto_transform_vec_: bool = False,
         **kwargs: t.Any,
     ) -> t.Any:
         '''
@@ -962,6 +970,8 @@ class Driver:
                 "impersonated_user": impersonated_user_,
                 "bookmark_manager": bookmark_manager_,
                 "auth": auth_,
+                # FIXME: tmp!
+                "auto_transform_vec": auto_transform_vec_,
             }
         )
         session = self._session(session_config)

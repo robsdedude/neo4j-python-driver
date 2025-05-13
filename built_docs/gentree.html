@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tree &#8212; Neo4j Python Driver 5.28</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/css/neo4j.css?v=f6087c41" />
+    <script src="_static/documentation_options.js?v=698b8743"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script defer="defer" src="https://neo4j.com/docs/assets/js/site.js"></script>
+    <script defer="defer" src="_static/js/12-fragment-jumper.js?v=ace60690"></script>
+    <link rel="icon" href="https://neo4j.com/wp-content/themes/neo4jweb/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<link href="_static/css/nunito-sans.css" rel="stylesheet">
+
+  </head><body>
+<body class="article docs sphinx">
+
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <img class="navbar-logo" src="https://dist.neo4j.com/wp-content/uploads/20210422142941/neo4j-logo-2020.svg" alt="Neo4j Logo">
+      </a>
+      <a href="index.html" class="navbar-item no-left-padding" aria-label="Neo4j Python Driver 5.28">
+          Neo4j Python Driver 5.28
+      </a>
+    </div>
+  </nav>
+</header>
+
+
+<div class="body">
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="nav-container">
+    <aside class="nav">
+      <div class="panels">
+        <div class="nav-panel-menu is-active" data-panel="menu">
+            <nav class="nav-menu">
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="async_api.html">Async API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types/spatial.html">Spatial Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types/temporal.html">Temporal Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types/vector.html">Vector Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="breaking_changes.html">Breaking Changes</a></li>
+</ul>
+
+            </nav>
+        </div>
+      </div>
+    </aside>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><div id="indexlinkbox">
+    <h3 id="indexlinklabel">Index</h3>
+
+    <div class="indexlinkwrapper nav-menu">
+        <ul>
+            <li class="toctree-l1">
+                <a href="genindex.html" class="indexlink genindex">
+                    Alphabetical
+                </a>
+            </li>
+            <li class="toctree-l1">
+                <a href="#" class="indexlink gentree">
+                    Tree
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+        </div>
+      </div>
+  <main class="article">
+    <div class="toolbar" role="navigation">
+      <div class="toolbar-wrapper">
+        <button class="nav-toggle" aria-label="Toggle Table of Contents"></button>
+      </div>
+    </div>
+    <div class="content">
+      <article class="doc">
+        
+<h1>Tree</h1>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#graphdatabase">GraphDatabase</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#driver-construction">Driver Construction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.GraphDatabase"><code class="docutils literal notranslate"><span class="pre">GraphDatabase</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GraphDatabase.driver"><code class="docutils literal notranslate"><span class="pre">GraphDatabase.driver()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GraphDatabase.bookmark_manager"><code class="docutils literal notranslate"><span class="pre">GraphDatabase.bookmark_manager()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#uri">URI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#auth">Auth</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Auth"><code class="docutils literal notranslate"><span class="pre">Auth</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.auth_management.AuthManager"><code class="docutils literal notranslate"><span class="pre">AuthManager</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.AuthManager.get_auth"><code class="docutils literal notranslate"><span class="pre">AuthManager.get_auth()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.AuthManager.handle_security_exception"><code class="docutils literal notranslate"><span class="pre">AuthManager.handle_security_exception()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.auth_management.AuthManagers"><code class="docutils literal notranslate"><span class="pre">AuthManagers</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.AuthManagers.static"><code class="docutils literal notranslate"><span class="pre">AuthManagers.static()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.AuthManagers.basic"><code class="docutils literal notranslate"><span class="pre">AuthManagers.basic()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.AuthManagers.bearer"><code class="docutils literal notranslate"><span class="pre">AuthManagers.bearer()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.auth_management.ExpiringAuth"><code class="docutils literal notranslate"><span class="pre">ExpiringAuth</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.ExpiringAuth.auth"><code class="docutils literal notranslate"><span class="pre">ExpiringAuth.auth</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.ExpiringAuth.expires_at"><code class="docutils literal notranslate"><span class="pre">ExpiringAuth.expires_at</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.ExpiringAuth.expires_in"><code class="docutils literal notranslate"><span class="pre">ExpiringAuth.expires_in()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#auth-token-helper-functions">Auth Token Helper Functions</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.basic_auth"><code class="docutils literal notranslate"><span class="pre">basic_auth()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.kerberos_auth"><code class="docutils literal notranslate"><span class="pre">kerberos_auth()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.bearer_auth"><code class="docutils literal notranslate"><span class="pre">bearer_auth()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.custom_auth"><code class="docutils literal notranslate"><span class="pre">custom_auth()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#driver">Driver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.Driver"><code class="docutils literal notranslate"><span class="pre">Driver</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.execute_query"><code class="docutils literal notranslate"><span class="pre">Driver.execute_query()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.encrypted"><code class="docutils literal notranslate"><span class="pre">Driver.encrypted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.session"><code class="docutils literal notranslate"><span class="pre">Driver.session()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.close"><code class="docutils literal notranslate"><span class="pre">Driver.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.execute_query_bookmark_manager"><code class="docutils literal notranslate"><span class="pre">Driver.execute_query_bookmark_manager</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.verify_connectivity"><code class="docutils literal notranslate"><span class="pre">Driver.verify_connectivity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.get_server_info"><code class="docutils literal notranslate"><span class="pre">Driver.get_server_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.supports_multi_db"><code class="docutils literal notranslate"><span class="pre">Driver.supports_multi_db()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.verify_authentication"><code class="docutils literal notranslate"><span class="pre">Driver.verify_authentication()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Driver.supports_session_auth"><code class="docutils literal notranslate"><span class="pre">Driver.supports_session_auth()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#driver-configuration">Driver Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#connection-acquisition-timeout"><code class="docutils literal notranslate"><span class="pre">connection_acquisition_timeout</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#connection-timeout"><code class="docutils literal notranslate"><span class="pre">connection_timeout</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#encrypted"><code class="docutils literal notranslate"><span class="pre">encrypted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#keep-alive"><code class="docutils literal notranslate"><span class="pre">keep_alive</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#max-connection-lifetime"><code class="docutils literal notranslate"><span class="pre">max_connection_lifetime</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#liveness-check-timeout"><code class="docutils literal notranslate"><span class="pre">liveness_check_timeout</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#max-connection-pool-size"><code class="docutils literal notranslate"><span class="pre">max_connection_pool_size</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#max-transaction-retry-time"><code class="docutils literal notranslate"><span class="pre">max_transaction_retry_time</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#resolver"><code class="docutils literal notranslate"><span class="pre">resolver</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#trust"><code class="docutils literal notranslate"><span class="pre">trust</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.TRUST_ALL_CERTIFICATES"><code class="docutils literal notranslate"><span class="pre">neo4j.TRUST_ALL_CERTIFICATES</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.TRUST_SYSTEM_CA_SIGNED_CERTIFICATES"><code class="docutils literal notranslate"><span class="pre">neo4j.TRUST_SYSTEM_CA_SIGNED_CERTIFICATES</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#ssl-context"><code class="docutils literal notranslate"><span class="pre">ssl_context</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#trusted-certificates"><code class="docutils literal notranslate"><span class="pre">trusted_certificates</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.TrustSystemCAs"><code class="docutils literal notranslate"><span class="pre">TrustSystemCAs</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.TrustAll"><code class="docutils literal notranslate"><span class="pre">TrustAll</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.TrustCustomCAs"><code class="docutils literal notranslate"><span class="pre">TrustCustomCAs</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#client-certificate"><code class="docutils literal notranslate"><span class="pre">client_certificate</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.ClientCertificate"><code class="docutils literal notranslate"><span class="pre">ClientCertificate</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.auth_management.ClientCertificate.certfile"><code class="docutils literal notranslate"><span class="pre">ClientCertificate.certfile</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.auth_management.ClientCertificate.keyfile"><code class="docutils literal notranslate"><span class="pre">ClientCertificate.keyfile</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.auth_management.ClientCertificate.password"><code class="docutils literal notranslate"><span class="pre">ClientCertificate.password</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.ClientCertificateProvider"><code class="docutils literal notranslate"><span class="pre">ClientCertificateProvider</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.auth_management.ClientCertificateProvider.get_certificate"><code class="docutils literal notranslate"><span class="pre">ClientCertificateProvider.get_certificate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.ClientCertificateProviders"><code class="docutils literal notranslate"><span class="pre">ClientCertificateProviders</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.auth_management.ClientCertificateProviders.static"><code class="docutils literal notranslate"><span class="pre">ClientCertificateProviders.static()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.auth_management.ClientCertificateProviders.rotating"><code class="docutils literal notranslate"><span class="pre">ClientCertificateProviders.rotating()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.auth_management.RotatingClientCertificateProvider"><code class="docutils literal notranslate"><span class="pre">RotatingClientCertificateProvider</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.auth_management.RotatingClientCertificateProvider.update_certificate"><code class="docutils literal notranslate"><span class="pre">RotatingClientCertificateProvider.update_certificate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#user-agent"><code class="docutils literal notranslate"><span class="pre">user_agent</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#notifications-min-severity"><code class="docutils literal notranslate"><span class="pre">notifications_min_severity</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#notifications-disabled-categories"><code class="docutils literal notranslate"><span class="pre">notifications_disabled_categories</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#notifications-disabled-classifications"><code class="docutils literal notranslate"><span class="pre">notifications_disabled_classifications</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#warn-notification-severity"><code class="docutils literal notranslate"><span class="pre">warn_notification_severity</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#telemetry-disabled"><code class="docutils literal notranslate"><span class="pre">telemetry_disabled</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#driver-object-lifetime">Driver Object Lifetime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#boltdriver">BoltDriver</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.BoltDriver"><code class="docutils literal notranslate"><span class="pre">BoltDriver</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4jdriver">Neo4jDriver</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Neo4jDriver"><code class="docutils literal notranslate"><span class="pre">Neo4jDriver</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#sessions-transactions">Sessions &amp; Transactions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#session-construction">Session Construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#session">Session</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.Session"><code class="docutils literal notranslate"><span class="pre">Session</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.close"><code class="docutils literal notranslate"><span class="pre">Session.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.closed"><code class="docutils literal notranslate"><span class="pre">Session.closed()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.run"><code class="docutils literal notranslate"><span class="pre">Session.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.last_bookmarks"><code class="docutils literal notranslate"><span class="pre">Session.last_bookmarks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.last_bookmark"><code class="docutils literal notranslate"><span class="pre">Session.last_bookmark()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.begin_transaction"><code class="docutils literal notranslate"><span class="pre">Session.begin_transaction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.read_transaction"><code class="docutils literal notranslate"><span class="pre">Session.read_transaction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.execute_read"><code class="docutils literal notranslate"><span class="pre">Session.execute_read()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.write_transaction"><code class="docutils literal notranslate"><span class="pre">Session.write_transaction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Session.execute_write"><code class="docutils literal notranslate"><span class="pre">Session.execute_write()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#query">Query</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Query"><code class="docutils literal notranslate"><span class="pre">Query</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#session-configuration">Session Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#bookmarks"><code class="docutils literal notranslate"><span class="pre">bookmarks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#database"><code class="docutils literal notranslate"><span class="pre">database</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#impersonated-user"><code class="docutils literal notranslate"><span class="pre">impersonated_user</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#default-access-mode"><code class="docutils literal notranslate"><span class="pre">default_access_mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#fetch-size"><code class="docutils literal notranslate"><span class="pre">fetch_size</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#bookmark-manager"><code class="docutils literal notranslate"><span class="pre">bookmark_manager</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#session-auth-ref"><code class="docutils literal notranslate"><span class="pre">auth</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#session-notifications-min-severity-ref"><code class="docutils literal notranslate"><span class="pre">notifications_min_severity</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#session-notifications-disabled-categories-ref"><code class="docutils literal notranslate"><span class="pre">notifications_disabled_categories</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#session-notifications-disabled-classifications-ref"><code class="docutils literal notranslate"><span class="pre">notifications_disabled_classifications</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#transaction">Transaction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#auto-commit-transactions">Auto-commit Transactions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#explicit-transactions-unmanaged-transactions">Explicit Transactions (Unmanaged Transactions)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Transaction"><code class="docutils literal notranslate"><span class="pre">Transaction</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Transaction.run"><code class="docutils literal notranslate"><span class="pre">Transaction.run()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Transaction.commit"><code class="docutils literal notranslate"><span class="pre">Transaction.commit()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Transaction.rollback"><code class="docutils literal notranslate"><span class="pre">Transaction.rollback()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Transaction.close"><code class="docutils literal notranslate"><span class="pre">Transaction.close()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Transaction.closed"><code class="docutils literal notranslate"><span class="pre">Transaction.closed()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#managed-transactions-transaction-functions">Managed Transactions (<cite>transaction functions</cite>)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ManagedTransaction"><code class="docutils literal notranslate"><span class="pre">ManagedTransaction</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.ManagedTransaction.run"><code class="docutils literal notranslate"><span class="pre">ManagedTransaction.run()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.unit_of_work"><code class="docutils literal notranslate"><span class="pre">unit_of_work()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#result">Result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.Result"><code class="docutils literal notranslate"><span class="pre">Result</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.__iter__"><code class="docutils literal notranslate"><span class="pre">Result.__iter__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.__next__"><code class="docutils literal notranslate"><span class="pre">Result.__next__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.keys"><code class="docutils literal notranslate"><span class="pre">Result.keys()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.consume"><code class="docutils literal notranslate"><span class="pre">Result.consume()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.single"><code class="docutils literal notranslate"><span class="pre">Result.single()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.fetch"><code class="docutils literal notranslate"><span class="pre">Result.fetch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.peek"><code class="docutils literal notranslate"><span class="pre">Result.peek()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.graph"><code class="docutils literal notranslate"><span class="pre">Result.graph()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.value"><code class="docutils literal notranslate"><span class="pre">Result.value()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.values"><code class="docutils literal notranslate"><span class="pre">Result.values()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.data"><code class="docutils literal notranslate"><span class="pre">Result.data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.to_df"><code class="docutils literal notranslate"><span class="pre">Result.to_df()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.to_eager_result"><code class="docutils literal notranslate"><span class="pre">Result.to_eager_result()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Result.closed"><code class="docutils literal notranslate"><span class="pre">Result.closed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.EagerResult"><code class="docutils literal notranslate"><span class="pre">EagerResult</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.EagerResult.records"><code class="docutils literal notranslate"><span class="pre">EagerResult.records</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.EagerResult.summary"><code class="docutils literal notranslate"><span class="pre">EagerResult.summary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.EagerResult.keys"><code class="docutils literal notranslate"><span class="pre">EagerResult.keys</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.graph.Graph"><code class="docutils literal notranslate"><span class="pre">Graph</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.graph.Graph.nodes"><code class="docutils literal notranslate"><span class="pre">Graph.nodes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.graph.Graph.relationships"><code class="docutils literal notranslate"><span class="pre">Graph.relationships</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.graph.Graph.relationship_type"><code class="docutils literal notranslate"><span class="pre">Graph.relationship_type()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.Record"><code class="docutils literal notranslate"><span class="pre">Record</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Record.keys"><code class="docutils literal notranslate"><span class="pre">Record.keys()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Record.get"><code class="docutils literal notranslate"><span class="pre">Record.get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Record.index"><code class="docutils literal notranslate"><span class="pre">Record.index()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Record.items"><code class="docutils literal notranslate"><span class="pre">Record.items()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Record.value"><code class="docutils literal notranslate"><span class="pre">Record.value()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Record.values"><code class="docutils literal notranslate"><span class="pre">Record.values()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Record.data"><code class="docutils literal notranslate"><span class="pre">Record.data()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#resultsummary">ResultSummary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.ResultSummary"><code class="docutils literal notranslate"><span class="pre">ResultSummary</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.notifications"><code class="docutils literal notranslate"><span class="pre">ResultSummary.notifications</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.server"><code class="docutils literal notranslate"><span class="pre">ResultSummary.server</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.database"><code class="docutils literal notranslate"><span class="pre">ResultSummary.database</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.query"><code class="docutils literal notranslate"><span class="pre">ResultSummary.query</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.parameters"><code class="docutils literal notranslate"><span class="pre">ResultSummary.parameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.query_type"><code class="docutils literal notranslate"><span class="pre">ResultSummary.query_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.plan"><code class="docutils literal notranslate"><span class="pre">ResultSummary.plan</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.profile"><code class="docutils literal notranslate"><span class="pre">ResultSummary.profile</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.counters"><code class="docutils literal notranslate"><span class="pre">ResultSummary.counters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.result_available_after"><code class="docutils literal notranslate"><span class="pre">ResultSummary.result_available_after</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.result_consumed_after"><code class="docutils literal notranslate"><span class="pre">ResultSummary.result_consumed_after</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.summary_notifications"><code class="docutils literal notranslate"><span class="pre">ResultSummary.summary_notifications</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ResultSummary.gql_status_objects"><code class="docutils literal notranslate"><span class="pre">ResultSummary.gql_status_objects</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#summarycounters">SummaryCounters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.SummaryCounters"><code class="docutils literal notranslate"><span class="pre">SummaryCounters</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.nodes_created"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.nodes_created</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.nodes_deleted"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.nodes_deleted</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.relationships_created"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.relationships_created</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.relationships_deleted"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.relationships_deleted</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.properties_set"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.properties_set</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.labels_added"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.labels_added</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.labels_removed"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.labels_removed</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.indexes_added"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.indexes_added</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.indexes_removed"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.indexes_removed</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.constraints_added"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.constraints_added</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.constraints_removed"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.constraints_removed</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.system_updates"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.system_updates</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.contains_updates"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.contains_updates</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryCounters.contains_system_updates"><code class="docutils literal notranslate"><span class="pre">SummaryCounters.contains_system_updates</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#serverinfo">ServerInfo</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ServerInfo"><code class="docutils literal notranslate"><span class="pre">ServerInfo</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.ServerInfo.address"><code class="docutils literal notranslate"><span class="pre">ServerInfo.address</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.ServerInfo.protocol_version"><code class="docutils literal notranslate"><span class="pre">ServerInfo.protocol_version</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.ServerInfo.agent"><code class="docutils literal notranslate"><span class="pre">ServerInfo.agent</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.ServerInfo.connection_id"><code class="docutils literal notranslate"><span class="pre">ServerInfo.connection_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.ServerInfo.update"><code class="docutils literal notranslate"><span class="pre">ServerInfo.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#gqlstatusobject">GqlStatusObject</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.GqlStatusObject"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GqlStatusObject.is_notification"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject.is_notification</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GqlStatusObject.gql_status"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject.gql_status</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GqlStatusObject.status_description"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject.status_description</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GqlStatusObject.position"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject.position</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GqlStatusObject.raw_classification"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject.raw_classification</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GqlStatusObject.classification"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject.classification</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GqlStatusObject.raw_severity"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject.raw_severity</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GqlStatusObject.severity"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject.severity</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.GqlStatusObject.diagnostic_record"><code class="docutils literal notranslate"><span class="pre">GqlStatusObject.diagnostic_record</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#notificationclassification">NotificationClassification</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.NotificationClassification"><code class="docutils literal notranslate"><span class="pre">NotificationClassification</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.HINT"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.HINT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.UNRECOGNIZED"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.UNRECOGNIZED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.UNSUPPORTED"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.UNSUPPORTED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.PERFORMANCE"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.PERFORMANCE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.DEPRECATION"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.DEPRECATION</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.GENERIC"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.GENERIC</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.SECURITY"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.SECURITY</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.TOPOLOGY"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.TOPOLOGY</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.SCHEMA"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.SCHEMA</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationClassification.UNKNOWN"><code class="docutils literal notranslate"><span class="pre">NotificationClassification.UNKNOWN</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#summarynotification">SummaryNotification</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.SummaryNotification"><code class="docutils literal notranslate"><span class="pre">SummaryNotification</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryNotification.title"><code class="docutils literal notranslate"><span class="pre">SummaryNotification.title</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryNotification.code"><code class="docutils literal notranslate"><span class="pre">SummaryNotification.code</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryNotification.description"><code class="docutils literal notranslate"><span class="pre">SummaryNotification.description</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryNotification.severity_level"><code class="docutils literal notranslate"><span class="pre">SummaryNotification.severity_level</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryNotification.category"><code class="docutils literal notranslate"><span class="pre">SummaryNotification.category</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryNotification.raw_severity_level"><code class="docutils literal notranslate"><span class="pre">SummaryNotification.raw_severity_level</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryNotification.raw_category"><code class="docutils literal notranslate"><span class="pre">SummaryNotification.raw_category</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryNotification.position"><code class="docutils literal notranslate"><span class="pre">SummaryNotification.position</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#notificationseverity">NotificationSeverity</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.NotificationSeverity"><code class="docutils literal notranslate"><span class="pre">NotificationSeverity</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationSeverity.WARNING"><code class="docutils literal notranslate"><span class="pre">NotificationSeverity.WARNING</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationSeverity.INFORMATION"><code class="docutils literal notranslate"><span class="pre">NotificationSeverity.INFORMATION</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationSeverity.UNKNOWN"><code class="docutils literal notranslate"><span class="pre">NotificationSeverity.UNKNOWN</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#notificationcategory">NotificationCategory</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.NotificationCategory"><code class="docutils literal notranslate"><span class="pre">NotificationCategory</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.HINT"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.HINT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.UNRECOGNIZED"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.UNRECOGNIZED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.UNSUPPORTED"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.UNSUPPORTED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.PERFORMANCE"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.PERFORMANCE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.DEPRECATION"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.DEPRECATION</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.GENERIC"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.GENERIC</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.SECURITY"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.SECURITY</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.TOPOLOGY"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.TOPOLOGY</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.SCHEMA"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.SCHEMA</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.NotificationCategory.UNKNOWN"><code class="docutils literal notranslate"><span class="pre">NotificationCategory.UNKNOWN</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#summaryinputposition">SummaryInputPosition</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryInputPosition"><code class="docutils literal notranslate"><span class="pre">SummaryInputPosition</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.SummaryInputPosition.line"><code class="docutils literal notranslate"><span class="pre">SummaryInputPosition.line</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.SummaryInputPosition.column"><code class="docutils literal notranslate"><span class="pre">SummaryInputPosition.column</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.SummaryInputPosition.offset"><code class="docutils literal notranslate"><span class="pre">SummaryInputPosition.offset</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#summarynotificationposition">SummaryNotificationPosition</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.SummaryNotificationPosition"><code class="docutils literal notranslate"><span class="pre">neo4j.SummaryNotificationPosition</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#data-types">Data Types</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#core-data-types">Core Data Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#extended-data-types">Extended Data Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#graph-data-types">Graph Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#node">Node</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.graph.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Node.graph"><code class="docutils literal notranslate"><span class="pre">Node.graph</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Node.id"><code class="docutils literal notranslate"><span class="pre">Node.id</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Node.element_id"><code class="docutils literal notranslate"><span class="pre">Node.element_id</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Node.labels"><code class="docutils literal notranslate"><span class="pre">Node.labels</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Node.get"><code class="docutils literal notranslate"><span class="pre">Node.get()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Node.keys"><code class="docutils literal notranslate"><span class="pre">Node.keys()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Node.values"><code class="docutils literal notranslate"><span class="pre">Node.values()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Node.items"><code class="docutils literal notranslate"><span class="pre">Node.items()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#relationship">Relationship</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.graph.Relationship"><code class="docutils literal notranslate"><span class="pre">Relationship</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.graph"><code class="docutils literal notranslate"><span class="pre">Relationship.graph</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.id"><code class="docutils literal notranslate"><span class="pre">Relationship.id</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.element_id"><code class="docutils literal notranslate"><span class="pre">Relationship.element_id</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.nodes"><code class="docutils literal notranslate"><span class="pre">Relationship.nodes</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.start_node"><code class="docutils literal notranslate"><span class="pre">Relationship.start_node</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.end_node"><code class="docutils literal notranslate"><span class="pre">Relationship.end_node</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.type"><code class="docutils literal notranslate"><span class="pre">Relationship.type</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.get"><code class="docutils literal notranslate"><span class="pre">Relationship.get()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.keys"><code class="docutils literal notranslate"><span class="pre">Relationship.keys()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.values"><code class="docutils literal notranslate"><span class="pre">Relationship.values()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Relationship.items"><code class="docutils literal notranslate"><span class="pre">Relationship.items()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#path">Path</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.graph.Path"><code class="docutils literal notranslate"><span class="pre">Path</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Path.graph"><code class="docutils literal notranslate"><span class="pre">Path.graph</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Path.nodes"><code class="docutils literal notranslate"><span class="pre">Path.nodes</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Path.start_node"><code class="docutils literal notranslate"><span class="pre">Path.start_node</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Path.end_node"><code class="docutils literal notranslate"><span class="pre">Path.end_node</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="api.html#neo4j.graph.Path.relationships"><code class="docutils literal notranslate"><span class="pre">Path.relationships</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#spatial-data-types">Spatial Data Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#temporal-data-types">Temporal Data Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#id7">Bookmarks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#id8">Bookmarks</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Bookmarks"><code class="docutils literal notranslate"><span class="pre">Bookmarks</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Bookmarks.__bool__"><code class="docutils literal notranslate"><span class="pre">Bookmarks.__bool__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Bookmarks.__add__"><code class="docutils literal notranslate"><span class="pre">Bookmarks.__add__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Bookmarks.raw_values"><code class="docutils literal notranslate"><span class="pre">Bookmarks.raw_values</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Bookmarks.from_raw_values"><code class="docutils literal notranslate"><span class="pre">Bookmarks.from_raw_values()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Bookmark"><code class="docutils literal notranslate"><span class="pre">Bookmark</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.Bookmark.values"><code class="docutils literal notranslate"><span class="pre">Bookmark.values</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#bookmarkmanager">BookmarkManager</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.api.BookmarkManager"><code class="docutils literal notranslate"><span class="pre">BookmarkManager</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.api.BookmarkManager.update_bookmarks"><code class="docutils literal notranslate"><span class="pre">BookmarkManager.update_bookmarks()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.api.BookmarkManager.get_bookmarks"><code class="docutils literal notranslate"><span class="pre">BookmarkManager.get_bookmarks()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#constants-enums-helpers">Constants, Enums, Helpers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.NotificationMinimumSeverity"><code class="docutils literal notranslate"><span class="pre">NotificationMinimumSeverity</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationMinimumSeverity.OFF"><code class="docutils literal notranslate"><span class="pre">NotificationMinimumSeverity.OFF</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationMinimumSeverity.WARNING"><code class="docutils literal notranslate"><span class="pre">NotificationMinimumSeverity.WARNING</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationMinimumSeverity.INFORMATION"><code class="docutils literal notranslate"><span class="pre">NotificationMinimumSeverity.INFORMATION</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory.HINT"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory.HINT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory.UNRECOGNIZED"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory.UNRECOGNIZED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory.UNSUPPORTED"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory.UNSUPPORTED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory.PERFORMANCE"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory.PERFORMANCE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory.DEPRECATION"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory.DEPRECATION</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory.GENERIC"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory.GENERIC</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory.SECURITY"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory.SECURITY</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory.TOPOLOGY"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory.TOPOLOGY</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledCategory.SCHEMA"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledCategory.SCHEMA</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification.HINT"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification.HINT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification.UNRECOGNIZED"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification.UNRECOGNIZED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification.UNSUPPORTED"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification.UNSUPPORTED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification.PERFORMANCE"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification.PERFORMANCE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification.DEPRECATION"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification.DEPRECATION</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification.GENERIC"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification.GENERIC</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification.SECURITY"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification.SECURITY</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification.TOPOLOGY"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification.TOPOLOGY</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.NotificationDisabledClassification.SCHEMA"><code class="docutils literal notranslate"><span class="pre">NotificationDisabledClassification.SCHEMA</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.RoutingControl"><code class="docutils literal notranslate"><span class="pre">RoutingControl</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.RoutingControl.READ"><code class="docutils literal notranslate"><span class="pre">RoutingControl.READ</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.RoutingControl.WRITE"><code class="docutils literal notranslate"><span class="pre">RoutingControl.WRITE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.Address"><code class="docutils literal notranslate"><span class="pre">Address</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Address.family"><code class="docutils literal notranslate"><span class="pre">Address.family</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Address.from_socket"><code class="docutils literal notranslate"><span class="pre">Address.from_socket()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Address.parse"><code class="docutils literal notranslate"><span class="pre">Address.parse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Address.parse_list"><code class="docutils literal notranslate"><span class="pre">Address.parse_list()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Address.host"><code class="docutils literal notranslate"><span class="pre">Address.host</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Address.port"><code class="docutils literal notranslate"><span class="pre">Address.port</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.Address.port_number"><code class="docutils literal notranslate"><span class="pre">Address.port_number</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.IPv4Address"><code class="docutils literal notranslate"><span class="pre">IPv4Address</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j.IPv6Address"><code class="docutils literal notranslate"><span class="pre">IPv6Address</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#errors">Errors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#gql-errors">GQL Errors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.GqlError"><code class="docutils literal notranslate"><span class="pre">GqlError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlError.gql_status"><code class="docutils literal notranslate"><span class="pre">GqlError.gql_status</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlError.message"><code class="docutils literal notranslate"><span class="pre">GqlError.message</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlError.gql_status_description"><code class="docutils literal notranslate"><span class="pre">GqlError.gql_status_description</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlError.gql_raw_classification"><code class="docutils literal notranslate"><span class="pre">GqlError.gql_raw_classification</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlError.gql_classification"><code class="docutils literal notranslate"><span class="pre">GqlError.gql_classification</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlError.diagnostic_record"><code class="docutils literal notranslate"><span class="pre">GqlError.diagnostic_record</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlError.__cause__"><code class="docutils literal notranslate"><span class="pre">GqlError.__cause__</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.GqlErrorClassification"><code class="docutils literal notranslate"><span class="pre">GqlErrorClassification</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlErrorClassification.CLIENT_ERROR"><code class="docutils literal notranslate"><span class="pre">GqlErrorClassification.CLIENT_ERROR</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlErrorClassification.DATABASE_ERROR"><code class="docutils literal notranslate"><span class="pre">GqlErrorClassification.DATABASE_ERROR</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlErrorClassification.TRANSIENT_ERROR"><code class="docutils literal notranslate"><span class="pre">GqlErrorClassification.TRANSIENT_ERROR</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.GqlErrorClassification.UNKNOWN"><code class="docutils literal notranslate"><span class="pre">GqlErrorClassification.UNKNOWN</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#neo4j-errors">Neo4j Errors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.Neo4jError"><code class="docutils literal notranslate"><span class="pre">Neo4jError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.Neo4jError.message"><code class="docutils literal notranslate"><span class="pre">Neo4jError.message</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.Neo4jError.code"><code class="docutils literal notranslate"><span class="pre">Neo4jError.code</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.Neo4jError.is_retriable"><code class="docutils literal notranslate"><span class="pre">Neo4jError.is_retriable()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.Neo4jError.is_retryable"><code class="docutils literal notranslate"><span class="pre">Neo4jError.is_retryable()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ClientError"><code class="docutils literal notranslate"><span class="pre">ClientError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.CypherSyntaxError"><code class="docutils literal notranslate"><span class="pre">CypherSyntaxError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.CypherTypeError"><code class="docutils literal notranslate"><span class="pre">CypherTypeError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ConstraintError"><code class="docutils literal notranslate"><span class="pre">ConstraintError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.AuthError"><code class="docutils literal notranslate"><span class="pre">AuthError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.TokenExpired"><code class="docutils literal notranslate"><span class="pre">TokenExpired</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.Forbidden"><code class="docutils literal notranslate"><span class="pre">Forbidden</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.DatabaseError"><code class="docutils literal notranslate"><span class="pre">DatabaseError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.TransientError"><code class="docutils literal notranslate"><span class="pre">TransientError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.DatabaseUnavailable"><code class="docutils literal notranslate"><span class="pre">DatabaseUnavailable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.NotALeader"><code class="docutils literal notranslate"><span class="pre">NotALeader</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ForbiddenOnReadOnlyDatabase"><code class="docutils literal notranslate"><span class="pre">ForbiddenOnReadOnlyDatabase</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#driver-errors">Driver Errors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.DriverError"><code class="docutils literal notranslate"><span class="pre">DriverError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.DriverError.is_retryable"><code class="docutils literal notranslate"><span class="pre">DriverError.is_retryable()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.SessionError"><code class="docutils literal notranslate"><span class="pre">SessionError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.SessionError.session"><code class="docutils literal notranslate"><span class="pre">SessionError.session</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.TransactionError"><code class="docutils literal notranslate"><span class="pre">TransactionError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.TransactionError.transaction"><code class="docutils literal notranslate"><span class="pre">TransactionError.transaction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.TransactionNestingError"><code class="docutils literal notranslate"><span class="pre">TransactionNestingError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ResultError"><code class="docutils literal notranslate"><span class="pre">ResultError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.exceptions.ResultError.result"><code class="docutils literal notranslate"><span class="pre">ResultError.result</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ResultFailedError"><code class="docutils literal notranslate"><span class="pre">ResultFailedError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ResultConsumedError"><code class="docutils literal notranslate"><span class="pre">ResultConsumedError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ResultNotSingleError"><code class="docutils literal notranslate"><span class="pre">ResultNotSingleError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.BrokenRecordError"><code class="docutils literal notranslate"><span class="pre">BrokenRecordError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.SessionExpired"><code class="docutils literal notranslate"><span class="pre">SessionExpired</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ServiceUnavailable"><code class="docutils literal notranslate"><span class="pre">ServiceUnavailable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.RoutingServiceUnavailable"><code class="docutils literal notranslate"><span class="pre">RoutingServiceUnavailable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.WriteServiceUnavailable"><code class="docutils literal notranslate"><span class="pre">WriteServiceUnavailable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ReadServiceUnavailable"><code class="docutils literal notranslate"><span class="pre">ReadServiceUnavailable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.IncompleteCommit"><code class="docutils literal notranslate"><span class="pre">IncompleteCommit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.ConfigurationError"><code class="docutils literal notranslate"><span class="pre">ConfigurationError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.AuthConfigurationError"><code class="docutils literal notranslate"><span class="pre">AuthConfigurationError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.exceptions.CertificateConfigurationError"><code class="docutils literal notranslate"><span class="pre">CertificateConfigurationError</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#internal-driver-errors">Internal Driver Errors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#warnings">Warnings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#warning-classes">Warning Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.PreviewWarning"><code class="docutils literal notranslate"><span class="pre">PreviewWarning</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.ExperimentalWarning"><code class="docutils literal notranslate"><span class="pre">ExperimentalWarning</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.warnings.Neo4jWarning"><code class="docutils literal notranslate"><span class="pre">Neo4jWarning</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.warnings.Neo4jWarning.notification"><code class="docutils literal notranslate"><span class="pre">Neo4jWarning.notification</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.warnings.Neo4jDeprecationWarning"><code class="docutils literal notranslate"><span class="pre">Neo4jDeprecationWarning</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#filtering-warnings">Filtering Warnings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#logging">Logging</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#simple-approach">Simple Approach</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.debug.watch"><code class="docutils literal notranslate"><span class="pre">watch()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#context-manager">Context Manager</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api.html#neo4j.debug.Watcher"><code class="docutils literal notranslate"><span class="pre">Watcher</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.debug.Watcher.__enter__"><code class="docutils literal notranslate"><span class="pre">Watcher.__enter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.debug.Watcher.__exit__"><code class="docutils literal notranslate"><span class="pre">Watcher.__exit__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.debug.Watcher.watch"><code class="docutils literal notranslate"><span class="pre">Watcher.watch()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="api.html#neo4j.debug.Watcher.stop"><code class="docutils literal notranslate"><span class="pre">Watcher.stop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#full-control">Full Control</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="async_api.html">Async API Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#asyncgraphdatabase">AsyncGraphDatabase</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#async-driver-construction">Async Driver Construction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncGraphDatabase"><code class="docutils literal notranslate"><span class="pre">AsyncGraphDatabase</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.AsyncGraphDatabase.driver"><code class="docutils literal notranslate"><span class="pre">AsyncGraphDatabase.driver()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.AsyncGraphDatabase.bookmark_manager"><code class="docutils literal notranslate"><span class="pre">AsyncGraphDatabase.bookmark_manager()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#uri">URI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#async-auth">Async Auth</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncAuthManager"><code class="docutils literal notranslate"><span class="pre">AsyncAuthManager</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncAuthManager.get_auth"><code class="docutils literal notranslate"><span class="pre">AsyncAuthManager.get_auth()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncAuthManager.handle_security_exception"><code class="docutils literal notranslate"><span class="pre">AsyncAuthManager.handle_security_exception()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncAuthManagers"><code class="docutils literal notranslate"><span class="pre">AsyncAuthManagers</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncAuthManagers.static"><code class="docutils literal notranslate"><span class="pre">AsyncAuthManagers.static()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncAuthManagers.basic"><code class="docutils literal notranslate"><span class="pre">AsyncAuthManagers.basic()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncAuthManagers.bearer"><code class="docutils literal notranslate"><span class="pre">AsyncAuthManagers.bearer()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#asyncdriver">AsyncDriver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver"><code class="docutils literal notranslate"><span class="pre">AsyncDriver</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.execute_query"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.execute_query()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.encrypted"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.encrypted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.session"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.session()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.close"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.execute_query_bookmark_manager"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.execute_query_bookmark_manager</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.verify_connectivity"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.verify_connectivity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.get_server_info"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.get_server_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.supports_multi_db"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.supports_multi_db()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.verify_authentication"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.verify_authentication()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncDriver.supports_session_auth"><code class="docutils literal notranslate"><span class="pre">AsyncDriver.supports_session_auth()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#async-driver-configuration">Async Driver Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#resolver"><code class="docutils literal notranslate"><span class="pre">resolver</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#client-certificate"><code class="docutils literal notranslate"><span class="pre">client_certificate</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncClientCertificateProvider"><code class="docutils literal notranslate"><span class="pre">AsyncClientCertificateProvider</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncClientCertificateProvider.get_certificate"><code class="docutils literal notranslate"><span class="pre">AsyncClientCertificateProvider.get_certificate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncClientCertificateProviders"><code class="docutils literal notranslate"><span class="pre">AsyncClientCertificateProviders</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncClientCertificateProviders.static"><code class="docutils literal notranslate"><span class="pre">AsyncClientCertificateProviders.static()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncClientCertificateProviders.rotating"><code class="docutils literal notranslate"><span class="pre">AsyncClientCertificateProviders.rotating()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncRotatingClientCertificateProvider"><code class="docutils literal notranslate"><span class="pre">AsyncRotatingClientCertificateProvider</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="async_api.html#neo4j.auth_management.AsyncRotatingClientCertificateProvider.update_certificate"><code class="docutils literal notranslate"><span class="pre">AsyncRotatingClientCertificateProvider.update_certificate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#driver-object-lifetime">Driver Object Lifetime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#asyncboltdriver">AsyncBoltDriver</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncBoltDriver"><code class="docutils literal notranslate"><span class="pre">AsyncBoltDriver</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#asyncneo4jdriver">AsyncNeo4jDriver</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncNeo4jDriver"><code class="docutils literal notranslate"><span class="pre">AsyncNeo4jDriver</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#asyncsessions-asynctransactions">AsyncSessions &amp; AsyncTransactions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#asyncsession-construction">AsyncSession Construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#asyncsession">AsyncSession</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#neo4j.AsyncSession"><code class="docutils literal notranslate"><span class="pre">AsyncSession</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.close"><code class="docutils literal notranslate"><span class="pre">AsyncSession.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.cancel"><code class="docutils literal notranslate"><span class="pre">AsyncSession.cancel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.closed"><code class="docutils literal notranslate"><span class="pre">AsyncSession.closed()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.run"><code class="docutils literal notranslate"><span class="pre">AsyncSession.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.last_bookmarks"><code class="docutils literal notranslate"><span class="pre">AsyncSession.last_bookmarks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.last_bookmark"><code class="docutils literal notranslate"><span class="pre">AsyncSession.last_bookmark()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.begin_transaction"><code class="docutils literal notranslate"><span class="pre">AsyncSession.begin_transaction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.read_transaction"><code class="docutils literal notranslate"><span class="pre">AsyncSession.read_transaction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.execute_read"><code class="docutils literal notranslate"><span class="pre">AsyncSession.execute_read()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.write_transaction"><code class="docutils literal notranslate"><span class="pre">AsyncSession.write_transaction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncSession.execute_write"><code class="docutils literal notranslate"><span class="pre">AsyncSession.execute_write()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#session-configuration">Session Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#bookmark-manager"><code class="docutils literal notranslate"><span class="pre">bookmark_manager</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#asynctransaction">AsyncTransaction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#auto-commit-transactions">Auto-commit Transactions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#explicit-transactions-unmanaged-transactions">Explicit Transactions (Unmanaged Transactions)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncTransaction"><code class="docutils literal notranslate"><span class="pre">AsyncTransaction</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.AsyncTransaction.run"><code class="docutils literal notranslate"><span class="pre">AsyncTransaction.run()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.AsyncTransaction.commit"><code class="docutils literal notranslate"><span class="pre">AsyncTransaction.commit()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.AsyncTransaction.rollback"><code class="docutils literal notranslate"><span class="pre">AsyncTransaction.rollback()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.AsyncTransaction.close"><code class="docutils literal notranslate"><span class="pre">AsyncTransaction.close()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.AsyncTransaction.cancel"><code class="docutils literal notranslate"><span class="pre">AsyncTransaction.cancel()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.AsyncTransaction.closed"><code class="docutils literal notranslate"><span class="pre">AsyncTransaction.closed()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#managed-transactions-transaction-functions">Managed Transactions (<cite>transaction functions</cite>)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncManagedTransaction"><code class="docutils literal notranslate"><span class="pre">AsyncManagedTransaction</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="async_api.html#neo4j.AsyncManagedTransaction.run"><code class="docutils literal notranslate"><span class="pre">AsyncManagedTransaction.run()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#asyncresult">AsyncResult</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#neo4j.AsyncResult"><code class="docutils literal notranslate"><span class="pre">AsyncResult</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.__aiter__"><code class="docutils literal notranslate"><span class="pre">AsyncResult.__aiter__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.__anext__"><code class="docutils literal notranslate"><span class="pre">AsyncResult.__anext__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.keys"><code class="docutils literal notranslate"><span class="pre">AsyncResult.keys()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.consume"><code class="docutils literal notranslate"><span class="pre">AsyncResult.consume()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.single"><code class="docutils literal notranslate"><span class="pre">AsyncResult.single()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.fetch"><code class="docutils literal notranslate"><span class="pre">AsyncResult.fetch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.peek"><code class="docutils literal notranslate"><span class="pre">AsyncResult.peek()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.graph"><code class="docutils literal notranslate"><span class="pre">AsyncResult.graph()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.value"><code class="docutils literal notranslate"><span class="pre">AsyncResult.value()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.values"><code class="docutils literal notranslate"><span class="pre">AsyncResult.values()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.data"><code class="docutils literal notranslate"><span class="pre">AsyncResult.data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.to_df"><code class="docutils literal notranslate"><span class="pre">AsyncResult.to_df()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.to_eager_result"><code class="docutils literal notranslate"><span class="pre">AsyncResult.to_eager_result()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.AsyncResult.closed"><code class="docutils literal notranslate"><span class="pre">AsyncResult.closed()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#asyncbookmarkmanager">AsyncBookmarkManager</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="async_api.html#neo4j.api.AsyncBookmarkManager"><code class="docutils literal notranslate"><span class="pre">AsyncBookmarkManager</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.api.AsyncBookmarkManager.update_bookmarks"><code class="docutils literal notranslate"><span class="pre">AsyncBookmarkManager.update_bookmarks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="async_api.html#neo4j.api.AsyncBookmarkManager.get_bookmarks"><code class="docutils literal notranslate"><span class="pre">AsyncBookmarkManager.get_bookmarks()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#async-cancellation">Async Cancellation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="async_api.html#async-logging">Async Logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="types/spatial.html">Spatial Data Types</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="types/spatial.html#point">Point</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="types/spatial.html#neo4j.spatial.Point"><code class="docutils literal notranslate"><span class="pre">Point</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.Point.srid"><code class="docutils literal notranslate"><span class="pre">Point.srid</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="types/spatial.html#cartesianpoint">CartesianPoint</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="types/spatial.html#neo4j.spatial.CartesianPoint"><code class="docutils literal notranslate"><span class="pre">CartesianPoint</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.CartesianPoint.x"><code class="docutils literal notranslate"><span class="pre">CartesianPoint.x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.CartesianPoint.y"><code class="docutils literal notranslate"><span class="pre">CartesianPoint.y</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.CartesianPoint.z"><code class="docutils literal notranslate"><span class="pre">CartesianPoint.z</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/spatial.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="types/spatial.html#wgs84point">WGS84Point</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="types/spatial.html#neo4j.spatial.WGS84Point"><code class="docutils literal notranslate"><span class="pre">WGS84Point</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.WGS84Point.x"><code class="docutils literal notranslate"><span class="pre">WGS84Point.x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.WGS84Point.y"><code class="docutils literal notranslate"><span class="pre">WGS84Point.y</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.WGS84Point.z"><code class="docutils literal notranslate"><span class="pre">WGS84Point.z</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.WGS84Point.longitude"><code class="docutils literal notranslate"><span class="pre">WGS84Point.longitude</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.WGS84Point.latitude"><code class="docutils literal notranslate"><span class="pre">WGS84Point.latitude</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/spatial.html#neo4j.spatial.WGS84Point.height"><code class="docutils literal notranslate"><span class="pre">WGS84Point.height</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/spatial.html#id2">Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="types/temporal.html">Temporal Data Types</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="types/temporal.html#constants">Constants</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#neo4j.time.MIN_YEAR"><code class="docutils literal notranslate"><span class="pre">MIN_YEAR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#neo4j.time.MAX_YEAR"><code class="docutils literal notranslate"><span class="pre">MAX_YEAR</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="types/temporal.html#date">Date</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#neo4j.time.Date"><code class="docutils literal notranslate"><span class="pre">Date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#class-methods">Class methods</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.today"><code class="docutils literal notranslate"><span class="pre">Date.today()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.utc_today"><code class="docutils literal notranslate"><span class="pre">Date.utc_today()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.from_timestamp"><code class="docutils literal notranslate"><span class="pre">Date.from_timestamp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.utc_from_timestamp"><code class="docutils literal notranslate"><span class="pre">Date.utc_from_timestamp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.from_ordinal"><code class="docutils literal notranslate"><span class="pre">Date.from_ordinal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.parse"><code class="docutils literal notranslate"><span class="pre">Date.parse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.from_native"><code class="docutils literal notranslate"><span class="pre">Date.from_native()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.from_clock_time"><code class="docutils literal notranslate"><span class="pre">Date.from_clock_time()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.is_leap_year"><code class="docutils literal notranslate"><span class="pre">Date.is_leap_year()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.days_in_year"><code class="docutils literal notranslate"><span class="pre">Date.days_in_year()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.days_in_month"><code class="docutils literal notranslate"><span class="pre">Date.days_in_month()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#class-attributes">Class attributes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.min"><code class="docutils literal notranslate"><span class="pre">Date.min</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.max"><code class="docutils literal notranslate"><span class="pre">Date.max</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.resolution"><code class="docutils literal notranslate"><span class="pre">Date.resolution</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#instance-attributes">Instance attributes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.year"><code class="docutils literal notranslate"><span class="pre">Date.year</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.month"><code class="docutils literal notranslate"><span class="pre">Date.month</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.day"><code class="docutils literal notranslate"><span class="pre">Date.day</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.year_month_day"><code class="docutils literal notranslate"><span class="pre">Date.year_month_day</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.year_week_day"><code class="docutils literal notranslate"><span class="pre">Date.year_week_day</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.year_day"><code class="docutils literal notranslate"><span class="pre">Date.year_day</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#operations">Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__hash__"><code class="docutils literal notranslate"><span class="pre">Date.__hash__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__eq__"><code class="docutils literal notranslate"><span class="pre">Date.__eq__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__ne__"><code class="docutils literal notranslate"><span class="pre">Date.__ne__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__lt__"><code class="docutils literal notranslate"><span class="pre">Date.__lt__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__gt__"><code class="docutils literal notranslate"><span class="pre">Date.__gt__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__le__"><code class="docutils literal notranslate"><span class="pre">Date.__le__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__ge__"><code class="docutils literal notranslate"><span class="pre">Date.__ge__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__add__"><code class="docutils literal notranslate"><span class="pre">Date.__add__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__sub__"><code class="docutils literal notranslate"><span class="pre">Date.__sub__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#instance-methods">Instance methods</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.replace"><code class="docutils literal notranslate"><span class="pre">Date.replace()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.time_tuple"><code class="docutils literal notranslate"><span class="pre">Date.time_tuple()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.to_ordinal"><code class="docutils literal notranslate"><span class="pre">Date.to_ordinal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.to_clock_time"><code class="docutils literal notranslate"><span class="pre">Date.to_clock_time()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.to_native"><code class="docutils literal notranslate"><span class="pre">Date.to_native()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.weekday"><code class="docutils literal notranslate"><span class="pre">Date.weekday()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.iso_weekday"><code class="docutils literal notranslate"><span class="pre">Date.iso_weekday()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.iso_calendar"><code class="docutils literal notranslate"><span class="pre">Date.iso_calendar()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.iso_format"><code class="docutils literal notranslate"><span class="pre">Date.iso_format()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__repr__"><code class="docutils literal notranslate"><span class="pre">Date.__repr__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__str__"><code class="docutils literal notranslate"><span class="pre">Date.__str__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Date.__format__"><code class="docutils literal notranslate"><span class="pre">Date.__format__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#special-values">Special values</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.ZeroDate"><code class="docutils literal notranslate"><span class="pre">ZeroDate</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="types/temporal.html#time">Time</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#neo4j.time.Time"><code class="docutils literal notranslate"><span class="pre">Time</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id3">Class methods</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.now"><code class="docutils literal notranslate"><span class="pre">Time.now()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.utc_now"><code class="docutils literal notranslate"><span class="pre">Time.utc_now()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.from_ticks"><code class="docutils literal notranslate"><span class="pre">Time.from_ticks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.from_native"><code class="docutils literal notranslate"><span class="pre">Time.from_native()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.from_clock_time"><code class="docutils literal notranslate"><span class="pre">Time.from_clock_time()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id4">Class attributes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.min"><code class="docutils literal notranslate"><span class="pre">Time.min</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.max"><code class="docutils literal notranslate"><span class="pre">Time.max</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.resolution"><code class="docutils literal notranslate"><span class="pre">Time.resolution</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id5">Instance attributes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.ticks"><code class="docutils literal notranslate"><span class="pre">Time.ticks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.hour"><code class="docutils literal notranslate"><span class="pre">Time.hour</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.minute"><code class="docutils literal notranslate"><span class="pre">Time.minute</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.second"><code class="docutils literal notranslate"><span class="pre">Time.second</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.nanosecond"><code class="docutils literal notranslate"><span class="pre">Time.nanosecond</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.hour_minute_second_nanosecond"><code class="docutils literal notranslate"><span class="pre">Time.hour_minute_second_nanosecond</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.tzinfo"><code class="docutils literal notranslate"><span class="pre">Time.tzinfo</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id6">Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__hash__"><code class="docutils literal notranslate"><span class="pre">Time.__hash__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__eq__"><code class="docutils literal notranslate"><span class="pre">Time.__eq__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__ne__"><code class="docutils literal notranslate"><span class="pre">Time.__ne__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__lt__"><code class="docutils literal notranslate"><span class="pre">Time.__lt__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__gt__"><code class="docutils literal notranslate"><span class="pre">Time.__gt__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__le__"><code class="docutils literal notranslate"><span class="pre">Time.__le__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__ge__"><code class="docutils literal notranslate"><span class="pre">Time.__ge__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id7">Instance methods</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.replace"><code class="docutils literal notranslate"><span class="pre">Time.replace()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.utc_offset"><code class="docutils literal notranslate"><span class="pre">Time.utc_offset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.dst"><code class="docutils literal notranslate"><span class="pre">Time.dst()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.tzname"><code class="docutils literal notranslate"><span class="pre">Time.tzname()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.to_clock_time"><code class="docutils literal notranslate"><span class="pre">Time.to_clock_time()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.to_native"><code class="docutils literal notranslate"><span class="pre">Time.to_native()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.iso_format"><code class="docutils literal notranslate"><span class="pre">Time.iso_format()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__repr__"><code class="docutils literal notranslate"><span class="pre">Time.__repr__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__str__"><code class="docutils literal notranslate"><span class="pre">Time.__str__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Time.__format__"><code class="docutils literal notranslate"><span class="pre">Time.__format__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id8">Special values</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Midnight"><code class="docutils literal notranslate"><span class="pre">Midnight</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Midday"><code class="docutils literal notranslate"><span class="pre">Midday</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="types/temporal.html#datetime">DateTime</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime"><code class="docutils literal notranslate"><span class="pre">DateTime</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id10">Class methods</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.now"><code class="docutils literal notranslate"><span class="pre">DateTime.now()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.utc_now"><code class="docutils literal notranslate"><span class="pre">DateTime.utc_now()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.from_timestamp"><code class="docutils literal notranslate"><span class="pre">DateTime.from_timestamp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.utc_from_timestamp"><code class="docutils literal notranslate"><span class="pre">DateTime.utc_from_timestamp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.from_ordinal"><code class="docutils literal notranslate"><span class="pre">DateTime.from_ordinal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.combine"><code class="docutils literal notranslate"><span class="pre">DateTime.combine()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.from_native"><code class="docutils literal notranslate"><span class="pre">DateTime.from_native()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.from_clock_time"><code class="docutils literal notranslate"><span class="pre">DateTime.from_clock_time()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id11">Class attributes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.min"><code class="docutils literal notranslate"><span class="pre">DateTime.min</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.max"><code class="docutils literal notranslate"><span class="pre">DateTime.max</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.resolution"><code class="docutils literal notranslate"><span class="pre">DateTime.resolution</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id12">Instance attributes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.year"><code class="docutils literal notranslate"><span class="pre">DateTime.year</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.month"><code class="docutils literal notranslate"><span class="pre">DateTime.month</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.day"><code class="docutils literal notranslate"><span class="pre">DateTime.day</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.year_month_day"><code class="docutils literal notranslate"><span class="pre">DateTime.year_month_day</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.year_week_day"><code class="docutils literal notranslate"><span class="pre">DateTime.year_week_day</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.year_day"><code class="docutils literal notranslate"><span class="pre">DateTime.year_day</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.hour"><code class="docutils literal notranslate"><span class="pre">DateTime.hour</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.minute"><code class="docutils literal notranslate"><span class="pre">DateTime.minute</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.second"><code class="docutils literal notranslate"><span class="pre">DateTime.second</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.nanosecond"><code class="docutils literal notranslate"><span class="pre">DateTime.nanosecond</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.tzinfo"><code class="docutils literal notranslate"><span class="pre">DateTime.tzinfo</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.hour_minute_second_nanosecond"><code class="docutils literal notranslate"><span class="pre">DateTime.hour_minute_second_nanosecond</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id13">Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__hash__"><code class="docutils literal notranslate"><span class="pre">DateTime.__hash__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__eq__"><code class="docutils literal notranslate"><span class="pre">DateTime.__eq__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__ne__"><code class="docutils literal notranslate"><span class="pre">DateTime.__ne__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__lt__"><code class="docutils literal notranslate"><span class="pre">DateTime.__lt__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__gt__"><code class="docutils literal notranslate"><span class="pre">DateTime.__gt__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__le__"><code class="docutils literal notranslate"><span class="pre">DateTime.__le__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__ge__"><code class="docutils literal notranslate"><span class="pre">DateTime.__ge__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__add__"><code class="docutils literal notranslate"><span class="pre">DateTime.__add__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__sub__"><code class="docutils literal notranslate"><span class="pre">DateTime.__sub__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id14">Instance methods</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.date"><code class="docutils literal notranslate"><span class="pre">DateTime.date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.time"><code class="docutils literal notranslate"><span class="pre">DateTime.time()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.timetz"><code class="docutils literal notranslate"><span class="pre">DateTime.timetz()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.replace"><code class="docutils literal notranslate"><span class="pre">DateTime.replace()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.as_timezone"><code class="docutils literal notranslate"><span class="pre">DateTime.as_timezone()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.utc_offset"><code class="docutils literal notranslate"><span class="pre">DateTime.utc_offset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.dst"><code class="docutils literal notranslate"><span class="pre">DateTime.dst()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.tzname"><code class="docutils literal notranslate"><span class="pre">DateTime.tzname()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.to_ordinal"><code class="docutils literal notranslate"><span class="pre">DateTime.to_ordinal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.to_clock_time"><code class="docutils literal notranslate"><span class="pre">DateTime.to_clock_time()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.to_native"><code class="docutils literal notranslate"><span class="pre">DateTime.to_native()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.weekday"><code class="docutils literal notranslate"><span class="pre">DateTime.weekday()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.iso_weekday"><code class="docutils literal notranslate"><span class="pre">DateTime.iso_weekday()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.iso_calendar"><code class="docutils literal notranslate"><span class="pre">DateTime.iso_calendar()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.iso_format"><code class="docutils literal notranslate"><span class="pre">DateTime.iso_format()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__repr__"><code class="docutils literal notranslate"><span class="pre">DateTime.__repr__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__str__"><code class="docutils literal notranslate"><span class="pre">DateTime.__str__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.DateTime.__format__"><code class="docutils literal notranslate"><span class="pre">DateTime.__format__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id15">Special values</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Never"><code class="docutils literal notranslate"><span class="pre">Never</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.UnixEpoch"><code class="docutils literal notranslate"><span class="pre">UnixEpoch</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="types/temporal.html#duration">Duration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration"><code class="docutils literal notranslate"><span class="pre">Duration</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id16">Class attributes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.min"><code class="docutils literal notranslate"><span class="pre">Duration.min</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.max"><code class="docutils literal notranslate"><span class="pre">Duration.max</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id17">Instance attributes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.months"><code class="docutils literal notranslate"><span class="pre">Duration.months</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.days"><code class="docutils literal notranslate"><span class="pre">Duration.days</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.seconds"><code class="docutils literal notranslate"><span class="pre">Duration.seconds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.nanoseconds"><code class="docutils literal notranslate"><span class="pre">Duration.nanoseconds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.years_months_days"><code class="docutils literal notranslate"><span class="pre">Duration.years_months_days</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.hours_minutes_seconds_nanoseconds"><code class="docutils literal notranslate"><span class="pre">Duration.hours_minutes_seconds_nanoseconds</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id18">Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__bool__"><code class="docutils literal notranslate"><span class="pre">Duration.__bool__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__add__"><code class="docutils literal notranslate"><span class="pre">Duration.__add__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__sub__"><code class="docutils literal notranslate"><span class="pre">Duration.__sub__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__mul__"><code class="docutils literal notranslate"><span class="pre">Duration.__mul__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__truediv__"><code class="docutils literal notranslate"><span class="pre">Duration.__truediv__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__floordiv__"><code class="docutils literal notranslate"><span class="pre">Duration.__floordiv__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__mod__"><code class="docutils literal notranslate"><span class="pre">Duration.__mod__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__divmod__"><code class="docutils literal notranslate"><span class="pre">Duration.__divmod__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__pos__"><code class="docutils literal notranslate"><span class="pre">Duration.__pos__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__neg__"><code class="docutils literal notranslate"><span class="pre">Duration.__neg__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__abs__"><code class="docutils literal notranslate"><span class="pre">Duration.__abs__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__repr__"><code class="docutils literal notranslate"><span class="pre">Duration.__repr__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.__str__"><code class="docutils literal notranslate"><span class="pre">Duration.__str__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="types/temporal.html#id19">Instance methods</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="types/temporal.html#neo4j.time.Duration.iso_format"><code class="docutils literal notranslate"><span class="pre">Duration.iso_format()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="types/vector.html">Vector Data Types</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="types/vector.html#neo4j.Vector"><code class="docutils literal notranslate"><span class="pre">Vector</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="types/vector.html#neo4j.Vector.raw"><code class="docutils literal notranslate"><span class="pre">Vector.raw()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/vector.html#neo4j.Vector.set_raw"><code class="docutils literal notranslate"><span class="pre">Vector.set_raw()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/vector.html#neo4j.Vector.dtype"><code class="docutils literal notranslate"><span class="pre">Vector.dtype</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/vector.html#neo4j.Vector.from_native"><code class="docutils literal notranslate"><span class="pre">Vector.from_native()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/vector.html#neo4j.Vector.to_native"><code class="docutils literal notranslate"><span class="pre">Vector.to_native()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/vector.html#neo4j.Vector.from_numpy"><code class="docutils literal notranslate"><span class="pre">Vector.from_numpy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/vector.html#neo4j.Vector.to_numpy"><code class="docutils literal notranslate"><span class="pre">Vector.to_numpy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/vector.html#neo4j.Vector.from_pyarrow"><code class="docutils literal notranslate"><span class="pre">Vector.from_pyarrow()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="types/vector.html#neo4j.Vector.to_pyarrow"><code class="docutils literal notranslate"><span class="pre">Vector.to_pyarrow()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="breaking_changes.html">Breaking Changes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#version-scheme-changes">Version Scheme Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#python-versions">Python Versions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#namespace-changes">Namespace Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#secure-connection">Secure Connection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#bookmark-changes">Bookmark Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#exceptions-changes">Exceptions Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#uri-scheme-changes">URI Scheme Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#class-renaming-changes">Class Renaming Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#argument-renaming-changes">Argument Renaming Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#api-changes">API Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#dependency-changes">Dependency Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="breaking_changes.html#configuration-name-changes">Configuration Name Changes</a></li>
+</ul>
+</li>
+</ul>
+
+
+        <!-- -->
+      </article>
+    </div>
+
+  </main>
+</div>
+  <footer class="footer">
+    <div class="wrapper">
+    <div class="column">
+      <div class="logo-footer"></div>
+      <p>© <span id="footer-copyright-year"></span> Neo4j, Inc.<br>
+        <a href="https://neo4j.com/terms/">Terms</a> | <a href="https://neo4j.com/privacy-policy/">Privacy </a> | <a href="https://neo4j.com/sitemap/">Sitemap</a></p>
+      <p>Neo4j<sup>®</sup>, Neo Technology<sup>®</sup>, Cypher<sup>®</sup>, Neo4j<sup>®</sup> Bloom<sup>™</sup> and
+        Neo4j<sup>®</sup> Aura<sup>™</sup> are registered trademarks
+        of Neo4j, Inc. All other marks are owned by their respective companies.</p>
+    </div>
+
+    <div class="column">
+      <h2><a href="https://neo4j.com/contact-us/?ref=footer">Contact Us →</a></h2>
+      <p>US: 1-855-636-4532<br>
+        Sweden +46 171 480 113<br>
+        UK: +44 20 3868 3223<br>
+        France: +33 (0) 1 88 46 13 20<br>
+        <!--Germany: +49 (0)89 26204 6300</p>-->
+      </p>
+    </div>
+    <div class="column links">
+      <h2>Learn</h2>
+      <ul>
+        <li><i class="fa fa-wrench" aria-hidden="true"></i> <a rel="noopener" href="https://neo4j.com/sandbox/?ref=developer-footer">Sandbox</a></li>
+        <li><i class="fa fa-comments-o" aria-hidden="true"></i> <a rel="noopener" href="https://community.neo4j.com?ref=developer-footer" target="_blank">Neo4j Community Site</a></li>
+        <li><i class="fa fa-book" aria-hidden="true"></i> <a rel="noopener" href="https://medium.com/neo4j" target="_blank">Neo4j Developer Blog</a></li>
+        <li><i class="fa fa-youtube" aria-hidden="true"></i> <a rel="noopener" href="https://www.youtube.com/neo4j" target="_blank">Neo4j Videos</a></li>
+        <li><i class="fa fa-graduation-cap" aria-hidden="true"></i> <a rel="noopener" href="https://neo4j.com/graphacademy/?ref=developer-footer">GraphAcademy</a></li>
+        <li><i class="fa fa-flask" aria-hidden="true"></i> <a href="https://neo4j.com/labs/?ref=developer-footer">Neo4j Labs</a></li>
+      </ul>
+    </div>
+    <div class="column links">
+      <h2>Social</h2>
+      <ul>
+        <li><i class="fa fa-twitter" aria-hidden="true"></i> <a rel="noopener" href="https://twitter.com/neo4j" target="_blank">Twitter</a></li>
+        <li><i class="fa fa-meetup" aria-hidden="true"></i> <a rel="noopener" href="https://www.meetup.com/Neo4j-Online-Meetup/" target="_blank">Meetups</a></li>
+        <li><i class="fa fa-github" aria-hidden="true"></i> <a rel="noopener" href="https://github.com/neo4j/neo4j" target="_blank">Github</a></li>
+        <li><i class="fa fa-stack-overflow" aria-hidden="true"></i> <a rel="noopener" href="https://stackoverflow.com/questions/tagged/neo4j" target="_blank">Stack Overflow</a></li>
+        <li class="speaker-program"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdEcNnMruES5iwvOVYovmS1D_P1ZL_HdUOitFrwrvruv5PZvA/viewform">Want to Speak?</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+  
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WK23PSS');</script>
+  
+  </body>
+</html>

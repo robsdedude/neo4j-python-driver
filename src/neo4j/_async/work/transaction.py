@@ -48,6 +48,8 @@ class AsyncTransactionBase(AsyncNonConcurrentMethodChecker):
         on_error,
         on_cancel,
         on_database,
+        # FIXME: tmp!
+        auto_transform_vec=False,
     ):
         self._connection = connection
         self._error_handling_connection = ConnectionErrorHandler(
@@ -64,6 +66,8 @@ class AsyncTransactionBase(AsyncNonConcurrentMethodChecker):
         self._on_error = on_error
         self._on_cancel = on_cancel
         self._on_database = on_database
+        # FIXME: tmp!
+        self._auto_transform_vec = auto_transform_vec
         super().__init__()
 
     async def _enter(self) -> te.Self:
@@ -199,6 +203,8 @@ class AsyncTransactionBase(AsyncNonConcurrentMethodChecker):
             self._result_on_closed_handler,
             self._error_handler,
             None,
+            # FIXME: tmp!
+            self._auto_transform_vec,
         )
         self._results.append(result)
 

@@ -324,6 +324,8 @@ class AsyncSession(AsyncWorkspace):
             self._result_closed,
             self._result_error,
             self._make_db_resolution_callback(),
+            # FIXME: tmp!
+            self._config.auto_transform_vec,
         )
         bookmarks = await self._get_bookmarks()
         parameters = dict(parameters or {}, **kwargs)
@@ -452,6 +454,8 @@ class AsyncSession(AsyncWorkspace):
             self._transaction_error_handler,
             self._transaction_cancel_handler,
             self._make_db_resolution_callback(),
+            # FIXME: tmp!
+            self._config.auto_transform_vec,
         )
         bookmarks = await self._get_bookmarks()
         await self._transaction._begin(

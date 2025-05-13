@@ -414,6 +414,9 @@ class SessionConfig(WorkspaceConfig):
     #: List of notification classifications/categories for the server to ignore
     notifications_disabled_classifications = None
 
+    # FIXME: tmp!
+    auto_transform_vec = False
+
 
 class TransactionConfig(Config):
     """

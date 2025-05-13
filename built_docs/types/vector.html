@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Vector Data Types &#8212; Neo4j Python Driver 5.28</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/neo4j.css?v=f6087c41" />
+    <script src="../_static/documentation_options.js?v=698b8743"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script defer="defer" src="https://neo4j.com/docs/assets/js/site.js"></script>
+    <script defer="defer" src="../_static/js/12-fragment-jumper.js?v=ace60690"></script>
+    <link rel="icon" href="https://neo4j.com/wp-content/themes/neo4jweb/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Breaking Changes" href="../breaking_changes.html" />
+    <link rel="prev" title="Temporal Data Types" href="temporal.html" />
+<link href="../_static/css/nunito-sans.css" rel="stylesheet">
+
+  </head><body>
+<body class="article docs sphinx">
+
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <img class="navbar-logo" src="https://dist.neo4j.com/wp-content/uploads/20210422142941/neo4j-logo-2020.svg" alt="Neo4j Logo">
+      </a>
+      <a href="../index.html" class="navbar-item no-left-padding" aria-label="Neo4j Python Driver 5.28">
+          Neo4j Python Driver 5.28
+      </a>
+    </div>
+  </nav>
+</header>
+
+
+<div class="body">
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="nav-container">
+    <aside class="nav">
+      <div class="panels">
+        <div class="nav-panel-menu is-active" data-panel="menu">
+            <nav class="nav-menu">
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../async_api.html">Async API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spatial.html">Spatial Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="temporal.html">Temporal Data Types</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Vector Data Types</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#neo4j.Vector"><code class="docutils literal notranslate"><span class="pre">Vector</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#neo4j.Vector.raw"><code class="docutils literal notranslate"><span class="pre">Vector.raw()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#neo4j.Vector.set_raw"><code class="docutils literal notranslate"><span class="pre">Vector.set_raw()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#neo4j.Vector.dtype"><code class="docutils literal notranslate"><span class="pre">Vector.dtype</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#neo4j.Vector.from_native"><code class="docutils literal notranslate"><span class="pre">Vector.from_native()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#neo4j.Vector.to_native"><code class="docutils literal notranslate"><span class="pre">Vector.to_native()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#neo4j.Vector.from_numpy"><code class="docutils literal notranslate"><span class="pre">Vector.from_numpy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#neo4j.Vector.to_numpy"><code class="docutils literal notranslate"><span class="pre">Vector.to_numpy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#neo4j.Vector.from_pyarrow"><code class="docutils literal notranslate"><span class="pre">Vector.from_pyarrow()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#neo4j.Vector.to_pyarrow"><code class="docutils literal notranslate"><span class="pre">Vector.to_pyarrow()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../breaking_changes.html">Breaking Changes</a></li>
+</ul>
+
+            </nav>
+        </div>
+      </div>
+    </aside>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><div id="indexlinkbox">
+    <h3 id="indexlinklabel">Index</h3>
+
+    <div class="indexlinkwrapper nav-menu">
+        <ul>
+            <li class="toctree-l1">
+                <a href="../genindex.html" class="indexlink genindex">
+                    Alphabetical
+                </a>
+            </li>
+            <li class="toctree-l1">
+                <a href="../gentree.html" class="indexlink gentree">
+                    Tree
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+        </div>
+      </div>
+  <main class="article">
+    <div class="toolbar" role="navigation">
+      <div class="toolbar-wrapper">
+        <button class="nav-toggle" aria-label="Toggle Table of Contents"></button>
+      </div>
+    </div>
+    <div class="content">
+      <article class="doc">
+        
+  <section id="vector-data-types">
+<span id="id1"></span><h1>Vector Data Types<a class="headerlink" href="#vector-data-types" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="neo4j.Vector">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">neo4j.</span></span><span class="sig-name descname"><span class="pre">Vector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">byteorder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'big'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neo4j.Vector" title="Link to this definition">¶</a></dt>
+<dd><p>A class representing a Neo4j vector.</p>
+<p>Internally, vectors are represented as a contiguous block of memory,
+with the data type of the vector’s elements in big-endian order.</p>
+<p>To be able to send and receive these types, the driver must be connected
+to a DBMS supporting Bolt version 6.0 or later. This corresponds to Neo4j
+2025.5 or later.</p>
+<p>TODO: check and update final server version above!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dtype</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The type of the vector.
+See <a class="reference internal" href="#neo4j.Vector.dtype" title="neo4j.Vector.dtype"><code class="xref py py-attr docutils literal notranslate"><span class="pre">dtype</span></code></a> for currently supported inner data types.</p></li>
+<li><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.13)"><em>bytes</em></a>) – The bytes representing the vector.</p></li>
+<li><p><strong>byteorder</strong> (<em>t.Literal</em><em>[</em><em>'big'</em><em>, </em><em>'little'</em><em>]</em>) – The endianness of the data.
+If <code class="docutils literal notranslate"><span class="pre">&quot;little&quot;</span></code>, the bytes in data will be flipped to big-endian
+which will try to use <code class="docutils literal notranslate"><span class="pre">neo4j-rust-ext</span></code> or <code class="docutils literal notranslate"><span class="pre">numpy</span></code> to speed up the
+byte flipping if installed. Use <a class="reference external" href="https://docs.python.org/3/library/sys.html#sys.byteorder" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">sys.byteorder</span></code></a> if you want to
+use the system’s native endianness.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – <ul>
+<li><p>If the dtype is not supported or data’s size is not a multiple of
+dtype’s size.</p></li>
+<li><p>If byteorder is not one of <code class="docutils literal notranslate"><span class="pre">&quot;big&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;little&quot;</span></code>.</p></li>
+</ul>
+</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the data is not of type bytes.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="neo4j.Vector.raw">
+<span class="sig-name descname"><span class="pre">raw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">byteorder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'big'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neo4j.Vector.raw" title="Link to this definition">¶</a></dt>
+<dd><p>Get the raw bytes of the vector.</p>
+<p>The data is a continuous block of memory, containing an array the
+vector’s data type. The data is stored in big-endian order. You may
+pass another byte-order to this method to get the converted data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>byteorder</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.13)"><em>Literal</em></a><em>[</em><em>'big'</em><em>, </em><em>'little'</em><em>]</em>) – The endianness the data should be returned in.
+If the data’s byte-order needs flipping, this method tries to use
+<code class="docutils literal notranslate"><span class="pre">neo4j-rust-ext</span></code> or <code class="docutils literal notranslate"><span class="pre">numpy</span></code>, if installed, to speed up the
+process. Use <a class="reference external" href="https://docs.python.org/3/library/sys.html#sys.byteorder" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">sys.byteorder</span></code></a> if you want to use the system’s
+native endianness.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The raw bytes of the vector.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If byteorder is not one of <code class="docutils literal notranslate"><span class="pre">&quot;big&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;little&quot;</span></code>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.13)">bytes</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neo4j.Vector.set_raw">
+<span class="sig-name descname"><span class="pre">set_raw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">byteorder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'big'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neo4j.Vector.set_raw" title="Link to this definition">¶</a></dt>
+<dd><p>Set the raw bytes of the vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.13)"><em>bytes</em></a>) – The new raw bytes of the vector.</p></li>
+<li><p><strong>byteorder</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.13)"><em>Literal</em></a><em>[</em><em>'big'</em><em>, </em><em>'little'</em><em>]</em>) – The endianness of <code class="docutils literal notranslate"><span class="pre">data</span></code>.
+The data will always be stored in big-endian order. If passed-in
+byte-order needs flipping, this method tries to use
+<code class="docutils literal notranslate"><span class="pre">neo4j-rust-ext</span></code> or <code class="docutils literal notranslate"><span class="pre">numpy</span></code>, if installed, to speed up the
+process. Use <a class="reference external" href="https://docs.python.org/3/library/sys.html#sys.byteorder" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">sys.byteorder</span></code></a> if you want to use the system’s
+native endianness.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – <ul>
+<li><p>If data’s size is not a multiple of dtype’s size.</p></li>
+<li><p>If byteorder is not one of <code class="docutils literal notranslate"><span class="pre">&quot;big&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;little&quot;</span></code>.</p></li>
+</ul>
+</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the data is not of type bytes.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="neo4j.Vector.dtype">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dtype</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#neo4j.Vector.dtype" title="Link to this definition">¶</a></dt>
+<dd><p>Get the type of the vector.</p>
+<p>Currently supported types are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">f32</span></code>: 32-bit floating point number (single)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">f64</span></code>: 64-bit floating point number (double)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">i8</span></code>: 8-bit integer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">i16</span></code>: 16-bit integer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">i32</span></code>: 32-bit integer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">i64</span></code>: 64-bit integer</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The type of the vector.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neo4j.Vector.from_native">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_native</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.13)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'f32'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'f64'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.13)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Self" title="(in Python v3.13)"><span class="pre">Self</span></a></span></span><a class="headerlink" href="#neo4j.Vector.from_native" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_native</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.13)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'i8'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'i16'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'i32'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'i64'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.13)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Self" title="(in Python v3.13)"><span class="pre">Self</span></a></span></span></dt>
+<dd><p>Create a Vector instance from an iterable of values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dtype</strong> – The type of the vector.
+See also <a class="reference internal" href="#neo4j.Vector.dtype" title="neo4j.Vector.dtype"><code class="xref py py-attr docutils literal notranslate"><span class="pre">dtype</span></code></a>.</p></li>
+<li><p><strong>data</strong> – The list, tuple, or other iterable of values to create the
+vector from.</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">data</span></code> must contain values that match the expected type given by
+<code class="docutils literal notranslate"><span class="pre">dtype</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dtype</span> <span class="pre">==</span> <span class="pre">&quot;f32&quot;</span></code>: <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dtype</span> <span class="pre">==</span> <span class="pre">&quot;f64&quot;</span></code>: <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dtype</span> <span class="pre">==</span> <span class="pre">&quot;i8&quot;</span></code>: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dtype</span> <span class="pre">==</span> <span class="pre">&quot;i16&quot;</span></code>: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dtype</span> <span class="pre">==</span> <span class="pre">&quot;i32&quot;</span></code>: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dtype</span> <span class="pre">==</span> <span class="pre">&quot;i64&quot;</span></code>: <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the dtype is not supported.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If data’s elements don’t match the expected type
+depending on dtype.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#OverflowError" title="(in Python v3.13)"><strong>OverflowError</strong></a> – If the value is out of range for the given type.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neo4j.Vector.to_native">
+<span class="sig-name descname"><span class="pre">to_native</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neo4j.Vector.to_native" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the vector to a native Python list.</p>
+<p>The type of the elements in the list depends on the dtype of the
+vector. See <a class="reference internal" href="#neo4j.Vector.from_native" title="neo4j.Vector.from_native"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_native()</span></code></a> for details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of values representing the vector.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)">object</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neo4j.Vector.from_numpy">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neo4j.Vector.from_numpy" title="Link to this definition">¶</a></dt>
+<dd><p>Create a Vector instance from a numpy array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>numpy.ndarray</em>) – The numpy array to create the vector from.
+The array must be one-dimensional and have a dtype that is
+supported by Neo4j vectors: <code class="docutils literal notranslate"><span class="pre">float64</span></code>, <code class="docutils literal notranslate"><span class="pre">float32</span></code>,
+<code class="docutils literal notranslate"><span class="pre">int64</span></code>, <code class="docutils literal notranslate"><span class="pre">int32</span></code>, <code class="docutils literal notranslate"><span class="pre">int16</span></code>, or <code class="docutils literal notranslate"><span class="pre">int8</span></code>.
+See also <a class="reference internal" href="#neo4j.Vector.dtype" title="neo4j.Vector.dtype"><code class="xref py py-attr docutils literal notranslate"><span class="pre">dtype</span></code></a>.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – <ul>
+<li><p>If the dtype is not supported.</p></li>
+<li><p>If the array is not one-dimensional.</p></li>
+</ul>
+</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.13)"><strong>ImportError</strong></a> – If numpy is not installed.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A Vector instance constructed from the numpy array.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>te.Self</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neo4j.Vector.to_numpy">
+<span class="sig-name descname"><span class="pre">to_numpy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neo4j.Vector.to_numpy" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the vector to a numpy array.</p>
+<p>The array’s dtype depends on the dtype of the vector. However, it will
+always be in big-endian order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A numpy array representing the vector.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.13)"><strong>ImportError</strong></a> – If numpy is not installed.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neo4j.Vector.from_pyarrow">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pyarrow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#neo4j.Vector.from_pyarrow" title="Link to this definition">¶</a></dt>
+<dd><p>Create a Vector instance from a pyarrow array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>pyarrow.Array</em>) – The pyarrow array to create the vector from.
+The array must have a type that is supported by Neo4j.
+See also <a class="reference internal" href="#neo4j.Vector.dtype" title="neo4j.Vector.dtype"><code class="xref py py-attr docutils literal notranslate"><span class="pre">dtype</span></code></a>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>te.Self</p>
+</dd>
+</dl>
+<p>PyArrow stores data in little endian. Therefore, the byte-order needs
+to be swapped. If <code class="docutils literal notranslate"><span class="pre">neo4j-rust-ext</span></code> or <code class="docutils literal notranslate"><span class="pre">numpy</span></code> is installed, it will
+be used to speed up the byte flipping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – <ul>
+<li><p>If the array’s type is not supported.</p></li>
+<li><p>If the array contains null values.</p></li>
+</ul>
+</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.13)"><strong>ImportError</strong></a> – If pyarrow is not installed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A Vector instance constructed from the pyarrow array.</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>pyarrow.Array</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>te.Self</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neo4j.Vector.to_pyarrow">
+<span class="sig-name descname"><span class="pre">to_pyarrow</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#neo4j.Vector.to_pyarrow" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the vector to a pyarrow array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A pyarrow array representing the vector.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.13)"><strong>ImportError</strong></a> – If pyarrow is not installed.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pyarrow.Array</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+        <!--
+        <a href="../_sources/types/vector.rst.txt"
+        rel="nofollow">Page source</a> -->
+      </article>
+    </div>
+
+  </main>
+</div>
+  <footer class="footer">
+    <div class="wrapper">
+    <div class="column">
+      <div class="logo-footer"></div>
+      <p>© <span id="footer-copyright-year"></span> Neo4j, Inc.<br>
+        <a href="https://neo4j.com/terms/">Terms</a> | <a href="https://neo4j.com/privacy-policy/">Privacy </a> | <a href="https://neo4j.com/sitemap/">Sitemap</a></p>
+      <p>Neo4j<sup>®</sup>, Neo Technology<sup>®</sup>, Cypher<sup>®</sup>, Neo4j<sup>®</sup> Bloom<sup>™</sup> and
+        Neo4j<sup>®</sup> Aura<sup>™</sup> are registered trademarks
+        of Neo4j, Inc. All other marks are owned by their respective companies.</p>
+    </div>
+
+    <div class="column">
+      <h2><a href="https://neo4j.com/contact-us/?ref=footer">Contact Us →</a></h2>
+      <p>US: 1-855-636-4532<br>
+        Sweden +46 171 480 113<br>
+        UK: +44 20 3868 3223<br>
+        France: +33 (0) 1 88 46 13 20<br>
+        <!--Germany: +49 (0)89 26204 6300</p>-->
+      </p>
+    </div>
+    <div class="column links">
+      <h2>Learn</h2>
+      <ul>
+        <li><i class="fa fa-wrench" aria-hidden="true"></i> <a rel="noopener" href="https://neo4j.com/sandbox/?ref=developer-footer">Sandbox</a></li>
+        <li><i class="fa fa-comments-o" aria-hidden="true"></i> <a rel="noopener" href="https://community.neo4j.com?ref=developer-footer" target="_blank">Neo4j Community Site</a></li>
+        <li><i class="fa fa-book" aria-hidden="true"></i> <a rel="noopener" href="https://medium.com/neo4j" target="_blank">Neo4j Developer Blog</a></li>
+        <li><i class="fa fa-youtube" aria-hidden="true"></i> <a rel="noopener" href="https://www.youtube.com/neo4j" target="_blank">Neo4j Videos</a></li>
+        <li><i class="fa fa-graduation-cap" aria-hidden="true"></i> <a rel="noopener" href="https://neo4j.com/graphacademy/?ref=developer-footer">GraphAcademy</a></li>
+        <li><i class="fa fa-flask" aria-hidden="true"></i> <a href="https://neo4j.com/labs/?ref=developer-footer">Neo4j Labs</a></li>
+      </ul>
+    </div>
+    <div class="column links">
+      <h2>Social</h2>
+      <ul>
+        <li><i class="fa fa-twitter" aria-hidden="true"></i> <a rel="noopener" href="https://twitter.com/neo4j" target="_blank">Twitter</a></li>
+        <li><i class="fa fa-meetup" aria-hidden="true"></i> <a rel="noopener" href="https://www.meetup.com/Neo4j-Online-Meetup/" target="_blank">Meetups</a></li>
+        <li><i class="fa fa-github" aria-hidden="true"></i> <a rel="noopener" href="https://github.com/neo4j/neo4j" target="_blank">Github</a></li>
+        <li><i class="fa fa-stack-overflow" aria-hidden="true"></i> <a rel="noopener" href="https://stackoverflow.com/questions/tagged/neo4j" target="_blank">Stack Overflow</a></li>
+        <li class="speaker-program"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdEcNnMruES5iwvOVYovmS1D_P1ZL_HdUOitFrwrvruv5PZvA/viewform">Want to Speak?</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+  
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WK23PSS');</script>
+  
+  </body>
+</html>

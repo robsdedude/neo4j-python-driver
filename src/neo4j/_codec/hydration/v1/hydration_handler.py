@@ -25,6 +25,7 @@ from ...._optional_deps import (
     np,
     pd,
 )
+from ...._vector import Vector
 from ....graph import (
     Graph,
     Node,
@@ -179,6 +180,8 @@ class HydrationHandler(HydrationHandlerABC):
                 datetime: temporal.dehydrate_datetime,
                 Duration: temporal.dehydrate_duration,
                 timedelta: temporal.dehydrate_timedelta,
+                # FIXME: tmp!
+                Vector: Vector.to_native,
             }
         )
         if np is not None:

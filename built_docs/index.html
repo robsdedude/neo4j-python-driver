@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Neo4j Python Driver 5.28 &#8212; Neo4j Python Driver 5.28</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/css/neo4j.css?v=f6087c41" />
+    <script src="_static/documentation_options.js?v=698b8743"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script defer="defer" src="https://neo4j.com/docs/assets/js/site.js"></script>
+    <script defer="defer" src="_static/js/12-fragment-jumper.js?v=ace60690"></script>
+    <link rel="icon" href="https://neo4j.com/wp-content/themes/neo4jweb/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Documentation" href="api.html" />
+<link href="_static/css/nunito-sans.css" rel="stylesheet">
+
+  </head><body>
+<body class="article docs sphinx">
+
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <img class="navbar-logo" src="https://dist.neo4j.com/wp-content/uploads/20210422142941/neo4j-logo-2020.svg" alt="Neo4j Logo">
+      </a>
+      <a href="#" class="navbar-item no-left-padding" aria-label="Neo4j Python Driver 5.28">
+          Neo4j Python Driver 5.28
+      </a>
+    </div>
+  </nav>
+</header>
+
+
+<div class="body">
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="nav-container">
+    <aside class="nav">
+      <div class="panels">
+        <div class="nav-panel-menu is-active" data-panel="menu">
+            <nav class="nav-menu">
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="async_api.html">Async API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types/spatial.html">Spatial Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types/temporal.html">Temporal Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types/vector.html">Vector Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="breaking_changes.html">Breaking Changes</a></li>
+</ul>
+
+            </nav>
+        </div>
+      </div>
+    </aside>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><div id="indexlinkbox">
+    <h3 id="indexlinklabel">Index</h3>
+
+    <div class="indexlinkwrapper nav-menu">
+        <ul>
+            <li class="toctree-l1">
+                <a href="genindex.html" class="indexlink genindex">
+                    Alphabetical
+                </a>
+            </li>
+            <li class="toctree-l1">
+                <a href="gentree.html" class="indexlink gentree">
+                    Tree
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+        </div>
+      </div>
+  <main class="article">
+    <div class="toolbar" role="navigation">
+      <div class="toolbar-wrapper">
+        <button class="nav-toggle" aria-label="Toggle Table of Contents"></button>
+      </div>
+    </div>
+    <div class="content">
+      <article class="doc">
+        
+  <section id="neo4j-python-driver-version">
+<h1>Neo4j Python Driver 5.28<a class="headerlink" href="#neo4j-python-driver-version" title="Link to this heading">¶</a></h1>
+<p>The Official Neo4j Driver for Python.</p>
+<p>Bolt protocol versions supported:</p>
+<ul class="simple">
+<li><p>Bolt 5.0 - 5.8</p></li>
+<li><p>Bolt 4.4</p></li>
+</ul>
+<p>See <a class="reference external" href="https://7687.org/bolt-compatibility/">https://7687.org/bolt-compatibility/</a> for what Neo4j DBMS versions support which Bolt versions.
+See <a class="reference external" href="https://neo4j.com/developer/kb/neo4j-supported-versions/">https://neo4j.com/developer/kb/neo4j-supported-versions/</a> for a driver-server compatibility matrix.</p>
+<p>Python versions supported:</p>
+<ul class="simple">
+<li><p>Python 3.13</p></li>
+<li><p>Python 3.12</p></li>
+<li><p>Python 3.11</p></li>
+<li><p>Python 3.10</p></li>
+</ul>
+<section id="topics">
+<h2>Topics<a class="headerlink" href="#topics" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="api.html#api-documentation"><span class="std std-ref">API Documentation</span></a></p></li>
+<li><p><a class="reference internal" href="async_api.html#async-api-documentation"><span class="std std-ref">Async API Documentation</span></a></p></li>
+<li><p><a class="reference internal" href="types/spatial.html#spatial-data-types"><span class="std std-ref">Spatial Data Types</span></a></p></li>
+<li><p><a class="reference internal" href="types/temporal.html#temporal-data-types"><span class="std std-ref">Temporal Data Types</span></a></p></li>
+<li><p><a class="reference internal" href="types/vector.html#vector-data-types"><span class="std std-ref">Vector Data Types</span></a></p></li>
+<li><p><a class="reference internal" href="breaking_changes.html#breaking-changes"><span class="std std-ref">Breaking Changes</span></a></p></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">neo4j-driver</span></code> is the old name for this package. It is now deprecated and
+and will receive no further updates starting with 6.0.0. Make sure to
+install <code class="docutils literal notranslate"><span class="pre">neo4j</span></code> as shown here.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is always recommended to install python packages for user space in a <a class="reference internal" href="#virtual-environment"><span class="std std-ref">virtual environment</span></a>.</p>
+</div>
+<p>To install the latest stable release, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>neo4j
+</pre></div>
+</div>
+<p>To install the latest pre-release, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--pre<span class="w"> </span>neo4j
+</pre></div>
+</div>
+<section id="alternative-installation-for-better-performance">
+<h3>Alternative Installation for Better Performance<a class="headerlink" href="#alternative-installation-for-better-performance" title="Link to this heading">¶</a></h3>
+<p>You may want to have a look at the available Rust extensions for this driver
+for better performance. The Rust extensions are not installed by default. For
+more information, see <a class="reference external" href="https://github.com/neo4j/neo4j-python-driver-rust-ext">neo4j-rust-ext</a>.</p>
+</section>
+<section id="virtual-environment">
+<span id="id1"></span><h3>Virtual Environment<a class="headerlink" href="#virtual-environment" title="Link to this heading">¶</a></h3>
+<p>To create a virtual environment named sandbox, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>sandbox
+</pre></div>
+</div>
+<p>To activate the virtual environment named sandbox, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>sandbox/bin/activate
+</pre></div>
+</div>
+<p>To deactivate the current active virtual environment, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>deactivate
+</pre></div>
+</div>
+</section>
+<section id="development-environment">
+<span id="development-environment-ref"></span><h3>Development Environment<a class="headerlink" href="#development-environment" title="Link to this heading">¶</a></h3>
+<p>For development, we recommend to run Python in <a class="reference external" href="https://docs.python.org/3/library/devmode.html">development mode</a> (<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-X</span> <span class="pre">dev</span> <span class="pre">...</span></code>).
+Specifically for this driver, this will:</p>
+<blockquote>
+<div><ul>
+<li><p>enable <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ResourceWarning" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResourceWarning</span></code></a>, which the driver emits if resources (e.g., Sessions) aren’t properly closed.</p></li>
+<li><p>enable <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#DeprecationWarning" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeprecationWarning</span></code></a>, which the driver emits if deprecated APIs are used.</p></li>
+<li><p>enable the driver’s debug mode (this can also be achieved by setting the environment variable <code class="docutils literal notranslate"><span class="pre">PYTHONNEO4JDEBUG</span></code>):</p>
+<ul>
+<li><p><strong>This is experimental</strong>.
+It might be changed or removed any time even without prior notice.</p></li>
+<li><p>the driver will raise an exception if non-concurrency-safe methods are used concurrently.</p></li>
+<li><p>the driver will emit warnings if the server sends back notification
+(see also <a class="reference internal" href="api.html#driver-warn-notification-severity-ref"><span class="std std-ref">warn_notification_severity</span></a>).</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 5.15.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 5.21: </span>Added functionality to automatically emit warnings on server notifications.</p>
+</div>
+</li>
+</ul>
+</li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+<section id="quick-example">
+<h2>Quick Example<a class="headerlink" href="#quick-example" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">neo4j</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphDatabase</span><span class="p">,</span> <span class="n">RoutingControl</span>
+
+
+<span class="n">URI</span> <span class="o">=</span> <span class="s2">&quot;neo4j://localhost:7687&quot;</span>
+<span class="n">AUTH</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;neo4j&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">add_friend</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">friend_name</span><span class="p">):</span>
+    <span class="n">driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
+        <span class="s2">&quot;MERGE (a:Person {name: $name}) &quot;</span>
+        <span class="s2">&quot;MERGE (friend:Person {name: $friend_name}) &quot;</span>
+        <span class="s2">&quot;MERGE (a)-[:KNOWS]-&gt;(friend)&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">friend_name</span><span class="o">=</span><span class="n">friend_name</span><span class="p">,</span> <span class="n">database_</span><span class="o">=</span><span class="s2">&quot;neo4j&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">print_friends</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">records</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
+        <span class="s2">&quot;MATCH (a:Person)-[:KNOWS]-&gt;(friend) WHERE a.name = $name &quot;</span>
+        <span class="s2">&quot;RETURN friend.name ORDER BY friend.name&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">database_</span><span class="o">=</span><span class="s2">&quot;neo4j&quot;</span><span class="p">,</span> <span class="n">routing_</span><span class="o">=</span><span class="n">RoutingControl</span><span class="o">.</span><span class="n">READ</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;friend.name&quot;</span><span class="p">])</span>
+
+
+<span class="k">with</span> <span class="n">GraphDatabase</span><span class="o">.</span><span class="n">driver</span><span class="p">(</span><span class="n">URI</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="n">AUTH</span><span class="p">)</span> <span class="k">as</span> <span class="n">driver</span><span class="p">:</span>
+    <span class="n">add_friend</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="s2">&quot;Arthur&quot;</span><span class="p">,</span> <span class="s2">&quot;Guinevere&quot;</span><span class="p">)</span>
+    <span class="n">add_friend</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="s2">&quot;Arthur&quot;</span><span class="p">,</span> <span class="s2">&quot;Lancelot&quot;</span><span class="p">)</span>
+    <span class="n">add_friend</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="s2">&quot;Arthur&quot;</span><span class="p">,</span> <span class="s2">&quot;Merlin&quot;</span><span class="p">)</span>
+    <span class="n">print_friends</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="s2">&quot;Arthur&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="example-application">
+<h2>Example Application<a class="headerlink" href="#example-application" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphDatabase</span><span class="p">,</span> <span class="n">RoutingControl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DriverError</span><span class="p">,</span> <span class="n">Neo4jError</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">App</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">driver</span> <span class="o">=</span> <span class="n">GraphDatabase</span><span class="o">.</span><span class="n">driver</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="n">database</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Don&#39;t forget to close the driver connection when you are finished</span>
+        <span class="c1"># with it</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_friendship</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">person1_name</span><span class="p">,</span> <span class="n">person2_name</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+            <span class="c1"># Write transactions allow the driver to handle retries and</span>
+            <span class="c1"># transient errors</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_and_return_friendship</span><span class="p">(</span>
+                <span class="n">person1_name</span><span class="p">,</span> <span class="n">person2_name</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Created friendship between: &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;p1&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;p2&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_and_return_friendship</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">person1_name</span><span class="p">,</span> <span class="n">person2_name</span><span class="p">):</span>
+
+        <span class="c1"># To learn more about the Cypher syntax,</span>
+        <span class="c1"># see https://neo4j.com/docs/cypher-manual/current/</span>
+
+        <span class="c1"># The Cheat Sheet is also a good resource for keywords,</span>
+        <span class="c1"># see https://neo4j.com/docs/cypher-cheat-sheet/</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;CREATE (p1:Person { name: $person1_name }) &quot;</span>
+            <span class="s2">&quot;CREATE (p2:Person { name: $person2_name }) &quot;</span>
+            <span class="s2">&quot;CREATE (p1)-[:KNOWS]-&gt;(p2) &quot;</span>
+            <span class="s2">&quot;RETURN p1.name, p2.name&quot;</span>
+        <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
+                <span class="n">query</span><span class="p">,</span> <span class="n">person1_name</span><span class="o">=</span><span class="n">person1_name</span><span class="p">,</span> <span class="n">person2_name</span><span class="o">=</span><span class="n">person2_name</span><span class="p">,</span>
+                <span class="n">database_</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="p">,</span>
+                <span class="n">result_transformer_</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">single</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;p1&quot;</span><span class="p">:</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;p1.name&quot;</span><span class="p">],</span> <span class="s2">&quot;p2&quot;</span><span class="p">:</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;p2.name&quot;</span><span class="p">]}</span>
+        <span class="c1"># Capture any errors along with the query and data for traceability</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">DriverError</span><span class="p">,</span> <span class="n">Neo4jError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exception</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> raised an error: </span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">exception</span><span class="p">)</span>
+            <span class="k">raise</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_person</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">person_name</span><span class="p">):</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_and_return_person</span><span class="p">(</span><span class="n">person_name</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found person: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_find_and_return_person</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">person_name</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;MATCH (p:Person) &quot;</span>
+            <span class="s2">&quot;WHERE p.name = $person_name &quot;</span>
+            <span class="s2">&quot;RETURN p.name AS name&quot;</span>
+        <span class="p">)</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
+            <span class="n">query</span><span class="p">,</span> <span class="n">person_name</span><span class="o">=</span><span class="n">person_name</span><span class="p">,</span>
+            <span class="n">database_</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="p">,</span> <span class="n">routing_</span><span class="o">=</span><span class="n">RoutingControl</span><span class="o">.</span><span class="n">READ</span><span class="p">,</span>
+            <span class="n">result_transformer_</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">names</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># For Aura specific connection URI,</span>
+    <span class="c1"># see https://neo4j.com/developer/aura-connect-driver/ .</span>
+    <span class="n">scheme</span> <span class="o">=</span> <span class="s2">&quot;neo4j&quot;</span>  <span class="c1"># Connecting to Aura, use the &quot;neo4j+s&quot; URI scheme</span>
+    <span class="n">host_name</span> <span class="o">=</span> <span class="s2">&quot;example.com&quot;</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="mi">7687</span>
+    <span class="n">uri</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">scheme</span><span class="si">}</span><span class="s2">://</span><span class="si">{</span><span class="n">host_name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="s2">&quot;&lt;Username for Neo4j database&gt;&quot;</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="s2">&quot;&lt;Password for Neo4j database&gt;&quot;</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="s2">&quot;neo4j&quot;</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">database</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">create_friendship</span><span class="p">(</span><span class="s2">&quot;Alice&quot;</span><span class="p">,</span> <span class="s2">&quot;David&quot;</span><span class="p">)</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">find_person</span><span class="p">(</span><span class="s2">&quot;Alice&quot;</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="further-information">
+<h2>Further Information<a class="headerlink" href="#further-information" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://neo4j.com/docs/operations-manual/current/">The Neo4j Operations Manual</a> (docs on how to run a Neo4j server)</p></li>
+<li><p><a class="reference external" href="https://neo4j.com/docs/python-manual/current/">The Neo4j Python Driver Manual</a> (good introduction to this driver)</p></li>
+<li><p><a class="reference external" href="https://neo4j.com/docs/api/python-driver/current/">Python Driver API Documentation</a> (full API documentation for this driver)</p></li>
+<li><p><a class="reference external" href="https://neo4j.com/docs/cypher-cheat-sheet/">Neo4j Cypher Cheat Sheet</a> (summary of Cypher syntax - Neo4j’s graph query language)</p></li>
+<li><p><a class="reference external" href="https://github.com/neo4j-examples/movies-python-bolt">Example Project</a> (small web application using this driver)</p></li>
+<li><p><a class="reference external" href="https://graphacademy.neo4j.com/categories/python/">GraphAcademy</a> (interactive, free online trainings for Neo4j)</p></li>
+<li><p><a class="reference external" href="https://github.com/neo4j/neo4j-python-driver/wiki">Driver Wiki</a> (includes change logs)</p></li>
+<li><p><a class="reference external" href="https://neo4j.com/docs/migration-guide/current/">Neo4j Migration Guide</a></p></li>
+</ul>
+</section>
+</section>
+
+
+        <!--
+        <a href="_sources/index.rst.txt"
+        rel="nofollow">Page source</a> -->
+      </article>
+    </div>
+
+  </main>
+</div>
+  <footer class="footer">
+    <div class="wrapper">
+    <div class="column">
+      <div class="logo-footer"></div>
+      <p>© <span id="footer-copyright-year"></span> Neo4j, Inc.<br>
+        <a href="https://neo4j.com/terms/">Terms</a> | <a href="https://neo4j.com/privacy-policy/">Privacy </a> | <a href="https://neo4j.com/sitemap/">Sitemap</a></p>
+      <p>Neo4j<sup>®</sup>, Neo Technology<sup>®</sup>, Cypher<sup>®</sup>, Neo4j<sup>®</sup> Bloom<sup>™</sup> and
+        Neo4j<sup>®</sup> Aura<sup>™</sup> are registered trademarks
+        of Neo4j, Inc. All other marks are owned by their respective companies.</p>
+    </div>
+
+    <div class="column">
+      <h2><a href="https://neo4j.com/contact-us/?ref=footer">Contact Us →</a></h2>
+      <p>US: 1-855-636-4532<br>
+        Sweden +46 171 480 113<br>
+        UK: +44 20 3868 3223<br>
+        France: +33 (0) 1 88 46 13 20<br>
+        <!--Germany: +49 (0)89 26204 6300</p>-->
+      </p>
+    </div>
+    <div class="column links">
+      <h2>Learn</h2>
+      <ul>
+        <li><i class="fa fa-wrench" aria-hidden="true"></i> <a rel="noopener" href="https://neo4j.com/sandbox/?ref=developer-footer">Sandbox</a></li>
+        <li><i class="fa fa-comments-o" aria-hidden="true"></i> <a rel="noopener" href="https://community.neo4j.com?ref=developer-footer" target="_blank">Neo4j Community Site</a></li>
+        <li><i class="fa fa-book" aria-hidden="true"></i> <a rel="noopener" href="https://medium.com/neo4j" target="_blank">Neo4j Developer Blog</a></li>
+        <li><i class="fa fa-youtube" aria-hidden="true"></i> <a rel="noopener" href="https://www.youtube.com/neo4j" target="_blank">Neo4j Videos</a></li>
+        <li><i class="fa fa-graduation-cap" aria-hidden="true"></i> <a rel="noopener" href="https://neo4j.com/graphacademy/?ref=developer-footer">GraphAcademy</a></li>
+        <li><i class="fa fa-flask" aria-hidden="true"></i> <a href="https://neo4j.com/labs/?ref=developer-footer">Neo4j Labs</a></li>
+      </ul>
+    </div>
+    <div class="column links">
+      <h2>Social</h2>
+      <ul>
+        <li><i class="fa fa-twitter" aria-hidden="true"></i> <a rel="noopener" href="https://twitter.com/neo4j" target="_blank">Twitter</a></li>
+        <li><i class="fa fa-meetup" aria-hidden="true"></i> <a rel="noopener" href="https://www.meetup.com/Neo4j-Online-Meetup/" target="_blank">Meetups</a></li>
+        <li><i class="fa fa-github" aria-hidden="true"></i> <a rel="noopener" href="https://github.com/neo4j/neo4j" target="_blank">Github</a></li>
+        <li><i class="fa fa-stack-overflow" aria-hidden="true"></i> <a rel="noopener" href="https://stackoverflow.com/questions/tagged/neo4j" target="_blank">Stack Overflow</a></li>
+        <li class="speaker-program"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdEcNnMruES5iwvOVYovmS1D_P1ZL_HdUOitFrwrvruv5PZvA/viewform">Want to Speak?</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+  
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WK23PSS');</script>
+  
+  </body>
+</html>

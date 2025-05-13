@@ -25,6 +25,7 @@ from ...._optional_deps import (
     np,
     pd,
 )
+from ...._vector import Vector
 from ....spatial import (
     CartesianPoint,
     Point,
@@ -75,6 +76,8 @@ class HydrationHandler(HydrationHandlerABC):  # type: ignore[no-redef]
                 datetime: temporal_v2.dehydrate_datetime,
                 Duration: temporal_v1.dehydrate_duration,
                 timedelta: temporal_v1.dehydrate_timedelta,
+                # FIXME: tmp!
+                Vector: Vector.to_native,
             }
         )
         if np is not None:

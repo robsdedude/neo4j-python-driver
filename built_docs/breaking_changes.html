@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Breaking Changes &#8212; Neo4j Python Driver 5.28</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/css/neo4j.css?v=f6087c41" />
+    <script src="_static/documentation_options.js?v=698b8743"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script defer="defer" src="https://neo4j.com/docs/assets/js/site.js"></script>
+    <script defer="defer" src="_static/js/12-fragment-jumper.js?v=ace60690"></script>
+    <link rel="icon" href="https://neo4j.com/wp-content/themes/neo4jweb/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Vector Data Types" href="types/vector.html" />
+<link href="_static/css/nunito-sans.css" rel="stylesheet">
+
+  </head><body>
+<body class="article docs sphinx">
+
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <img class="navbar-logo" src="https://dist.neo4j.com/wp-content/uploads/20210422142941/neo4j-logo-2020.svg" alt="Neo4j Logo">
+      </a>
+      <a href="index.html" class="navbar-item no-left-padding" aria-label="Neo4j Python Driver 5.28">
+          Neo4j Python Driver 5.28
+      </a>
+    </div>
+  </nav>
+</header>
+
+
+<div class="body">
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="nav-container">
+    <aside class="nav">
+      <div class="panels">
+        <div class="nav-panel-menu is-active" data-panel="menu">
+            <nav class="nav-menu">
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="async_api.html">Async API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types/spatial.html">Spatial Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types/temporal.html">Temporal Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types/vector.html">Vector Data Types</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Breaking Changes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#version-scheme-changes">Version Scheme Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python-versions">Python Versions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#namespace-changes">Namespace Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#secure-connection">Secure Connection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bookmark-changes">Bookmark Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exceptions-changes">Exceptions Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#uri-scheme-changes">URI Scheme Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#class-renaming-changes">Class Renaming Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#argument-renaming-changes">Argument Renaming Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api-changes">API Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dependency-changes">Dependency Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-name-changes">Configuration Name Changes</a></li>
+</ul>
+</li>
+</ul>
+
+            </nav>
+        </div>
+      </div>
+    </aside>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><div id="indexlinkbox">
+    <h3 id="indexlinklabel">Index</h3>
+
+    <div class="indexlinkwrapper nav-menu">
+        <ul>
+            <li class="toctree-l1">
+                <a href="genindex.html" class="indexlink genindex">
+                    Alphabetical
+                </a>
+            </li>
+            <li class="toctree-l1">
+                <a href="gentree.html" class="indexlink gentree">
+                    Tree
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+        </div>
+      </div>
+  <main class="article">
+    <div class="toolbar" role="navigation">
+      <div class="toolbar-wrapper">
+        <button class="nav-toggle" aria-label="Toggle Table of Contents"></button>
+      </div>
+    </div>
+    <div class="content">
+      <article class="doc">
+        
+  <section id="breaking-changes">
+<span id="id1"></span><h1>Breaking Changes<a class="headerlink" href="#breaking-changes" title="Link to this heading">¶</a></h1>
+<p>This describes the breaking changes between Python Driver 1.7 and Python Driver 4.0</p>
+<section id="version-scheme-changes">
+<h2>Version Scheme Changes<a class="headerlink" href="#version-scheme-changes" title="Link to this heading">¶</a></h2>
+<p>The version number has jumped from <strong>Python Driver 1.7</strong> to <strong>Python Driver 4.0</strong> to align with the Neo4j Database version scheme.</p>
+</section>
+<section id="python-versions">
+<h2>Python Versions<a class="headerlink" href="#python-versions" title="Link to this heading">¶</a></h2>
+<p>Python 2.7 is no longer supported.</p>
+</section>
+<section id="namespace-changes">
+<h2>Namespace Changes<a class="headerlink" href="#namespace-changes" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">neo4j.v1</span>
+</pre></div>
+</div>
+<p>Has changed to</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">neo4j</span>
+</pre></div>
+</div>
+</section>
+<section id="secure-connection">
+<h2>Secure Connection<a class="headerlink" href="#secure-connection" title="Link to this heading">¶</a></h2>
+<p><strong>Neo4j 4.0</strong> is by default configured to use a <strong>unsecured connection</strong>.</p>
+<p>The driver configuration argument <code class="code docutils literal notranslate"><span class="pre">encrypted</span></code> is by default set to <code class="code docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<p><strong>Note:</strong> To be able to connect to <strong>Neo4j 3.5</strong> set <code class="code docutils literal notranslate"><span class="pre">encrypted=True</span></code> to have it configured as the default for that setup.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">neo4j</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphDatabase</span>
+
+<span class="n">driver</span> <span class="o">=</span> <span class="n">GraphDatabase</span><span class="o">.</span><span class="n">driver</span><span class="p">(</span>
+    <span class="s2">&quot;bolt://localhost:7687&quot;</span><span class="p">,</span>
+    <span class="n">auth</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;neo4j&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">),</span>
+    <span class="n">encrypted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">driver</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="bookmark-changes">
+<h2>Bookmark Changes<a class="headerlink" href="#bookmark-changes" title="Link to this heading">¶</a></h2>
+<p>Introduced <a class="reference internal" href="api.html#neo4j.Bookmark" title="neo4j.Bookmark"><code class="xref py py-class docutils literal notranslate"><span class="pre">neo4j.Bookmark</span></code></a></p>
+</section>
+<section id="exceptions-changes">
+<h2>Exceptions Changes<a class="headerlink" href="#exceptions-changes" title="Link to this heading">¶</a></h2>
+<p>The exceptions in <code class="code docutils literal notranslate"><span class="pre">neo4j.exceptions</span></code> has been updated and there are internal exceptions starting with the naming <code class="code docutils literal notranslate"><span class="pre">Bolt</span></code> that should be propagated into the exceptions API.</p>
+<p>See <a class="reference internal" href="api.html#errors-ref"><span class="std std-ref">Errors</span></a> for more about errors.</p>
+</section>
+<section id="uri-scheme-changes">
+<h2>URI Scheme Changes<a class="headerlink" href="#uri-scheme-changes" title="Link to this heading">¶</a></h2>
+<p><strong>bolt+routing</strong> has been renamed to <strong>neo4j</strong>.</p>
+</section>
+<section id="class-renaming-changes">
+<h2>Class Renaming Changes<a class="headerlink" href="#class-renaming-changes" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">BoltStatementResult</span></code> is now <code class="code docutils literal notranslate"><span class="pre">Result</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">StatementResultSummary</span></code> is now <code class="code docutils literal notranslate"><span class="pre">ResultSummary</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Statement</span></code> is now <code class="code docutils literal notranslate"><span class="pre">Query</span></code></p></li>
+</ul>
+</section>
+<section id="argument-renaming-changes">
+<h2>Argument Renaming Changes<a class="headerlink" href="#argument-renaming-changes" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">statement</span></code> is now <code class="code docutils literal notranslate"><span class="pre">query</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">cypher</span></code> is now <code class="code docutils literal notranslate"><span class="pre">query</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Session.run(cypher,</span> <span class="pre">...</span></code> is now <code class="code docutils literal notranslate"><span class="pre">Session.run(query,</span> <span class="pre">...</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Transaction.run(statement,</span> <span class="pre">...</span></code> is now <code class="code docutils literal notranslate"><span class="pre">Transaction.run(query,</span> <span class="pre">...</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">StatementResultSummary.statement</span></code> is now <code class="code docutils literal notranslate"><span class="pre">ResultSummary.query</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">StatementResultSummary.statement_type</span></code> is now <code class="code docutils literal notranslate"><span class="pre">ResultSummary.query_type</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">StatementResultSummary.protocol_version</span></code> is now <code class="code docutils literal notranslate"><span class="pre">ResultSummary.server.protocol_version</span></code></p></li>
+</ul>
+</section>
+<section id="api-changes">
+<h2>API Changes<a class="headerlink" href="#api-changes" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">Result.summary()</span></code> has been replaced with <code class="code docutils literal notranslate"><span class="pre">Result.consume()</span></code>, this behaviour is to consume all remaining records in the buffer and returns the ResultSummary.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Result.data(*items)</span></code> has been changed to <code class="code docutils literal notranslate"><span class="pre">Result.data(*keys)</span></code> for alignment with <code class="code docutils literal notranslate"><span class="pre">Record.data(*keys)</span></code>.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Result.value(item=0,</span> <span class="pre">default=None)</span></code> has been changed to <code class="code docutils literal notranslate"><span class="pre">Result.value(key=0,</span> <span class="pre">default=None)</span></code> for alignment with <code class="code docutils literal notranslate"><span class="pre">Record.value(key=0,</span> <span class="pre">default=None)</span></code>.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Result.values(*items)</span></code> has been changed to <code class="code docutils literal notranslate"><span class="pre">Result.values(*keys)</span></code> for alignment with <code class="code docutils literal notranslate"><span class="pre">Record.values(*keys)</span></code>.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Transaction.sync()</span></code> has been removed. Use <code class="code docutils literal notranslate"><span class="pre">Result.consume()</span></code> if the behaviour is to exhaust the result object.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Transaction.success</span></code> has been removed.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Transaction.close()</span></code> behaviour changed. Will now only perform rollback if no commit have been performed.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Session.sync()</span></code> has been removed. Use <code class="code docutils literal notranslate"><span class="pre">Result.consume()</span></code> if the behaviour is to exhaust the result object.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Session.detach()</span></code> has been removed. Use <code class="code docutils literal notranslate"><span class="pre">Result.consume()</span></code> if the behaviour is to exhaust the result object.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Session.next_bookmarks()</span></code> has been removed.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Session.has_transaction()</span></code> has been removed.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Session.closed()</span></code> has been removed.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Session.write_transaction</span></code> and <code class="code docutils literal notranslate"><span class="pre">Session.read_transaction</span></code> will start the retry timer after the first failed attempt.</p></li>
+</ul>
+</section>
+<section id="dependency-changes">
+<h2>Dependency Changes<a class="headerlink" href="#dependency-changes" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The dependency <code class="code docutils literal notranslate"><span class="pre">neobolt</span></code> has been removed.</p></li>
+<li><p>The dependency <code class="code docutils literal notranslate"><span class="pre">neotime</span></code> has been removed.</p></li>
+<li><p>The <code class="code docutils literal notranslate"><span class="pre">pytz</span></code> is now a dependency.</p></li>
+</ul>
+</section>
+<section id="configuration-name-changes">
+<h2>Configuration Name Changes<a class="headerlink" href="#configuration-name-changes" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">max_retry_time</span></code> is now <code class="code docutils literal notranslate"><span class="pre">max_transaction_retry_time</span></code></p></li>
+</ul>
+</section>
+</section>
+
+
+        <!--
+        <a href="_sources/breaking_changes.rst.txt"
+        rel="nofollow">Page source</a> -->
+      </article>
+    </div>
+
+  </main>
+</div>
+  <footer class="footer">
+    <div class="wrapper">
+    <div class="column">
+      <div class="logo-footer"></div>
+      <p>© <span id="footer-copyright-year"></span> Neo4j, Inc.<br>
+        <a href="https://neo4j.com/terms/">Terms</a> | <a href="https://neo4j.com/privacy-policy/">Privacy </a> | <a href="https://neo4j.com/sitemap/">Sitemap</a></p>
+      <p>Neo4j<sup>®</sup>, Neo Technology<sup>®</sup>, Cypher<sup>®</sup>, Neo4j<sup>®</sup> Bloom<sup>™</sup> and
+        Neo4j<sup>®</sup> Aura<sup>™</sup> are registered trademarks
+        of Neo4j, Inc. All other marks are owned by their respective companies.</p>
+    </div>
+
+    <div class="column">
+      <h2><a href="https://neo4j.com/contact-us/?ref=footer">Contact Us →</a></h2>
+      <p>US: 1-855-636-4532<br>
+        Sweden +46 171 480 113<br>
+        UK: +44 20 3868 3223<br>
+        France: +33 (0) 1 88 46 13 20<br>
+        <!--Germany: +49 (0)89 26204 6300</p>-->
+      </p>
+    </div>
+    <div class="column links">
+      <h2>Learn</h2>
+      <ul>
+        <li><i class="fa fa-wrench" aria-hidden="true"></i> <a rel="noopener" href="https://neo4j.com/sandbox/?ref=developer-footer">Sandbox</a></li>
+        <li><i class="fa fa-comments-o" aria-hidden="true"></i> <a rel="noopener" href="https://community.neo4j.com?ref=developer-footer" target="_blank">Neo4j Community Site</a></li>
+        <li><i class="fa fa-book" aria-hidden="true"></i> <a rel="noopener" href="https://medium.com/neo4j" target="_blank">Neo4j Developer Blog</a></li>
+        <li><i class="fa fa-youtube" aria-hidden="true"></i> <a rel="noopener" href="https://www.youtube.com/neo4j" target="_blank">Neo4j Videos</a></li>
+        <li><i class="fa fa-graduation-cap" aria-hidden="true"></i> <a rel="noopener" href="https://neo4j.com/graphacademy/?ref=developer-footer">GraphAcademy</a></li>
+        <li><i class="fa fa-flask" aria-hidden="true"></i> <a href="https://neo4j.com/labs/?ref=developer-footer">Neo4j Labs</a></li>
+      </ul>
+    </div>
+    <div class="column links">
+      <h2>Social</h2>
+      <ul>
+        <li><i class="fa fa-twitter" aria-hidden="true"></i> <a rel="noopener" href="https://twitter.com/neo4j" target="_blank">Twitter</a></li>
+        <li><i class="fa fa-meetup" aria-hidden="true"></i> <a rel="noopener" href="https://www.meetup.com/Neo4j-Online-Meetup/" target="_blank">Meetups</a></li>
+        <li><i class="fa fa-github" aria-hidden="true"></i> <a rel="noopener" href="https://github.com/neo4j/neo4j" target="_blank">Github</a></li>
+        <li><i class="fa fa-stack-overflow" aria-hidden="true"></i> <a rel="noopener" href="https://stackoverflow.com/questions/tagged/neo4j" target="_blank">Stack Overflow</a></li>
+        <li class="speaker-program"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdEcNnMruES5iwvOVYovmS1D_P1ZL_HdUOitFrwrvruv5PZvA/viewform">Want to Speak?</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+  
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WK23PSS');</script>
+  
+  </body>
+</html>

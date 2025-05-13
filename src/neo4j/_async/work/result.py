@@ -115,6 +115,8 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
         on_closed,
         on_error,
         on_database,
+        # FIXME: tmp!
+        auto_transform_vec=False,
     ) -> None:
         self._connection_cls = connection.__class__
         self._connection = ConnectionErrorHandler(
@@ -140,6 +142,8 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
         else:
             self._creation_stack = None
         self._creation_frame_cache = None
+        # FIXME: tmp!
+        self.auto_transform_vec = auto_transform_vec
 
         # states
         self._discarding = False  # discard the remainder of records
@@ -235,6 +239,28 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
         await self._connection.send_all()
         await self._attach()
 
+    # FIXME: tmp!
+    def _transform_field(self, field: object) -> object:
+        if not self.auto_transform_vec:
+            return field
+
+        from ..._vector import Vector
+        from ...graph import Entity
+
+        if isinstance(field, list):
+            if all(isinstance(e, int) for e in field):
+                return Vector.from_native("i64", field)
+            if all(isinstance(e, float) for e in field):
+                return Vector.from_native("f64", field)
+            return [self._transform_field(e) for e in field]
+        if isinstance(field, dict):
+            return {k: self._transform_field(v) for k, v in field.items()}
+        if isinstance(field, Entity):
+            field._properties = {
+                k: self._transform_field(v) for k, v in field.items()
+            }
+        return field
+
     def _pull(self):
         def on_records(records):
             if records:
@@ -244,6 +270,11 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
                     record.raw_data
                     if isinstance(record, BrokenHydrationObject)
                     else record
+                    for record in records
+                )
+                # FIXME: tmp!
+                records = (
+                    [self._transform_field(field) for field in record]
                     for record in records
                 )
                 self._record_buffer.extend(
