@@ -46,12 +46,11 @@ class MessageInbox:
         self._messages = self._yield_messages(s)
 
     def _yield_messages(self, sock):
-        try:
-            buffer = UnpackableBuffer()
-            unpacker = Unpacker(buffer)
-            chunk_size = 0
-            while True:
-
+        buffer = UnpackableBuffer()
+        unpacker = Unpacker(buffer)
+        chunk_size = 0
+        while True:
+            try:
                 while chunk_size == 0:
                     # Determine the chunk size and skip noop
                     buffer.receive(sock, 2)
@@ -61,17 +60,26 @@ class MessageInbox:
 
                 buffer.receive(sock, chunk_size + 2)
                 chunk_size = buffer.pop_u16()
+            except (OSError, socket.timeout, SocketDeadlineExceeded) as error:
+                self.on_error(error)
 
-                if chunk_size == 0:
-                    # chunk_size was the end marker for the message
+            if chunk_size == 0:
+                # chunk_size was the end marker for the message
+                try:
                     size, tag = unpacker.unpack_structure_header()
                     fields = [unpacker.unpack() for _ in range(size)]
                     yield tag, fields
+                except Exception as error:
+                    log.debug(
+                        "[#%04X]  _: Failed to unpack response: %r",
+                        self._local_port,
+                        error,
+                    )
+                    self.on_error(error)
+                    raise
+                finally:
                     # Reset for new message
                     unpacker.reset()
-
-        except (OSError, socket.timeout, SocketDeadlineExceeded) as error:
-            self.on_error(error)
 
     def pop(self):
         return next(self._messages)
