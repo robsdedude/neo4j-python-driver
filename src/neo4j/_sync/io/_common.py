@@ -21,7 +21,7 @@ from struct import pack as struct_pack
 
 from ..._async_compat.util import Util
 from ..._exceptions import SocketDeadlineExceededError
-from ...api import Version
+from ..._io import BoltProtocolVersion
 from ...exceptions import (
     Neo4jError,
     ServiceUnavailable,
@@ -30,7 +30,7 @@ from ...exceptions import (
 )
 
 
-GQL_ERROR_AWARE_PROTOCOL = Version(5, 7)
+GQL_ERROR_AWARE_PROTOCOL = BoltProtocolVersion(5, 7)
 
 log = logging.getLogger("neo4j.io")
 
@@ -81,6 +81,15 @@ class Inbox:
                 self._unpacker.unpack(hydration_hooks) for _ in range(size)
             ]
             return tag, fields
+        except Exception as error:
+            log.debug(
+                "[#%04X]  _: Failed to unpack response: %r",
+                self._local_port,
+                error,
+            )
+            self._broken = True
+            Util.callback(self.on_error, error)
+            raise
         finally:
             # Reset for new message
             self._unpacker.reset()

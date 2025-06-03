@@ -20,10 +20,10 @@ import asyncio
 import dataclasses
 import logging
 import struct
-import typing as t
 from contextlib import suppress
 
-from ... import addressing
+from ... import _typing as t
+from ..._addressing import Address
 from ..._async_compat.network import (
     AsyncBoltSocketBase,
     AsyncNetworkUtil,
@@ -32,6 +32,7 @@ from ..._exceptions import (
     BoltError,
     BoltProtocolError,
 )
+from ..._io import BoltProtocolVersion
 from ...exceptions import (
     DriverError,
     ServiceUnavailable,
@@ -41,13 +42,8 @@ from ...exceptions import (
 if t.TYPE_CHECKING:
     from ssl import SSLContext
 
-    import typing_extensions as te
-
+    from ..._addressing import ResolvedAddress
     from ..._deadline import Deadline
-    from ...addressing import (
-        Address,
-        ResolvedAddress,
-    )
 
 
 log = logging.getLogger("neo4j.io")
@@ -58,7 +54,7 @@ class HandshakeCtx:
     ctx: str
     deadline: Deadline
     local_port: int
-    resolved_address: addressing.ResolvedAddress
+    resolved_address: ResolvedAddress
     full_response: bytearray = dataclasses.field(default_factory=bytearray)
 
 
@@ -75,7 +71,7 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
         self,
         ctx: HandshakeCtx,
         response: bytes,
-    ) -> tuple[int, int]:
+    ) -> BoltProtocolVersion:
         agreed_version = response[-1], response[-2]
         log.debug(
             "[#%04X]  S: <HANDSHAKE> 0x%06X%02X",
@@ -83,13 +79,13 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
             agreed_version[1],
             agreed_version[0],
         )
-        return agreed_version
+        return BoltProtocolVersion(*agreed_version)
 
     async def _parse_handshake_response_v2(
         self,
         ctx: HandshakeCtx,
         response: bytes,
-    ) -> tuple[int, int]:
+    ) -> BoltProtocolVersion:
         ctx.ctx = "handshake v2 offerings count"
         num_offerings = await self._read_varint(ctx)
         offerings = []
@@ -114,7 +110,7 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
             )
 
         supported_versions = sorted(self.Bolt.protocol_handlers.keys())
-        chosen_version = 0, 0
+        chosen_version = BoltProtocolVersion(0, 0)
         for v in supported_versions:
             for offer_major, offer_minor, offer_range in offerings:
                 offer_max = (offer_major, offer_minor)
@@ -125,7 +121,7 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
 
         ctx.ctx = "handshake v2 chosen version"
         await self._handshake_send(
-            ctx, bytes((0, 0, chosen_version[1], chosen_version[0]))
+            ctx, bytes((0, 0, chosen_version.minor, chosen_version.major))
         )
         chosen_capabilities = 0
         capabilities = self._encode_varint(chosen_capabilities)
@@ -133,8 +129,8 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
         log.debug(
             "[#%04X]  C: <HANDSHAKE> 0x%06X%02X %s",
             ctx.local_port,
-            chosen_version[1],
-            chosen_version[0],
+            chosen_version.minor,
+            chosen_version.major,
             BytesPrinter(capabilities),
         )
         await self._handshake_send(ctx, b"\x00")
@@ -213,7 +209,7 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
         self,
         resolved_address: ResolvedAddress,
         deadline: Deadline,
-    ) -> tuple[tuple[int, int], bytes, bytes]:
+    ) -> BoltProtocolVersion:
         """
         Perform BOLT handshake.
 
@@ -288,7 +284,7 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
                 response,
             )
 
-        return agreed_version, handshake, response
+        return agreed_version
 
     @classmethod
     async def connect(
@@ -300,7 +296,7 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
         custom_resolver: t.Callable | None,
         ssl_context: SSLContext | None,
         keep_alive: bool,
-    ) -> tuple[te.Self, tuple[int, int], bytes, bytes]:
+    ) -> tuple[t.Self, BoltProtocolVersion]:
         """
         Connect and perform a handshake.
 
@@ -314,7 +310,7 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
         # https://docs.python.org/2/library/errno.html
 
         resolved_addresses = AsyncNetworkUtil.resolve_address(
-            addressing.Address(address), resolver=custom_resolver
+            Address(address), resolver=custom_resolver
         )
         async for resolved_address in resolved_addresses:
             deadline_timeout = deadline.to_timeout()
@@ -328,10 +324,8 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
                 s = await cls._connect_secure(
                     resolved_address, tcp_timeout, keep_alive, ssl_context
                 )
-                agreed_version, handshake, response = await s._handshake(
-                    resolved_address, deadline
-                )
-                return s, agreed_version, handshake, response
+                agreed_version = await s._handshake(resolved_address, deadline)
+                return s, agreed_version
             except (BoltError, DriverError, OSError) as error:
                 local_port = 0
                 if isinstance(s, cls):
@@ -367,6 +361,7 @@ class AsyncBoltSocket(AsyncBoltSocketBase):
                     await cls.close_socket(s)
                 raise
         address_strs = tuple(map(str, failed_addresses))
+        # TODO: 7.0 - when Python 3.11+ is the minimum, use exception groups
         if not errors:
             raise ServiceUnavailable(
                 f"Couldn't connect to {address} (resolved to {address_strs})"

@@ -6,6 +6,165 @@ See also https://github.com/neo4j/neo4j-python-driver/wiki for a full changelog.
 - Python 3.7, 3.8, and 3.9 support has been dropped.
 - Remove deprecated package alias `neo4j-driver`. Use `pip install neo4j` instead.
 - Remove `setup.py`. Please use a recent enough packaging/build tool that supports `pyproject.toml`
+- Remove deprecated modules:
+  - `neo4j.conf`
+  - `neo4j.data`
+  - `neo4j.meta`
+  - `neo4j.packstream`
+  - `neo4j.routing`
+  - `neo4j.time.arithmetic`
+  - `neo4j.time.clock_implementation`
+  - `neo4j.time.hydration`
+  - `neo4j.time.metaclasses`
+  - `neo4j.work`
+  - `neo4j.work.query`
+  - `neo4j.work.summary`
+- Remove deprecated exports from `neo4j`:
+  - `log`, `Config`, `PoolConfig`, `SessionConfig`, `WorkspaceConfig` (internal - no replacement)
+  - `SummaryNotificationPosition` (use `SummaryInputPosition` instead)
+- `api.Version` has been removed as it's unused now.  
+  `ServerInfo.protocol_version` now is a `tuple[int, int]` insteadof a `api.Version`.
+  This should be drop-in replacement is most cases:
+  - `Version` was a sup-type of `tuple[int, int]`
+  - `ServerInfo.protocol_version` was already documented and typed as `tuple[int, int]`
+  - `Version`'s additional methods were undocumented and shouldn't have been used
+- Changed errors raised under certain circumstances
+  - `ConfigurationError` if the passed `auth` parameters is not valid (instead of `AuthError`)
+    - This improves the differentiation between `DriverError` for client-side errors and `Neo4jError` for server-side
+      errors.
+  - `access_mode` configuration option
+    - `ValueError` on invalid value (instead of `ClientError`)
+    - Consistently check the value (also for non-routing drivers)
+  - `neo4j.exceptions.UnsupportedServerProduct` if no common bolt protocol version could be negotiated with the server
+   (instead of internal `neo4j._exceptions.BoltHandshakeError`).  
+    `UnsupportedServerProduct` is now a subclass of `ServiceUnavailable` (instead of `Exception` directly).
+  - `connection_acquisition_timeout` configuration option
+    - `ValueError` on invalid values (instead of `ClientError`)
+    - Consistently restrict the value to be strictly positive
+    - New `ConnectionAcquisitionTimeoutError` (subclass of `DriverError`) instead of `ClientError`
+      (subclass of `Neo4jError`) the timeout is exceeded.
+      - This improves the differentiation between `DriverError` for client-side errors and `Neo4jError` for server-side
+        errors.
+  - `TypeError` instead of `ValueError` when passing a `Query` object to `Transaction.run`.
+  - `TransactionError` (subclass of `DriverError`) instead of `ClientError` (subclass of `Neo4jError`) when calling
+    `session.run()` while an explicit transaction is active on that session.
+    - This improves the differentiation between `DriverError` for client-side errors and `Neo4jError` for server-side
+      errors.
+    - It is now the same error raised as when trying to start an explicit transaction while another explicit transaction
+      is already active.
+- Slightly change `Neo4jError` and `ClientError`:
+    - Properties `message` and `code` are always a `str` (instead of `str | None`).
+    - Remove possibility to override/set `message` and `code` properties.
+    - Remove undocumented, internal methods `Neo4jError.hydrate`, `Neo4jError.invalidates_all_connections`,
+      and `Neo4jError.is_fatal_during_discovery`.
+    - Remove deprecated method `Neo4jError.is_retriable`.  
+      Use `Neo4jError.is_retryable` instead.
+    - Change string representation of `Neo4jError` to include GQL error information.
+- Remove deprecated `Record.__getslice__`. This magic method has been removed in Python 3.0.  
+  If you were calling it directly, please use `Record.__getitem__(slice(...))` or simply `record[...]` instead.
+- Bookmarks
+  - Remove deprecated class `neo4j.Bookmark` in favor of `neo4j.Bookmarks`.
+  - Remove deprecated class `session.last_bookmark()` in favor of `last_bookmarks()`.
+  - Deprecate passing raw sting bookmarks as `initial_bookmarks` to `GraphDatabase.bookmark_manager()`.  
+    Use a `neo4j.Bookmarks` object instead.
+  - `Driver.session()` no longer accepts raw string bookmarks as `bookmarks` argument.  
+    Use a `neo4j.Bookmarks` object instead.
+- Remove deprecated `ServerInfo.connection_id`.  
+  There is no replacement as this is considered internal information.
+- Remove deprecated driver configuration option `trust`.  
+  Use `trusted_certificates` instead.
+  - Remove the associated constants `neo4j.TRUST_ALL_CERTIFICATES` and `neo4j.TRUST_SYSTEM_CA_SIGNED_CERTIFICATES`.
+- Remove deprecated `session.read_transaction` and `session.write_transaction`.  
+  Instead, use `session.execute_read` and  `session.execute_write` respectively.
+- Make undocumented classes `ResolvedAddress`, `ResolvedIPv4Address`, and `ResolvedIPv6Address` private.
+- Rework `PreviewWarning`.
+  - Remove `ExperimentalWarning` and turn the few left instances of it into `PreviewWarning`.
+  - Deprecate importing `PreviewWarning` from `neo4j`.  
+    Import it from `neo4j.warnings` instead.
+- Make undocumented internal constants, helper functions, and other items private:
+  - `neo4j.api`
+    - `DRIVER_BOLT`
+    - `DRIVER_NEO4J`
+    - `SECURITY_TYPE_NOT_SECURE`
+    - `SECURITY_TYPE_SECURE`
+    - `SECURITY_TYPE_SELF_SIGNED_CERTIFICATE`
+    - `check_access_mode`
+    - `parse_neo4j_uri`
+    - `parse_routing_context`
+  - `neo4j.exceptions`
+    - `CLASSIFICATION_CLIENT`
+    - `CLASSIFICATION_DATABASE`
+    - `CLASSIFICATION_TRANSIENT`
+    - `ERROR_REWRITE_MAP`
+    - `client_errors`
+    - `transient_errors`
+    - all other indirectly exposed items from imports (e.g. `typing` as `neo4j.exceptions.t`)
+  - `neo4j.time`
+    - `DATE_ISO_PATTERN`
+    - `TIME_ISO_PATTERN`
+    - `DURATION_ISO_PATTERN`
+    - `NANO_SECONDS`
+    - `AVERAGE_SECONDS_IN_MONTH`
+    - `AVERAGE_SECONDS_IN_DAY`
+    - `FORMAT_F_REPLACE`
+    - `IS_LEAP_YEAR`
+    - `DAYS_IN_YEAR`
+    - `DAYS_IN_MONTH`
+    - `round_half_to_even`
+    - `symmetric_divmod`
+    - `DateTimeType`
+    - `DateType`
+    - `TimeType`
+    - all other indirectly exposed items from imports (e.g. `re` as `neo4j.time.re`)
+  - `neo4j.spatial`
+    - `hydrate_point`
+    - `dehydrate_point`
+    - `point_type`
+  - `neo4j.GraphDatabase`
+    - `.bolt_driver`
+    - `.neo4j_driver`
+  - `neo4j.BoltDriver` and `neo4j.Neo4jDriver`
+    - `.open`
+    - `.parse_target`
+    - `.default_host`
+    - `.default_port`
+    - `.default_target`
+  - `neo4j.graph`, `neo4j.addressing`, `neo4j.api`
+    - indirectly exposed items from imports (e.g. `collections.abc.Mapping` as `neo4j.graph.Mapping`).
+  - `BoltDriver` and `Neo4jDriver`
+    - `.open`
+    - `.parse_target`
+    - `.default_host`
+    - `.default_port`
+    - `.default_target`
+  - `neo4j.debug`
+    - `ColourFormatter`
+    - `TaskIdFilter`
+    - all other indirectly exposed items from imports (e.g. `asyncio` as `neo4j.debug.asyncio`)
+- Deprecate ClockTime and its accessors
+  - For each `neo4j.time.Date`, `neo4j.time.DateTime`, `neo4j.time.Time`
+    - `from_clock_time` and `to_clock_time` methods
+  - `neo4j.time.ClockTime` itself
+- Raise `ConfigurationError` instead of ignoring the routing context (URI query parameters) when creating a direct
+  driver ("bolt[+s[sc]]://" scheme).
+- Change behavior of closed drivers:
+  - Raise `DriverError` on using the closed driver.
+  - Calling `driver.close()` again is now a no-op.
+- No longer implicitly closing drivers and sessions in `__del__()` (finalizer/destructor).  
+  Make sure to call `.close()` on them explicitly or use them in a `with` statement.
+- Make `Summary.summary_notifications` a `tuple` instead of a `list` and type it with `Sequence` to signify that it
+  should be treated as immutable.
+- Graph type sets (`neo4j.graph.EntitySetView`) can no longer by indexed by legacy `id` (`int`, e.g., `graph.nodes[0]`).  
+  Use the `element_id` instead (`str`, e.g., `graph.nodes["..."]`).
+- Make all comparator magic methods return `NotImplemented` instead of `False` (or raising `TypeError` in some
+  instances) if the other operand is not of a supported type.
+  This means that when comparing a driver type with another type is doesn't support, the other type get the chance to
+  handle the comparison.  
+  Affected types:
+  - `neo4j.Record`
+  - `neo4j.graph.Node`, `neo4j.graph.Relationship`, `neo4j.graph.Path`
+  - `neo4j.time.Date`, `neo4j.time.Time`, `neo4j.time.DateTime`
+  - `neo4j.spatial.Point` (and subclasses)
 
 
 ## Version 5.28
@@ -123,17 +282,17 @@ See also https://github.com/neo4j/neo4j-python-driver/wiki for a full changelog.
   manager related methods:
   - `neo4j.BookmarkManger` and `neo4j.AsyncBookmarkManger` abstract base
     classes:
-    - ``update_bookmarks`` has no longer a ``database`` argument.
-    - ``get_bookmarks`` has no longer a ``database`` argument.
-    - The ``get_all_bookmarks`` method was removed.
-    - The ``forget`` method was removed.
+    - `update_bookmarks` has no longer a `database` argument.
+    - `get_bookmarks` has no longer a `database` argument.
+    - The `get_all_bookmarks` method was removed.
+    - The `forget` method was removed.
   - `neo4j.GraphDatabase.bookmark_manager` and
     `neo4j.AsyncGraphDatabase.bookmark_manager` factory methods:
-    - ``initial_bookmarks`` is no longer a mapping from database name
+    - `initial_bookmarks` is no longer a mapping from database name
       to bookmarks but plain bookmarks.
-    - ``bookmarks_supplier`` no longer receives the database name as
+    - `bookmarks_supplier` no longer receives the database name as
       an argument.
-    - ``bookmarks_consumer`` no longer receives the database name as
+    - `bookmarks_consumer` no longer receives the database name as
       an argument.  
 
 

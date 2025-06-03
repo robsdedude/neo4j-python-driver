@@ -17,22 +17,15 @@
 from __future__ import annotations
 
 import asyncio
-import typing as t
 from logging import getLogger
 from random import random
 from time import monotonic
 
+from ... import _typing as t
 from ..._api import TelemetryAPI
 from ..._async_compat import sleep
 from ..._async_compat.util import Util
 from ..._conf import SessionConfig
-
-
-if t.TYPE_CHECKING:
-    from typing_extensions import deprecated
-else:
-    from ..._meta import deprecated
-
 from ..._util import ContextBool
 from ..._work import Query
 from ...api import (
@@ -41,7 +34,6 @@ from ...api import (
     WRITE_ACCESS,
 )
 from ...exceptions import (
-    ClientError,
     DriverError,
     Neo4jError,
     ServiceUnavailable,
@@ -59,12 +51,10 @@ from .workspace import Workspace
 
 
 if t.TYPE_CHECKING:
-    import typing_extensions as te
-
     from ..io import Bolt
 
     _R = t.TypeVar("_R")
-    _P = te.ParamSpec("_P")
+    _P = t.ParamSpec("_P")
 
 
 log = getLogger("neo4j.pool")
@@ -264,7 +254,7 @@ class Session(Workspace):
     @NonConcurrentMethodChecker._non_concurrent_method
     def run(
         self,
-        query: te.LiteralString | Query,
+        query: t.LiteralString | Query,
         parameters: dict[str, t.Any] | None = None,
         **kwargs: t.Any,
     ) -> Result:
@@ -293,6 +283,7 @@ class Session(Workspace):
 
         :returns: a new :class:`neo4j.Result` object
 
+        :raises TransactionError: if a transaction is already open.
         :raises SessionError: if the session has been closed.
         """
         self._check_state()
@@ -302,9 +293,8 @@ class Session(Workspace):
             raise TypeError("query must be a string or a Query instance")
 
         if self._transaction:
-            # TODO: 6.0 - change this to be a TransactionError
-            raise ClientError(
-                "Explicit Transaction must be handled explicitly"
+            raise TransactionError(
+                self._transaction, "Explicit transaction already open"
             )
 
         if self._auto_result:
@@ -339,41 +329,6 @@ class Session(Workspace):
         )
 
         return self._auto_result
-
-    @deprecated(
-        "`last_bookmark` has been deprecated in favor of `last_bookmarks`. "
-        "This method can lead to unexpected behaviour."
-    )
-    @NonConcurrentMethodChecker._non_concurrent_method
-    def last_bookmark(self) -> str | None:
-        """
-        Get the bookmark received following the last completed transaction.
-
-        Note: For auto-commit transactions (:meth:`Session.run`), this will
-        trigger :meth:`Result.consume` for the current result.
-
-        .. warning::
-            This method can lead to unexpected behaviour if the session has not
-            yet successfully completed a transaction.
-
-        :returns: last bookmark
-
-        .. deprecated:: 5.0
-            :meth:`last_bookmark` will be removed in version 6.0.
-            Use :meth:`last_bookmarks` instead.
-        """
-        # The set of bookmarks to be passed into the next transaction.
-
-        if self._auto_result:
-            self._auto_result.consume()
-
-        if self._transaction and self._transaction._closed():
-            self._update_bookmark(self._transaction._bookmark)
-            self._transaction = None
-
-        if self._bookmarks:
-            return self._bookmarks[-1]
-        return None
 
     @NonConcurrentMethodChecker._non_concurrent_method
     def last_bookmarks(self) -> Bookmarks:
@@ -541,7 +496,7 @@ class Session(Workspace):
         access_mode: str,
         api: TelemetryAPI,
         transaction_function: t.Callable[
-            te.Concatenate[ManagedTransaction, _P], t.Union[_R]
+            t.Concatenate[ManagedTransaction, _P], t.Union[_R]
         ],
         # *args: _P.args, **kwargs: _P.kwargs
         # gives more type safety, but is less performant and makes for harder
@@ -624,6 +579,8 @@ class Session(Workspace):
                 raise
 
         if errors:
+            # TODO: 7.0 - when Python 3.11+ is the minimum,
+            #             use exception groups
             raise errors[-1]
         else:
             raise ServiceUnavailable("Transaction failed")
@@ -632,7 +589,7 @@ class Session(Workspace):
     def execute_read(
         self,
         transaction_function: t.Callable[
-            te.Concatenate[ManagedTransaction, _P], t.Union[_R]
+            t.Concatenate[ManagedTransaction, _P], t.Union[_R]
         ],
         *args: _P.args,
         **kwargs: _P.kwargs,
@@ -707,56 +664,11 @@ class Session(Workspace):
             kwargs,
         )
 
-    # TODO: 6.0 - Remove this method
-    @deprecated("read_transaction has been renamed to execute_read")
-    @NonConcurrentMethodChecker._non_concurrent_method
-    def read_transaction(
-        self,
-        transaction_function: t.Callable[
-            te.Concatenate[ManagedTransaction, _P], t.Union[_R]
-        ],
-        *args: _P.args,
-        **kwargs: _P.kwargs,
-    ) -> _R:
-        """
-        Execute a unit of work in a managed read transaction.
-
-        .. note::
-            This does not necessarily imply access control, see the session
-            configuration option :ref:`default-access-mode-ref`.
-
-        :param transaction_function: a function that takes a transaction as an
-            argument and does work with the transaction.
-            ``transaction_function(tx, *args, **kwargs)`` where ``tx`` is a
-            :class:`.ManagedTransaction`.
-        :type transaction_function:
-            typing.Callable[[ManagedTransaction, P], typing.Union[R]]
-        :param args: additional arguments for the `transaction_function`
-        :type args: P
-        :param kwargs: key word arguments for the `transaction_function`
-        :type kwargs: P
-
-        :returns: a result as returned by the given unit of work
-        :rtype: R
-
-        :raises SessionError: if the session has been closed.
-
-        .. deprecated:: 5.0
-            Method was renamed to :meth:`.execute_read`.
-        """
-        return self._run_transaction(
-            READ_ACCESS,
-            TelemetryAPI.TX_FUNC,
-            transaction_function,
-            args,
-            kwargs,
-        )
-
     @NonConcurrentMethodChecker._non_concurrent_method
     def execute_write(
         self,
         transaction_function: t.Callable[
-            te.Concatenate[ManagedTransaction, _P], t.Union[_R]
+            t.Concatenate[ManagedTransaction, _P], t.Union[_R]
         ],
         *args: _P.args,
         **kwargs: _P.kwargs,
@@ -805,51 +717,6 @@ class Session(Workspace):
 
         .. versionadded:: 5.0
         """  # noqa: E501 example code isn't too long
-        return self._run_transaction(
-            WRITE_ACCESS,
-            TelemetryAPI.TX_FUNC,
-            transaction_function,
-            args,
-            kwargs,
-        )
-
-    # TODO: 6.0 - Remove this method
-    @deprecated("write_transaction has been renamed to execute_write")
-    @NonConcurrentMethodChecker._non_concurrent_method
-    def write_transaction(
-        self,
-        transaction_function: t.Callable[
-            te.Concatenate[ManagedTransaction, _P], t.Union[_R]
-        ],
-        *args: _P.args,
-        **kwargs: _P.kwargs,
-    ) -> _R:
-        """
-        Execute a unit of work in a managed write transaction.
-
-        .. note::
-            This does not necessarily imply access control, see the session
-            configuration option :ref:`default-access-mode-ref`.
-
-        :param transaction_function: a function that takes a transaction as an
-            argument and does work with the transaction.
-            ``transaction_function(tx, *args, **kwargs)`` where ``tx`` is a
-            :class:`.ManagedTransaction`.
-        :type transaction_function:
-            typing.Callable[[ManagedTransaction, P], typing.Union[R]]
-        :param args: additional arguments for the `transaction_function`
-        :type args: P
-        :param kwargs: key word arguments for the `transaction_function`
-        :type kwargs: P
-
-        :returns: a result as returned by the given unit of work
-        :rtype: R
-
-        :raises SessionError: if the session has been closed.
-
-        .. deprecated:: 5.0
-            Method was renamed to :meth:`.execute_write`.
-        """
         return self._run_transaction(
             WRITE_ACCESS,
             TelemetryAPI.TX_FUNC,

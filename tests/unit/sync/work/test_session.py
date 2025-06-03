@@ -14,8 +14,6 @@
 # limitations under the License.
 
 
-from contextlib import contextmanager
-
 import pytest
 
 from neo4j import (
@@ -43,19 +41,6 @@ from neo4j.api import (
 )
 
 from ...._async_compat import mark_sync_test
-
-
-@contextmanager
-def assert_warns_tx_func_deprecation(tx_func_name):
-    if tx_func_name.endswith("_transaction"):
-        mode = tx_func_name.split("_")[0]
-        with pytest.warns(
-            DeprecationWarning,
-            match=f"^{mode}_transaction has been renamed to execute_{mode}$",
-        ):
-            yield
-    else:
-        yield
 
 
 @mark_sync_test
@@ -221,43 +206,6 @@ def test_session_returns_bookmarks_directly(
 
 
 @pytest.mark.parametrize(
-    "bookmarks", (None, [], ["abc"], ["foo", "bar"], ("1", "two"))
-)
-@mark_sync_test
-def test_session_last_bookmark_is_deprecated(fake_pool, bookmarks):
-    if bookmarks is not None:
-        with pytest.warns(DeprecationWarning):
-            session = Session(
-                fake_pool, SessionConfig(bookmarks=bookmarks)
-            )
-    else:
-        session = Session(
-            fake_pool, SessionConfig(bookmarks=bookmarks)
-        )
-    with session:
-        with pytest.warns(DeprecationWarning):
-            if bookmarks:
-                assert (session.last_bookmark()) == bookmarks[-1]
-            else:
-                assert (session.last_bookmark()) is None
-
-
-@pytest.mark.parametrize(
-    "bookmarks", (("foo",), ("foo", "bar"), (), ["foo", "bar"], {"a", "b"})
-)
-@mark_sync_test
-def test_session_bookmarks_as_iterable_is_deprecated(
-    fake_pool, bookmarks
-):
-    with pytest.warns(DeprecationWarning):
-        with Session(
-            fake_pool, SessionConfig(bookmarks=bookmarks)
-        ) as session:
-            ret_bookmarks = (session.last_bookmarks()).raw_values
-            assert ret_bookmarks == frozenset(bookmarks)
-
-
-@pytest.mark.parametrize(
     ("query", "error_type"),
     (
         (None, ValueError),
@@ -276,8 +224,6 @@ def test_session_run_wrong_types(fake_pool, query, error_type):
 @pytest.mark.parametrize(
     "tx_type",
     (
-        "write_transaction",
-        "read_transaction",
         "execute_write",
         "execute_read",
     ),
@@ -292,14 +238,13 @@ def test_tx_function_argument_type(fake_pool, tx_type):
         assert isinstance(tx, ManagedTransaction)
 
     with Session(fake_pool, SessionConfig()) as session:
-        with assert_warns_tx_func_deprecation(tx_type):
-            getattr(session, tx_type)(work)
+        getattr(session, tx_type)(work)
         assert called
 
 
 @pytest.mark.parametrize(
     "tx_type",
-    ("write_transaction", "read_transaction", "execute_write", "execute_read"),
+    ("execute_write", "execute_read"),
 )
 @pytest.mark.parametrize(
     "decorator_kwargs",
@@ -323,8 +268,7 @@ def test_decorated_tx_function_argument_type(
         assert isinstance(tx, ManagedTransaction)
 
     with Session(fake_pool, SessionConfig()) as session:
-        with assert_warns_tx_func_deprecation(tx_type):
-            getattr(session, tx_type)(work)
+        getattr(session, tx_type)(work)
         assert called
     assert len(fake_pool.acquired_connection_mocks) == 1
     cx = fake_pool.acquired_connection_mocks[0]
@@ -674,8 +618,6 @@ def test_session_unmanaged_transaction_api_telemetry(fake_pool):
 @pytest.mark.parametrize(
     "tx_type",
     (
-        "write_transaction",
-        "read_transaction",
         "execute_write",
         "execute_read",
     ),
@@ -688,8 +630,7 @@ def test_session_managed_transaction_api_telemetry(
         pass
 
     with Session(fake_pool, SessionConfig()) as session:
-        with assert_warns_tx_func_deprecation(tx_type):
-            getattr(session, tx_type)(work)
+        getattr(session, tx_type)(work)
         assert len(fake_pool.acquired_connection_mocks) == 1
         connection_mock = fake_pool.acquired_connection_mocks[0]
         connection_mock.telemetry.assert_called_once()

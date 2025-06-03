@@ -19,7 +19,7 @@ import re
 
 import pytest
 
-from neo4j import PreviewWarning
+from neo4j.warnings import PreviewWarning
 
 
 def test_import_neo4j():
@@ -43,21 +43,17 @@ NEO4J_ATTRIBUTES = (
     ("basic_auth", None),
     ("bearer_auth", None),
     ("BoltDriver", None),
-    ("Bookmark", None),
     ("Bookmarks", None),
-    ("Config", DeprecationWarning),
     ("custom_auth", None),
     ("DEFAULT_DATABASE", None),
     ("Driver", None),
     ("EagerResult", None),
-    ("ExperimentalWarning", None),
     ("get_user_agent", None),
     ("GqlStatusObject", PreviewWarning),
     ("GraphDatabase", None),
     ("IPv4Address", None),
     ("IPv6Address", None),
     ("kerberos_auth", None),
-    ("log", DeprecationWarning),
     ("ManagedTransaction", None),
     ("Neo4jDriver", None),
     ("NotificationCategory", None),
@@ -66,8 +62,7 @@ NEO4J_ATTRIBUTES = (
     ("NotificationDisabledClassification", PreviewWarning),
     ("NotificationMinimumSeverity", None),
     ("NotificationSeverity", None),
-    ("PoolConfig", DeprecationWarning),
-    ("PreviewWarning", None),
+    ("PreviewWarning", DeprecationWarning),
     ("Query", None),
     ("READ_ACCESS", None),
     ("Record", None),
@@ -76,22 +71,16 @@ NEO4J_ATTRIBUTES = (
     ("RoutingControl", None),
     ("ServerInfo", None),
     ("Session", None),
-    ("SessionConfig", DeprecationWarning),
     ("SummaryCounters", None),
     ("SummaryInputPosition", None),
     ("SummaryNotification", None),
-    ("SummaryNotificationPosition", DeprecationWarning),
     ("SYSTEM_DATABASE", None),
     ("Transaction", None),
-    ("TRUST_ALL_CERTIFICATES", None),
-    ("TRUST_SYSTEM_CA_SIGNED_CERTIFICATES", None),
     ("TrustAll", None),
     ("TrustCustomCAs", None),
     ("TrustSystemCAs", None),
     ("unit_of_work", None),
     ("Vector", None),
-    ("Version", None),
-    ("WorkspaceConfig", DeprecationWarning),
     ("WRITE_ACCESS", None),
 )
 
@@ -130,28 +119,7 @@ def test_dir():
 def test_import_star():
     with pytest.warns() as warnings:
         importlib.__import__("neo4j", fromlist=("*",))
-    assert len(warnings) == 9
-    assert all(
-        issubclass(w.category, (DeprecationWarning, PreviewWarning))
-        for w in warnings
-    )
-
-    for name in (
-        "log",
-        "Config",
-        "PoolConfig",
-        "SessionConfig",
-        "WorkspaceConfig",
-        "SummaryNotificationPosition",
-    ):
-        assert (
-            sum(
-                bool(re.match(rf".*\b{name}\b.*", str(w.message)))
-                for w in warnings
-                if issubclass(w.category, DeprecationWarning)
-            )
-            == 1
-        )
+    assert len(warnings) == 4
 
     for name in (
         "NotificationClassification",
@@ -167,18 +135,23 @@ def test_import_star():
             == 1
         )
 
+    for name in ("PreviewWarning",):
+        assert (
+            sum(
+                bool(re.match(rf".*\b{name}\b.*", str(w.message)))
+                for w in warnings
+                if issubclass(w.category, DeprecationWarning)
+            )
+            == 1
+        )
+
 
 NEO4J_MODULES = (
     ("addressing", None),
     ("api", None),
     ("auth_management", None),
-    ("conf", DeprecationWarning),
-    ("data", DeprecationWarning),
     ("debug", None),
     ("exceptions", None),
-    ("meta", DeprecationWarning),
-    ("packstream", DeprecationWarning),
-    ("routing", DeprecationWarning),
     ("warnings", None),
 )
 

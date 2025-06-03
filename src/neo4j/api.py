@@ -16,44 +16,26 @@
 
 """Base classes and helpers."""
 
-from __future__ import annotations
+from __future__ import annotations as _
 
-import abc
-import typing as t
-from urllib.parse import (
-    parse_qs,
-    urlparse,
-)
+import abc as _abc
 
+from . import _typing as _t
 
-if t.TYPE_CHECKING:
-    from typing_extensions import deprecated
-else:
-    from ._meta import deprecated
-
-from .exceptions import ConfigurationError
+# ignore TCH001 to make sphinx not completely drop the ball
+from ._addressing import Address as _Address  # noqa: TCH001
 
 
-if t.TYPE_CHECKING:
-    import typing_extensions as te
-    from typing_extensions import Protocol as _Protocol
-
-    from .addressing import Address
+if _t.TYPE_CHECKING:
+    from ._typing import Protocol as _Protocol
 else:
     _Protocol = object
 
 
 __all__ = [
     "DEFAULT_DATABASE",
-    "DRIVER_BOLT",
-    "DRIVER_NEO4J",
     "READ_ACCESS",
-    "SECURITY_TYPE_NOT_SECURE",
-    "SECURITY_TYPE_SECURE",
-    "SECURITY_TYPE_SELF_SIGNED_CERTIFICATE",
     "SYSTEM_DATABASE",
-    "TRUST_ALL_CERTIFICATES",
-    "TRUST_SYSTEM_CA_SIGNED_CERTIFICATES",
     "URI_SCHEME_BOLT",
     "URI_SCHEME_BOLT_ROUTING",
     "URI_SCHEME_BOLT_SECURE",
@@ -65,53 +47,31 @@ __all__ = [
     "AsyncBookmarkManager",
     "Auth",
     "AuthToken",
-    "Bookmark",
     "BookmarkManager",
     "Bookmarks",
     "ServerInfo",
-    "Version",
     "basic_auth",
     "bearer_auth",
-    "check_access_mode",
     "custom_auth",
     "kerberos_auth",
-    "parse_neo4j_uri",
-    "parse_routing_context",
 ]
 
 
-READ_ACCESS: te.Final[str] = "READ"
-WRITE_ACCESS: te.Final[str] = "WRITE"
+READ_ACCESS: _t.Final[str] = "READ"
+WRITE_ACCESS: _t.Final[str] = "WRITE"
 
-# TODO: 6.0 - make these 2 constants private
-DRIVER_BOLT: te.Final[str] = "DRIVER_BOLT"
-DRIVER_NEO4J: te.Final[str] = "DRIVER_NEO4J"
+URI_SCHEME_BOLT: _t.Final[str] = "bolt"
+URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE: _t.Final[str] = "bolt+ssc"
+URI_SCHEME_BOLT_SECURE: _t.Final[str] = "bolt+s"
 
-# TODO: 6.0 - make these 3 constants private
-SECURITY_TYPE_NOT_SECURE: te.Final[str] = "SECURITY_TYPE_NOT_SECURE"
-SECURITY_TYPE_SELF_SIGNED_CERTIFICATE: te.Final[str] = (
-    "SECURITY_TYPE_SELF_SIGNED_CERTIFICATE"
-)
-SECURITY_TYPE_SECURE: te.Final[str] = "SECURITY_TYPE_SECURE"
+URI_SCHEME_NEO4J: _t.Final[str] = "neo4j"
+URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE: _t.Final[str] = "neo4j+ssc"
+URI_SCHEME_NEO4J_SECURE: _t.Final[str] = "neo4j+s"
 
-URI_SCHEME_BOLT: te.Final[str] = "bolt"
-URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE: te.Final[str] = "bolt+ssc"
-URI_SCHEME_BOLT_SECURE: te.Final[str] = "bolt+s"
+URI_SCHEME_BOLT_ROUTING: _t.Final[str] = "bolt+routing"
 
-URI_SCHEME_NEO4J: te.Final[str] = "neo4j"
-URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE: te.Final[str] = "neo4j+ssc"
-URI_SCHEME_NEO4J_SECURE: te.Final[str] = "neo4j+s"
-
-URI_SCHEME_BOLT_ROUTING: te.Final[str] = "bolt+routing"
-
-# TODO: 6.0 - remove TRUST constants
-TRUST_SYSTEM_CA_SIGNED_CERTIFICATES: te.Final[str] = (
-    "TRUST_SYSTEM_CA_SIGNED_CERTIFICATES"  # Default
-)
-TRUST_ALL_CERTIFICATES: te.Final[str] = "TRUST_ALL_CERTIFICATES"
-
-SYSTEM_DATABASE: te.Final[str] = "system"
-DEFAULT_DATABASE: te.Final[None] = None  # Must be a non string hashable value
+SYSTEM_DATABASE: _t.Final[str] = "system"
+DEFAULT_DATABASE: _t.Final[None] = None  # Must be a non string hashable value
 
 
 # TODO: This class is not tested
@@ -139,7 +99,7 @@ class Auth:
         principal: str | None,
         credentials: str | None,
         realm: str | None = None,
-        **parameters: t.Any,
+        **parameters: _t.Any,
     ) -> None:
         self.scheme = scheme
         # Neo4j servers pre 4.4 require the principal field to always be
@@ -153,7 +113,7 @@ class Auth:
         if parameters:
             self.parameters = parameters
 
-    def __eq__(self, other: t.Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Auth):
             return NotImplemented
         return vars(self) == vars(other)
@@ -162,8 +122,7 @@ class Auth:
 # For backwards compatibility
 AuthToken = Auth
 
-if t.TYPE_CHECKING:
-    _TAuth: t.TypeAlias = tuple[str, str] | Auth | None
+_TAuth: _t.TypeAlias = tuple[str, str] | Auth | None
 
 
 def basic_auth(user: str, password: str, realm: str | None = None) -> Auth:
@@ -217,7 +176,7 @@ def custom_auth(
     credentials: str | None,
     realm: str | None,
     scheme: str | None,
-    **parameters: t.Any,
+    **parameters: _t.Any,
 ) -> Auth:
     """
     Generate a custom auth token.
@@ -233,51 +192,6 @@ def custom_auth(
         :meth:`AsyncGraphDatabase.driver`
     """
     return Auth(scheme, principal, credentials, realm, **parameters)
-
-
-# TODO: 6.0 - remove this class
-@deprecated("Use the `Bookmarks` class instead.")
-class Bookmark:
-    """
-    A Bookmark object contains an immutable list of bookmark string values.
-
-    :param values: ASCII string values
-
-    .. deprecated:: 5.0
-        `Bookmark` will be removed in version 6.0.
-        Use :class:`Bookmarks` instead.
-    """
-
-    def __init__(self, *values: str) -> None:
-        if values:
-            bookmarks = []
-            for ix in values:
-                try:
-                    if ix:
-                        ix.encode("ascii")
-                        bookmarks.append(ix)
-                except UnicodeEncodeError as e:
-                    raise ValueError(f"The value {ix} is not ASCII") from e
-            self._values = frozenset(bookmarks)
-        else:
-            self._values = frozenset()
-
-    def __repr__(self) -> str:
-        """
-        Represent the container as str.
-
-        :returns: repr string with sorted values
-        """
-        values = ", ".join([f"'{ix}'" for ix in sorted(self._values)])
-        return f"<Bookmark values={{{values}}}>"
-
-    def __bool__(self) -> bool:
-        return bool(self._values)
-
-    @property
-    def values(self) -> frozenset:
-        """:returns: immutable list of bookmark string values"""
-        return self._values
 
 
 class Bookmarks:
@@ -334,7 +248,7 @@ class Bookmarks:
         return self._raw_values
 
     @classmethod
-    def from_raw_values(cls, values: t.Iterable[str]) -> Bookmarks:
+    def from_raw_values(cls, values: _t.Iterable[str]) -> Bookmarks:
         """
         Create a Bookmarks object from a list of raw bookmark string values.
 
@@ -367,13 +281,13 @@ class Bookmarks:
 class ServerInfo:
     """Represents a package of information relating to a Neo4j server."""
 
-    def __init__(self, address: Address, protocol_version: Version):
+    def __init__(self, address: _Address, protocol_version: tuple[int, int]):
         self._address = address
         self._protocol_version = protocol_version
         self._metadata: dict = {}
 
     @property
-    def address(self) -> Address:
+    def address(self) -> _Address:
         """Network address of the remote server."""
         return self._address
 
@@ -392,15 +306,6 @@ class ServerInfo:
         """Server agent string by which the remote server identifies itself."""
         return str(self._metadata.get("server"))
 
-    @property  # type: ignore
-    @deprecated(
-        "The connection id is considered internal information "
-        "and will no longer be exposed in future versions."
-    )
-    def connection_id(self):
-        """Unique identifier for the remote server connection."""
-        return self._metadata.get("connection_id")
-
     def update(self, metadata: dict) -> None:
         """
         Update server information with extra metadata.
@@ -411,48 +316,7 @@ class ServerInfo:
         self._metadata.update(metadata)
 
 
-# TODO: 6.0 - this class should not be public.
-#       As far the user is concerned, protocol versions should simply be a
-#       tuple[int, int].
-if t.TYPE_CHECKING:
-    _version_base = tuple[int, int]
-else:
-    _version_base = tuple
-
-
-class Version(_version_base):
-    def __new__(cls, *v):
-        return super().__new__(cls, v)
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}{super().__repr__()}"
-
-    def __str__(self):
-        return ".".join(map(str, self))
-
-    def to_bytes(self) -> bytes:
-        b = bytearray(4)
-        for i, v in enumerate(self):
-            if not 0 <= i < 2:
-                raise ValueError("Too many version components")
-            if isinstance(v, list):
-                b[-i - 1] = int(v[0] % 0x100)
-                b[-i - 2] = int((v[0] - v[-1]) % 0x100)
-            else:
-                b[-i - 1] = int(v % 0x100)
-        return bytes(b)
-
-    @classmethod
-    def from_bytes(cls, b: bytes) -> Version:
-        b = bytearray(b)
-        if len(b) != 4:
-            raise ValueError("Byte representation must be exactly four bytes")
-        if b[0] != 0 or b[1] != 0:
-            raise ValueError("First two bytes must contain zero")
-        return Version(b[-1], b[-2])
-
-
-class BookmarkManager(_Protocol, metaclass=abc.ABCMeta):
+class BookmarkManager(_Protocol, metaclass=_abc.ABCMeta):
     """
     Class to manage bookmarks throughout the driver's lifetime.
 
@@ -493,11 +357,11 @@ class BookmarkManager(_Protocol, metaclass=abc.ABCMeta):
     .. versionchanged:: 5.8 Stabilized from experimental.
     """
 
-    @abc.abstractmethod
+    @_abc.abstractmethod
     def update_bookmarks(
         self,
-        previous_bookmarks: t.Collection[str],
-        new_bookmarks: t.Collection[str],
+        previous_bookmarks: _t.Collection[str],
+        new_bookmarks: _t.Collection[str],
     ) -> None:
         """
         Handle bookmark updates.
@@ -509,8 +373,8 @@ class BookmarkManager(_Protocol, metaclass=abc.ABCMeta):
         """
         ...
 
-    @abc.abstractmethod
-    def get_bookmarks(self) -> t.Collection[str]:
+    @_abc.abstractmethod
+    def get_bookmarks(self) -> _t.Collection[str]:
         """
         Return the bookmarks stored in the bookmark manager.
 
@@ -519,7 +383,7 @@ class BookmarkManager(_Protocol, metaclass=abc.ABCMeta):
         ...
 
 
-class AsyncBookmarkManager(_Protocol, metaclass=abc.ABCMeta):
+class AsyncBookmarkManager(_Protocol, metaclass=_abc.ABCMeta):
     """
     Same as :class:`.BookmarkManager` but with async methods.
 
@@ -534,109 +398,16 @@ class AsyncBookmarkManager(_Protocol, metaclass=abc.ABCMeta):
     .. versionchanged:: 5.8 Stabilized from experimental.
     """
 
-    @abc.abstractmethod
+    @_abc.abstractmethod
     async def update_bookmarks(
         self,
-        previous_bookmarks: t.Collection[str],
-        new_bookmarks: t.Collection[str],
+        previous_bookmarks: _t.Collection[str],
+        new_bookmarks: _t.Collection[str],
     ) -> None: ...
 
     update_bookmarks.__doc__ = BookmarkManager.update_bookmarks.__doc__
 
-    @abc.abstractmethod
-    async def get_bookmarks(self) -> t.Collection[str]: ...
+    @_abc.abstractmethod
+    async def get_bookmarks(self) -> _t.Collection[str]: ...
 
     get_bookmarks.__doc__ = BookmarkManager.get_bookmarks.__doc__
-
-
-# TODO: 6.0 - make this function private
-def parse_neo4j_uri(uri):
-    parsed = urlparse(uri)
-
-    if parsed.username:
-        raise ConfigurationError("Username is not supported in the URI")
-
-    if parsed.password:
-        raise ConfigurationError("Password is not supported in the URI")
-
-    if parsed.scheme == URI_SCHEME_BOLT_ROUTING:
-        raise ConfigurationError(
-            f"Uri scheme {parsed.scheme!r} has been renamed. "
-            f"Use {URI_SCHEME_NEO4J!r}"
-        )
-    elif parsed.scheme == URI_SCHEME_BOLT:
-        driver_type = DRIVER_BOLT
-        security_type = SECURITY_TYPE_NOT_SECURE
-    elif parsed.scheme == URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE:
-        driver_type = DRIVER_BOLT
-        security_type = SECURITY_TYPE_SELF_SIGNED_CERTIFICATE
-    elif parsed.scheme == URI_SCHEME_BOLT_SECURE:
-        driver_type = DRIVER_BOLT
-        security_type = SECURITY_TYPE_SECURE
-    elif parsed.scheme == URI_SCHEME_NEO4J:
-        driver_type = DRIVER_NEO4J
-        security_type = SECURITY_TYPE_NOT_SECURE
-    elif parsed.scheme == URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE:
-        driver_type = DRIVER_NEO4J
-        security_type = SECURITY_TYPE_SELF_SIGNED_CERTIFICATE
-    elif parsed.scheme == URI_SCHEME_NEO4J_SECURE:
-        driver_type = DRIVER_NEO4J
-        security_type = SECURITY_TYPE_SECURE
-    else:
-        supported_schemes = [
-            URI_SCHEME_BOLT,
-            URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE,
-            URI_SCHEME_BOLT_SECURE,
-            URI_SCHEME_NEO4J,
-            URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE,
-            URI_SCHEME_NEO4J_SECURE,
-        ]
-        raise ConfigurationError(
-            f"URI scheme {parsed.scheme!r} is not supported. "
-            f"Supported URI schemes are {supported_schemes}. "
-            "Examples: bolt://host[:port] or "
-            "neo4j://host[:port][?routing_context]"
-        )
-
-    return driver_type, security_type, parsed
-
-
-# TODO: 6.0 - make this function private
-def check_access_mode(access_mode):
-    if access_mode is None:
-        return WRITE_ACCESS
-    if access_mode not in {READ_ACCESS, WRITE_ACCESS}:
-        msg = f"Unsupported access mode {access_mode}"
-        raise ConfigurationError(msg)
-
-    return access_mode
-
-
-# TODO: 6.0 - make this function private
-def parse_routing_context(query):
-    """
-    Parse the query portion of a URI.
-
-    Generates a routing context dictionary.
-    """
-    if not query:
-        return {}
-
-    context = {}
-    parameters = parse_qs(query, True)
-    for key in parameters:
-        value_list = parameters[key]
-        if len(value_list) != 1:
-            raise ConfigurationError(
-                f"Duplicated query parameters with key '{key}', value "
-                f"'{value_list}' found in query string '{query}'"
-            )
-        value = value_list[0]
-        if not value:
-            raise ConfigurationError(
-                f"Invalid parameters:'{key}={value}' in query string "
-                f"'{query}'."
-            )
-        context[key] = value
-
-    return context

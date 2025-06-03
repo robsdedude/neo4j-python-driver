@@ -19,7 +19,7 @@ from __future__ import annotations
 import abc
 import asyncio
 import logging
-import typing as t
+import math
 from collections import (
     defaultdict,
     deque,
@@ -30,6 +30,8 @@ from dataclasses import dataclass
 from logging import getLogger
 from random import choice
 
+from ... import _typing as t
+from ..._api import check_access_mode
 from ..._async_compat.concurrency import (
     Condition,
     CooperativeRLock,
@@ -44,13 +46,10 @@ from ..._deadline import (
 )
 from ..._exceptions import BoltError
 from ..._routing import RoutingTable
-from ...api import (
-    READ_ACCESS,
-    WRITE_ACCESS,
-)
+from ...api import READ_ACCESS
 from ...exceptions import (
-    ClientError,
     ConfigurationError,
+    ConnectionAcquisitionTimeoutError,
     DriverError,
     Neo4jError,
     ReadServiceUnavailable,
@@ -408,8 +407,7 @@ class IOPool(abc.ABC):
                     or not self.cond.wait(timeout)
                 ):
                     log.debug("[#0000]  _: <POOL> acquisition timed out")
-                    # TODO: 6.0 - change this to be a DriverError (or subclass)
-                    raise ClientError(
+                    raise ConnectionAcquisitionTimeoutError(
                         "failed to obtain a connection from the pool within "
                         f"{deadline.original_timeout!r}s (timeout)"
                     )
@@ -666,6 +664,8 @@ class BoltPool(IOPool):
     ):
         # The access_mode and database is not needed for a direct connection,
         # it's just there for consistency.
+        access_mode = check_access_mode(access_mode)
+        _check_acquisition_timeout(timeout)
         log.debug(
             "[#0000]  _: <POOL> acquire direct connection, "
             "access_mode=%r, database=%r",
@@ -847,6 +847,8 @@ class Neo4jPool(IOPool):
                 "[#0000]  _: <POOL> failed to fetch routing info from %r",
                 address,
             )
+            # TODO: 7.0 - when Python 3.11+ is the minimum,
+            #       use exception groups instead of swallowing discovery errors
             return None
         else:
             servers = new_routing_info[0]["servers"]
@@ -966,6 +968,7 @@ class Neo4jPool(IOPool):
 
         :raise neo4j.exceptions.ServiceUnavailable:
         """
+        _check_acquisition_timeout(acquisition_timeout)
         with self.refresh_lock:
             routing_table = self.get_routing_table(database)
             if routing_table is not None:
@@ -1060,8 +1063,6 @@ class Neo4jPool(IOPool):
 
         :returns: `True` if an update was required, `False` otherwise.
         """
-        from ...api import READ_ACCESS
-
         with self.refresh_lock:
             for database_ in list(self.routing_tables.keys()):
                 # Remove unused databases in the routing table
@@ -1108,8 +1109,6 @@ class Neo4jPool(IOPool):
 
     def _select_address(self, *, access_mode, database):
         """Select the address with the fewest in-use connections."""
-        from ...api import READ_ACCESS
-
         with self.refresh_lock:
             routing_table = self.routing_tables.get(database)
             if routing_table:
@@ -1146,18 +1145,8 @@ class Neo4jPool(IOPool):
         unprepared=False,
         database_callback=None,
     ):
-        if access_mode not in {WRITE_ACCESS, READ_ACCESS}:
-            # TODO: 6.0 - change this to be a ValueError
-            raise ClientError(f"Non valid 'access_mode'; {access_mode}")
-        if not timeout:
-            # TODO: 6.0 - change this to be a ValueError
-            raise ClientError(
-                f"'timeout' must be a float larger than 0; {timeout}"
-            )
-
-        from ...api import check_access_mode
-
         access_mode = check_access_mode(access_mode)
+        _check_acquisition_timeout(timeout)
 
         target_database = database.name
 
@@ -1250,3 +1239,17 @@ class Neo4jPool(IOPool):
             if table is not None:
                 table.writers.discard(address)
         log.debug("[#0000]  _: <POOL> table=%r", self.routing_tables)
+
+
+def _check_acquisition_timeout(timeout: object) -> None:
+    if not isinstance(timeout, (int, float)):
+        raise TypeError(
+            "Connection acquisition timeout must be a number, "
+            f"got {type(timeout)}"
+        )
+    if timeout <= 0:
+        raise ValueError(
+            f"Connection acquisition timeout must be > 0, got {timeout}"
+        )
+    if math.isnan(timeout):
+        raise ValueError("Connection acquisition timeout must not be NaN")

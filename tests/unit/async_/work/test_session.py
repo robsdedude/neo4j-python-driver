@@ -14,8 +14,6 @@
 # limitations under the License.
 
 
-from contextlib import contextmanager
-
 import pytest
 
 from neo4j import (
@@ -43,19 +41,6 @@ from neo4j.api import (
 )
 
 from ...._async_compat import mark_async_test
-
-
-@contextmanager
-def assert_warns_tx_func_deprecation(tx_func_name):
-    if tx_func_name.endswith("_transaction"):
-        mode = tx_func_name.split("_")[0]
-        with pytest.warns(
-            DeprecationWarning,
-            match=f"^{mode}_transaction has been renamed to execute_{mode}$",
-        ):
-            yield
-    else:
-        yield
 
 
 @mark_async_test
@@ -221,43 +206,6 @@ async def test_session_returns_bookmarks_directly(
 
 
 @pytest.mark.parametrize(
-    "bookmarks", (None, [], ["abc"], ["foo", "bar"], ("1", "two"))
-)
-@mark_async_test
-async def test_session_last_bookmark_is_deprecated(async_fake_pool, bookmarks):
-    if bookmarks is not None:
-        with pytest.warns(DeprecationWarning):
-            session = AsyncSession(
-                async_fake_pool, SessionConfig(bookmarks=bookmarks)
-            )
-    else:
-        session = AsyncSession(
-            async_fake_pool, SessionConfig(bookmarks=bookmarks)
-        )
-    async with session:
-        with pytest.warns(DeprecationWarning):
-            if bookmarks:
-                assert (await session.last_bookmark()) == bookmarks[-1]
-            else:
-                assert (await session.last_bookmark()) is None
-
-
-@pytest.mark.parametrize(
-    "bookmarks", (("foo",), ("foo", "bar"), (), ["foo", "bar"], {"a", "b"})
-)
-@mark_async_test
-async def test_session_bookmarks_as_iterable_is_deprecated(
-    async_fake_pool, bookmarks
-):
-    with pytest.warns(DeprecationWarning):
-        async with AsyncSession(
-            async_fake_pool, SessionConfig(bookmarks=bookmarks)
-        ) as session:
-            ret_bookmarks = (await session.last_bookmarks()).raw_values
-            assert ret_bookmarks == frozenset(bookmarks)
-
-
-@pytest.mark.parametrize(
     ("query", "error_type"),
     (
         (None, ValueError),
@@ -276,8 +224,6 @@ async def test_session_run_wrong_types(async_fake_pool, query, error_type):
 @pytest.mark.parametrize(
     "tx_type",
     (
-        "write_transaction",
-        "read_transaction",
         "execute_write",
         "execute_read",
     ),
@@ -292,14 +238,13 @@ async def test_tx_function_argument_type(async_fake_pool, tx_type):
         assert isinstance(tx, AsyncManagedTransaction)
 
     async with AsyncSession(async_fake_pool, SessionConfig()) as session:
-        with assert_warns_tx_func_deprecation(tx_type):
-            await getattr(session, tx_type)(work)
+        await getattr(session, tx_type)(work)
         assert called
 
 
 @pytest.mark.parametrize(
     "tx_type",
-    ("write_transaction", "read_transaction", "execute_write", "execute_read"),
+    ("execute_write", "execute_read"),
 )
 @pytest.mark.parametrize(
     "decorator_kwargs",
@@ -323,8 +268,7 @@ async def test_decorated_tx_function_argument_type(
         assert isinstance(tx, AsyncManagedTransaction)
 
     async with AsyncSession(async_fake_pool, SessionConfig()) as session:
-        with assert_warns_tx_func_deprecation(tx_type):
-            await getattr(session, tx_type)(work)
+        await getattr(session, tx_type)(work)
         assert called
     assert len(async_fake_pool.acquired_connection_mocks) == 1
     cx = async_fake_pool.acquired_connection_mocks[0]
@@ -674,8 +618,6 @@ async def test_session_unmanaged_transaction_api_telemetry(async_fake_pool):
 @pytest.mark.parametrize(
     "tx_type",
     (
-        "write_transaction",
-        "read_transaction",
         "execute_write",
         "execute_read",
     ),
@@ -688,8 +630,7 @@ async def test_session_managed_transaction_api_telemetry(
         pass
 
     async with AsyncSession(async_fake_pool, SessionConfig()) as session:
-        with assert_warns_tx_func_deprecation(tx_type):
-            await getattr(session, tx_type)(work)
+        await getattr(session, tx_type)(work)
         assert len(async_fake_pool.acquired_connection_mocks) == 1
         connection_mock = async_fake_pool.acquired_connection_mocks[0]
         connection_mock.telemetry.assert_called_once()

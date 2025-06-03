@@ -18,11 +18,12 @@ from __future__ import annotations
 
 import abc
 import asyncio
-import typing as t
 from collections import deque
 from logging import getLogger
 from time import monotonic
 
+from ... import _typing as t
+from ..._addressing import ResolvedAddress
 from ..._async_compat.util import Util
 from ..._auth_management import to_auth_dict
 from ..._codec.hydration import (
@@ -34,20 +35,19 @@ from ..._deadline import Deadline
 from ..._exceptions import (
     BoltError,
     BoltHandshakeError,
+    SocketDeadlineExceededError,
 )
+from ..._io import BoltProtocolVersion
 from ..._meta import USER_AGENT
 from ..._sync.config import PoolConfig
-from ...addressing import ResolvedAddress
-from ...api import (
-    ServerInfo,
-    Version,
-)
+from ...api import ServerInfo
 from ...exceptions import (
     ConfigurationError,
     DriverError,
     IncompleteCommit,
     ServiceUnavailable,
     SessionExpired,
+    UnsupportedServerProduct,
 )
 from ..config import PoolConfig
 from ._bolt_socket import BoltSocket
@@ -59,8 +59,6 @@ from ._common import (
 
 
 if t.TYPE_CHECKING:
-    import typing_extensions as te
-
     from ..._api import TelemetryAPI
 
 
@@ -109,7 +107,7 @@ class Bolt:
 
     MAGIC_PREAMBLE = b"\x60\x60\xb0\x17"
 
-    PROTOCOL_VERSION: Version = None  # type: ignore[assignment]
+    PROTOCOL_VERSION: BoltProtocolVersion = None  # type: ignore[assignment]
 
     # flag if connection needs RESET to go back to READY state
     is_reset = False
@@ -159,7 +157,7 @@ class Bolt:
             ResolvedAddress(
                 sock.getpeername(), host_name=unresolved_address.host
             ),
-            self.PROTOCOL_VERSION,
+            self.PROTOCOL_VERSION.version,
         )
         self.connection_hints = {}
         self.patch = {}
@@ -244,7 +242,7 @@ class Bolt:
         if not self.supports_re_auth:
             raise ConfigurationError(
                 "User switching is not supported for Bolt "
-                f"Protocol {self.PROTOCOL_VERSION!r}. Server Agent "
+                f"Protocol {self.PROTOCOL_VERSION}. Server Agent "
                 f"{self.server_info.agent!r}"
             )
 
@@ -257,13 +255,15 @@ class Bolt:
         if not self.supports_notification_filtering:
             raise ConfigurationError(
                 "Notification filtering is not supported for the Bolt "
-                f"Protocol {self.PROTOCOL_VERSION!r}. Server Agent "
+                f"Protocol {self.PROTOCOL_VERSION}. Server Agent "
                 f"{self.server_info.agent!r}"
             )
 
-    protocol_handlers: t.ClassVar[dict[Version, type[Bolt]]] = {}
+    protocol_handlers: t.ClassVar[
+        dict[BoltProtocolVersion, type[Bolt]]
+    ] = {}
 
-    def __init_subclass__(cls: type[te.Self], **kwargs: t.Any) -> None:
+    def __init_subclass__(cls: type[t.Self], **kwargs: t.Any) -> None:
         if cls.SKIP_REGISTRATION:
             super().__init_subclass__(**kwargs)
             return
@@ -272,14 +272,10 @@ class Bolt:
             raise ValueError(
                 "Bolt subclasses must define PROTOCOL_VERSION"
             )
-        if not (
-            isinstance(protocol_version, Version)
-            and len(protocol_version) == 2
-            and all(isinstance(i, int) for i in protocol_version)
-        ):
+        if not isinstance(protocol_version, BoltProtocolVersion):
             raise TypeError(
-                "PROTOCOL_VERSION must be a 2-tuple of integers, not "
-                f"{protocol_version!r}"
+                "PROTOCOL_VERSION must be a BoltProtocolVersion, found "
+                f"{type(protocol_version)} for {cls.__name__}"
             )
         if protocol_version in Bolt.protocol_handlers:
             cls_conflict = Bolt.protocol_handlers[protocol_version]
@@ -336,16 +332,15 @@ class Bolt:
             BoltSocket.close_socket(s)
             return protocol_version
 
-    @classmethod
+    @staticmethod
     def open(
-        cls,
         address,
         *,
         auth_manager=None,
         deadline=None,
         routing_context=None,
         pool_config=None,
-    ):
+    ) -> Bolt:
         """
         Open a new Bolt connection to a given server address.
 
@@ -366,7 +361,7 @@ class Bolt:
         if deadline is None:
             deadline = Deadline(None)
 
-        s, protocol_version, handshake, data = BoltSocket.connect(
+        s, protocol_version = BoltSocket.connect(
             address,
             tcp_timeout=pool_config.connection_timeout,
             deadline=deadline,
@@ -381,15 +376,10 @@ class Bolt:
         if bolt_cls is None:
             log.debug("[#%04X]  C: <CLOSE>", s.getsockname()[1])
             BoltSocket.close_socket(s)
-
-            # TODO: 6.0 - raise public DriverError subclass instead
-            raise BoltHandshakeError(
+            raise UnsupportedServerProduct(
                 "The neo4j server does not support communication with this "
                 "driver. This driver has support for Bolt protocols "
-                f"{tuple(map(str, Bolt.protocol_handlers.keys()))}.",
-                address=address,
-                request_data=handshake,
-                response_data=data,
+                f"{tuple(map(str, Bolt.protocol_handlers))}.",
             )
 
         try:
@@ -898,6 +888,15 @@ class Bolt:
     def _set_defunct(self, message, error=None, silent=False):
         direct_driver = getattr(self.pool, "is_direct_pool", False)
         user_cancelled = isinstance(error, asyncio.CancelledError)
+        connection_failed = isinstance(
+            error,
+            (
+                ServiceUnavailable,
+                SessionExpired,
+                OSError,
+                SocketDeadlineExceededError,
+            ),
+        )
 
         if not (user_cancelled or self._closing):
             log_call = log.error
@@ -924,6 +923,12 @@ class Bolt:
         if user_cancelled:
             self.kill()
             raise error  # cancellation error should not be re-written
+        if not connection_failed:
+            # Something else but the connection failed
+            # => we're not sure which state we're in
+            # => ditch the connection and raise the error for user-awareness
+            self.close()
+            raise error
         if not self._closing:
             # If we fail while closing the connection, there is no need to
             # remove the connection from the pool, nor to try to close the

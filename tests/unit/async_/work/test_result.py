@@ -37,7 +37,6 @@ from neo4j import (
     ServerInfo,
     SummaryCounters,
     time as neo4j_time,
-    Version,
 )
 from neo4j._async_compat.util import AsyncUtil
 from neo4j._codec.hydration.v1 import HydrationHandler
@@ -230,9 +229,7 @@ class AsyncConnectionStub:
             AsyncConnectionStub.Message("PULL", *args, **kwargs)
         )
 
-    server_info = ServerInfo(
-        Address(("bolt://localhost", 7687)), Version(4, 3)
-    )
+    server_info = ServerInfo(Address(("bolt://localhost", 7687)), (4, 3))
 
     def defunct(self):
         return False
@@ -557,7 +554,7 @@ async def test_consume(records, consume_one, summary_meta, consume_times):
             assert summary.database is None
         server_info = summary.server
         assert isinstance(server_info, ServerInfo)
-        assert server_info.protocol_version == Version(4, 3)
+        assert server_info.protocol_version == (4, 3)
         assert isinstance(summary.counters, SummaryCounters)
 
 
@@ -684,17 +681,9 @@ async def test_result_graph(records):
         nodes = graph.nodes
 
         assert set(nodes._entity_dict) == {"0", "1"}
-        for key in (
-            "0",
-            0,
-            0.0,
-            # I pray to god that no-one actually accessed nodes with complex
-            # numbers, but theoretically it would have worked with the legacy
-            # number IDs
-            0 + 0j,
-        ):
+        for key in ("0", 0, 0.0, 0 + 0j):
             if not isinstance(key, str):
-                with pytest.warns(DeprecationWarning, match="element_id"):
+                with pytest.raises(KeyError):
                     alice = nodes[key]
             else:
                 alice = nodes[key]
@@ -706,7 +695,7 @@ async def test_result_graph(records):
 
         for key in ("1", 1, 1.0, 1 + 0j):
             if not isinstance(key, str):
-                with pytest.warns(DeprecationWarning, match="element_id"):
+                with pytest.raises(KeyError):
                     bob = nodes[key]
             else:
                 bob = nodes[key]
@@ -723,7 +712,7 @@ async def test_result_graph(records):
 
         for key in ("0", 0, 0.0, 0 + 0j):
             if not isinstance(key, str):
-                with pytest.warns(DeprecationWarning, match="element_id"):
+                with pytest.raises(KeyError):
                     rel = rels[key]
             else:
                 rel = rels[key]

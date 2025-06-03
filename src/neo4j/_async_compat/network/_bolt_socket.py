@@ -20,7 +20,6 @@ import abc
 import asyncio
 import errno
 import logging
-import typing as t
 from contextlib import suppress
 from socket import (
     AF_INET,
@@ -35,10 +34,12 @@ from socket import (
 from ssl import (
     CertificateError,
     HAS_SNI,
+    SSLContext,
     SSLError,
     SSLSocket,
 )
 
+from ... import _typing as t
 from ..._deadline import Deadline
 from ..._exceptions import (
     BoltProtocolError,
@@ -50,9 +51,12 @@ from ..shims import wait_for
 
 
 if t.TYPE_CHECKING:
-    import typing_extensions as te
-
+    from ..._addressing import (
+        Address,
+        ResolvedAddress,
+    )
     from ..._async.io import AsyncBolt
+    from ..._io import BoltProtocolVersion
     from ..._sync.io import Bolt
 
 
@@ -69,7 +73,7 @@ def _sanitize_deadline(deadline):
 
 
 class AsyncBoltSocketBase(abc.ABC):
-    Bolt: te.Final[type[AsyncBolt]] = None  # type: ignore[assignment]
+    Bolt: t.Final[type[AsyncBolt]] = None  # type: ignore[assignment]
 
     def __init__(self, reader, protocol, writer) -> None:
         self._reader = reader  # type: asyncio.StreamReader
@@ -163,7 +167,7 @@ class AsyncBoltSocketBase(abc.ABC):
     @classmethod
     async def _connect_secure(
         cls, resolved_address, timeout, keep_alive, ssl_context
-    ) -> te.Self:
+    ) -> t.Self:
         """
         Connect to the address and return the socket.
 
@@ -266,20 +270,24 @@ class AsyncBoltSocketBase(abc.ABC):
             raise
 
     @abc.abstractmethod
-    async def _handshake(self, resolved_address, deadline): ...
+    async def _handshake(
+        self,
+        resolved_address: ResolvedAddress,
+        deadline: Deadline,
+    ) -> BoltProtocolVersion: ...
 
     @classmethod
     @abc.abstractmethod
     async def connect(
         cls,
-        address,
+        address: Address,
         *,
-        tcp_timeout,
-        deadline,
-        custom_resolver,
-        ssl_context,
-        keep_alive,
-    ): ...
+        tcp_timeout: float | None,
+        deadline: Deadline,
+        custom_resolver: t.Callable | None,
+        ssl_context: SSLContext | None,
+        keep_alive: bool,
+    ) -> tuple[t.Self, BoltProtocolVersion]: ...
 
     @classmethod
     async def close_socket(cls, socket_):
@@ -298,7 +306,7 @@ class AsyncBoltSocketBase(abc.ABC):
 
 
 class BoltSocketBase:
-    Bolt: te.Final[type[Bolt]] = None  # type: ignore[assignment]
+    Bolt: t.Final[type[Bolt]] = None  # type: ignore[assignment]
 
     def __init__(self, socket_: socket):
         self._socket = socket_
@@ -453,20 +461,24 @@ class BoltSocketBase:
         return cls(s)
 
     @abc.abstractmethod
-    def _handshake(self, resolved_address, deadline): ...
+    def _handshake(
+        self,
+        resolved_address: ResolvedAddress,
+        deadline: Deadline,
+    ) -> BoltProtocolVersion: ...
 
     @classmethod
     @abc.abstractmethod
     def connect(
         cls,
-        address,
+        address: Address,
         *,
-        tcp_timeout,
-        deadline,
-        custom_resolver,
-        ssl_context,
-        keep_alive,
-    ): ...
+        tcp_timeout: float | None,
+        deadline: Deadline,
+        custom_resolver: t.Callable | None,
+        ssl_context: SSLContext | None,
+        keep_alive: bool,
+    ) -> tuple[t.Self, BoltProtocolVersion]: ...
 
     @classmethod
     def close_socket(cls, socket_):

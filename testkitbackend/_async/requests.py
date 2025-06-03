@@ -37,6 +37,7 @@ from neo4j.auth_management import (
     AsyncClientCertificateProvider,
     ExpiringAuth,
 )
+from neo4j.warnings import PreviewWarning
 
 from .. import (
     fromtestkit,
@@ -48,12 +49,10 @@ from ..exceptions import MarkdAsDriverError
 
 
 if t.TYPE_CHECKING:
-    import typing_extensions as te
-
     from neo4j._auth_management import ClientCertificate
 
     T = t.TypeVar("T")
-    P = te.ParamSpec("P")
+    P = t.ParamSpec("P")
 
 
 def snake_case_to_pascal_case(name: str) -> str:
@@ -222,7 +221,7 @@ async def new_driver(backend, data):
 
     expected_warnings.append(
         (
-            neo4j.PreviewWarning,
+            PreviewWarning,
             r"notification warnings are a preview feature\.",
         )
     )
@@ -623,7 +622,11 @@ async def new_bookmark_manager(backend, data):
 
     bmm_kwargs = {}
     data.mark_item_as_read("initialBookmarks", recursive=True)
-    bmm_kwargs["initial_bookmarks"] = data.get("initialBookmarks")
+    initial_bookmarks = data.get("initialBookmarks")
+    if initial_bookmarks is not None:
+        bmm_kwargs["initial_bookmarks"] = neo4j.Bookmarks.from_raw_values(
+            initial_bookmarks
+        )
     if data.get("bookmarksSupplierRegistered"):
         bmm_kwargs["bookmarks_supplier"] = bookmarks_supplier(
             backend, bookmark_manager_id
@@ -981,9 +984,15 @@ async def forced_routing_table_update(backend, data):
     driver = backend.drivers[driver_id]
     database = data["database"]
     bookmarks = data["bookmarks"]
+    acquisition_timeout = (
+        driver._default_workspace_config.connection_acquisition_timeout
+    )
     async with driver._pool.refresh_lock:
         await driver._pool.update_routing_table(
-            database=database, imp_user=None, bookmarks=bookmarks
+            database=database,
+            imp_user=None,
+            bookmarks=bookmarks,
+            acquisition_timeout=acquisition_timeout,
         )
     await backend.send_response("Driver", {"id": driver_id})
 

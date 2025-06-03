@@ -17,24 +17,21 @@
 from __future__ import annotations
 
 import asyncio
-import typing as t
+from types import NoneType
 
-
-if t.TYPE_CHECKING:
-    import ssl
-    import typing_extensions as te
-
-    from .._api import (
-        T_NotificationDisabledCategory,
-        T_NotificationMinimumSeverity,
-    )
-
+from .. import _typing as t
+from .._addressing import Address
 from .._api import (
+    DRIVER_BOLT,
+    DRIVER_NEO4J,
     NotificationMinimumSeverity,
+    parse_neo4j_uri,
+    parse_routing_context,
     RoutingControl,
+    SECURITY_TYPE_SECURE,
+    SECURITY_TYPE_SELF_SIGNED_CERTIFICATE,
     TelemetryAPI,
 )
-from .._async_compat.util import AsyncUtil
 from .._conf import (
     Config,
     ConfigurationError,
@@ -44,9 +41,8 @@ from .._conf import (
     WorkspaceConfig,
 )
 from .._debug import ENABLED as DEBUG_ENABLED
-from .._meta import (
+from .._warnings import (
     deprecation_warn,
-    experimental_warn,
     preview_warn,
     unclosed_resource_warn,
 )
@@ -55,22 +51,14 @@ from .._work import (
     Query,
     unit_of_work,
 )
-from ..addressing import Address
 from ..api import (
+    _TAuth,
     AsyncBookmarkManager,
     Auth,
     BookmarkManager,
     Bookmarks,
-    DRIVER_BOLT,
-    DRIVER_NEO4J,
-    parse_neo4j_uri,
-    parse_routing_context,
     READ_ACCESS,
-    SECURITY_TYPE_SECURE,
-    SECURITY_TYPE_SELF_SIGNED_CERTIFICATE,
     ServerInfo,
-    TRUST_ALL_CERTIFICATES,
-    TRUST_SYSTEM_CA_SIGNED_CERTIFICATES,
     URI_SCHEME_BOLT,
     URI_SCHEME_BOLT_SECURE,
     URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE,
@@ -85,7 +73,10 @@ from ..auth_management import (
     AsyncClientCertificateProvider,
     ClientCertificate,
 )
-from ..exceptions import Neo4jError
+from ..exceptions import (
+    DriverError,
+    Neo4jError,
+)
 from .auth_management import _AsyncStaticClientCertificateProvider
 from .bookmark_manager import (
     AsyncNeo4jBookmarkManager,
@@ -104,10 +95,11 @@ if t.TYPE_CHECKING:
     import ssl
     from enum import Enum
 
-    import typing_extensions as te
-
-    from .._api import T_RoutingControl
-    from ..api import _TAuth
+    from .._api import (
+        T_NotificationDisabledCategory,
+        T_NotificationMinimumSeverity,
+        T_RoutingControl,
+    )
 
     class _DefaultEnum(Enum):
         default = "default"
@@ -135,10 +127,6 @@ class AsyncGraphDatabase:
             liveness_check_timeout: float | None = ...,
             max_connection_pool_size: int = ...,
             connection_timeout: float = ...,
-            trust: (
-                te.Literal["TRUST_ALL_CERTIFICATES"]
-                | te.Literal["TRUST_SYSTEM_CA_SIGNED_CERTIFICATES"]
-            ) = ...,
             resolver: (
                 t.Callable[[Address], t.Iterable[Address]]
                 | t.Callable[[Address], t.Awaitable[t.Iterable[Address]]]
@@ -214,20 +202,6 @@ class AsyncGraphDatabase:
                     _AsyncStaticClientCertificateProvider(client_certificate)
                 )
 
-            # TODO: 6.0 - remove "trust" config option
-            if "trust" in config and config["trust"] not in {
-                TRUST_ALL_CERTIFICATES,
-                TRUST_SYSTEM_CA_SIGNED_CERTIFICATES,
-            }:
-                raise ConfigurationError(
-                    "The config setting `trust` values are {!r}".format(
-                        [
-                            TRUST_ALL_CERTIFICATES,
-                            TRUST_SYSTEM_CA_SIGNED_CERTIFICATES,
-                        ]
-                    )
-                )
-
             if "trusted_certificates" in config and not isinstance(
                 config["trusted_certificates"], TrustStore
             ):
@@ -244,16 +218,14 @@ class AsyncGraphDatabase:
                 SECURITY_TYPE_SECURE,
             } and (
                 "encrypted" in config
-                or "trust" in config
                 or "trusted_certificates" in config
                 or "ssl_context" in config
             ):
-                # TODO: 6.0 - remove "trust" from error message
                 raise ConfigurationError(
-                    'The config settings "encrypted", "trust", '
-                    '"trusted_certificates", and "ssl_context" can only be '
-                    "used with the URI schemes {!r}. Use the other URI "
-                    "schemes {!r} for setting encryption settings.".format(
+                    'The config settings "encrypted", "trusted_certificates", '
+                    'and "ssl_context" can only be used with the URI schemes '
+                    "{!r}. Use the other URI schemes {!r} for setting "
+                    "encryption settings.".format(
                         [
                             URI_SCHEME_BOLT,
                             URI_SCHEME_NEO4J,
@@ -300,22 +272,15 @@ class AsyncGraphDatabase:
             assert driver_type in {DRIVER_BOLT, DRIVER_NEO4J}
             if driver_type == DRIVER_BOLT:
                 if parse_routing_context(parsed.query):
-                    deprecation_warn(
-                        'Creating a direct driver ("bolt://" scheme) with '
-                        "routing context (URI parameters) is deprecated. They "
-                        "will be ignored. This will raise an error in a "
-                        f'future release. Given URI "{uri}"',
-                        stack_level=2,
+                    raise ConfigurationError(
+                        "Routing context (URI query parameters) are not "
+                        "supported by direct drivers "
+                        f'("bolt[+s[sc]]://" scheme). Given URI: {uri!r}.'
                     )
-                    # TODO: 6.0 - raise instead of warning
-                    # raise ValueError(
-                    #     'Routing parameters are not supported with scheme '
-                    #     '"bolt". Given URI "{}".'.format(uri)
-                    # )
-                return cls.bolt_driver(parsed.netloc, **config)
+                return cls._bolt_driver(parsed.netloc, **config)
             # else driver_type == DRIVER_NEO4J
             routing_context = parse_routing_context(parsed.query)
-            return cls.neo4j_driver(
+            return cls._neo4j_driver(
                 parsed.netloc, routing_context=routing_context, **config
             )
 
@@ -364,6 +329,11 @@ class AsyncGraphDatabase:
         :param initial_bookmarks:
             The initial set of bookmarks. The returned bookmark manager will
             use this to initialize its internal bookmarks.
+
+            .. deprecated:: 6.0
+                Passing raw string bookmarks is deprecated.
+                Use a :class:`.Bookmarks` object instead.
+
         :param bookmarks_supplier:
             Function which will be called every time the default bookmark
             manager's method :meth:`.AsyncBookmarkManager.get_bookmarks`
@@ -396,15 +366,33 @@ class AsyncGraphDatabase:
               an argument.
 
         .. versionchanged:: 5.8 Stabilized from experimental.
+
+        .. versionchanged:: 6.0
+            Deprecated passing raw string bookmarks as initial_bookmarks.
         """
+        cast_initial_bookmarks: Bookmarks | None
+        # TODO: 7.0 - remove raw bookmark support
+        if not isinstance(initial_bookmarks, (Bookmarks, NoneType)):
+            deprecation_warn(
+                (
+                    "Passing raw strings as initial_bookmarks is deprecated. "
+                    "Use a Bookmarks object instead."
+                ),
+                stack_level=2,
+            )
+            cast_initial_bookmarks = Bookmarks.from_raw_values(
+                t.cast(t.Iterable[str], initial_bookmarks)
+            )
+        else:
+            cast_initial_bookmarks = initial_bookmarks
         return AsyncNeo4jBookmarkManager(
-            initial_bookmarks=initial_bookmarks,
+            initial_bookmarks=cast_initial_bookmarks,
             bookmarks_supplier=bookmarks_supplier,
             bookmarks_consumer=bookmarks_consumer,
         )
 
     @classmethod
-    def bolt_driver(cls, target, **config):
+    def _bolt_driver(cls, target, **config):
         """
         Create a direct driver.
 
@@ -417,36 +405,28 @@ class AsyncGraphDatabase:
         )
 
         try:
-            return AsyncBoltDriver.open(target, **config)
+            return AsyncBoltDriver._open(target, **config)
         except (BoltHandshakeError, BoltSecurityError) as error:
             from ..exceptions import ServiceUnavailable
 
             raise ServiceUnavailable(str(error)) from error
 
     @classmethod
-    def neo4j_driver(cls, *targets, routing_context=None, **config):
+    def _neo4j_driver(cls, target, routing_context=None, **config):
         """
         Create a routing driver.
 
         Create a driver for routing-capable Neo4j service access
         that uses socket I/O and thread-based concurrency.
         """
-        # TODO: 6.0 - adjust signature to only take one target
-        if len(targets) > 1:
-            deprecation_warn(
-                "Creating a routing driver with multiple targets is "
-                "deprecated. The driver only uses the first target anyway. "
-                "The method signature will change in a future release.",
-            )
-
         from .._exceptions import (
             BoltHandshakeError,
             BoltSecurityError,
         )
 
         try:
-            return AsyncNeo4jDriver.open(
-                *targets, routing_context=routing_context, **config
+            return AsyncNeo4jDriver._open(
+                target, routing_context=routing_context, **config
             )
         except (BoltHandshakeError, BoltSecurityError) as error:
             from ..exceptions import ServiceUnavailable
@@ -455,10 +435,9 @@ class AsyncGraphDatabase:
 
 
 class _Direct:
-    # TODO: 6.0 - those attributes should be private
-    default_host = "localhost"
-    default_port = 7687
-    default_target = ":"
+    _default_host = "localhost"
+    _default_port = 7687
+    _default_target = ":"
 
     def __init__(self, address):
         self._address = address
@@ -468,22 +447,21 @@ class _Direct:
         return self._address
 
     @classmethod
-    def parse_target(cls, target):
+    def _parse_target(cls, target):
         """Parse a target string to produce an address."""
         if not target:
-            target = cls.default_target
+            target = cls._default_target
         return Address.parse(
             target,
-            default_host=cls.default_host,
-            default_port=cls.default_port,
+            default_host=cls._default_host,
+            default_port=cls._default_port,
         )
 
 
 class _Routing:
-    # TODO: 6.0 - those attributes should be private
-    default_host = "localhost"
-    default_port = 7687
-    default_targets = ": :17601 :17687"
+    _default_host = "localhost"
+    _default_port = 7687
+    _default_targets = ": :17601 :17687"
 
     def __init__(self, initial_addresses):
         self._initial_addresses = initial_addresses
@@ -493,15 +471,15 @@ class _Routing:
         return self._initial_addresses
 
     @classmethod
-    def parse_targets(cls, *targets):
+    def _parse_targets(cls, *targets):
         """Parse a sequence of target strings to produce an address list."""
         targets = " ".join(targets)
         if not targets:
-            targets = cls.default_targets
+            targets = cls._default_targets
         return Address.parse_list(
             targets,
-            default_host=cls.default_host,
-            default_port=cls.default_port,
+            default_host=cls._default_host,
+            default_port=cls._default_port,
         )
 
 
@@ -536,33 +514,13 @@ class AsyncDriver:
     def __del__(
         self,
         _unclosed_resource_warn=unclosed_resource_warn,
-        _is_async_code=AsyncUtil.is_async_code,
-        _deprecation_warn=deprecation_warn,
     ):
         if not self._closed:
             _unclosed_resource_warn(self)
-        # TODO: 6.0 - remove this
-        if _is_async_code:
-            return
-        if not self._closed:
-            _deprecation_warn(
-                "Relying on AsyncDriver's destructor to close the session "
-                "is deprecated. Please make sure to close the session. "
-                "Use it as a context (`with` statement) or make sure to "
-                "call `.close()` explicitly. Future versions of the "
-                "driver will not close drivers automatically."
-            )
-            self.close()
 
     def _check_state(self):
         if self._closed:
-            # TODO: 6.0 - raise the error
-            # raise DriverError("Driver closed")
-            deprecation_warn(
-                "Using a driver after it has been closed is deprecated. "
-                "Future versions of the driver will raise an error.",
-                stack_level=3,
-            )
+            raise DriverError("Driver closed")
 
     @property
     def encrypted(self) -> bool:
@@ -579,7 +537,7 @@ class AsyncDriver:
             database: str | None = ...,
             fetch_size: int = ...,
             impersonated_user: str | None = ...,
-            bookmarks: t.Iterable[str] | Bookmarks | None = ...,
+            bookmarks: Bookmarks | None = ...,
             default_access_mode: str = ...,
             bookmark_manager: (
                 AsyncBookmarkManager | BookmarkManager | None
@@ -614,6 +572,11 @@ class AsyncDriver:
                 key-word arguments.
 
             :returns: new :class:`neo4j.AsyncSession` object
+
+            :raises DriverError: if the driver has been closed.
+
+            .. versionchanged:: 6.0
+                Raise :exc:`DriverError` if the driver has been closed.
             """
             if "warn_notification_severity" in config:
                 # Would work just fine, but we don't want to introduce yet
@@ -651,9 +614,8 @@ class AsyncDriver:
             spawned from it (such as sessions or transactions) while calling
             this method. Failing to do so results in unspecified behavior.
         """
-        # TODO: 6.0 - NOOP if already closed
-        # if self._closed:
-        #     return
+        if self._closed:
+            return
         try:
             await self._pool.close()
         except asyncio.CancelledError:
@@ -665,7 +627,7 @@ class AsyncDriver:
     @t.overload
     async def execute_query(
         self,
-        query_: te.LiteralString | Query,
+        query_: t.LiteralString | Query,
         parameters_: dict[str, t.Any] | None = None,
         routing_: T_RoutingControl = RoutingControl.WRITE,
         database_: str | None = None,
@@ -683,7 +645,7 @@ class AsyncDriver:
     @t.overload
     async def execute_query(
         self,
-        query_: te.LiteralString | Query,
+        query_: t.LiteralString | Query,
         parameters_: dict[str, t.Any] | None = None,
         routing_: T_RoutingControl = RoutingControl.WRITE,
         database_: str | None = None,
@@ -698,7 +660,7 @@ class AsyncDriver:
 
     async def execute_query(
         self,
-        query_: te.LiteralString | Query,
+        query_: t.LiteralString | Query,
         parameters_: dict[str, t.Any] | None = None,
         routing_: T_RoutingControl = RoutingControl.WRITE,
         database_: str | None = None,
@@ -707,7 +669,7 @@ class AsyncDriver:
             AsyncBookmarkManager
             | BookmarkManager
             | None
-            | te.Literal[_DefaultEnum.default]
+            | t.Literal[_DefaultEnum.default]
         ) = _default,
         auth_: _TAuth = None,
         result_transformer_: t.Callable[
@@ -917,6 +879,8 @@ class AsyncDriver:
         :returns: the result of the ``result_transformer_``
         :rtype: T
 
+        :raises DriverError: if the driver has been closed.
+
         .. versionadded:: 5.5
 
         .. versionchanged:: 5.8
@@ -930,6 +894,9 @@ class AsyncDriver:
         .. versionchanged:: 5.15
             The ``query_`` parameter now also accepts a :class:`.Query` object
             instead of only :class:`str`.
+
+        .. versionchanged:: 6.0
+            Raise :exc:`DriverError` if the driver has been closed.
         '''  # noqa: E501 example code isn't too long
         self._check_state()
         invalid_kwargs = [
@@ -1066,26 +1033,28 @@ class AsyncDriver:
                 :meth:`session`.
 
                 .. warning::
-                    All configuration key-word arguments are experimental.
-                    They might be changed or removed in any future version
+                    Passing key-word arguments is a preview feature.
+                    It might be changed or removed in any future version
                     without prior notice.
 
             :raises Exception: if the driver cannot connect to the remote.
                 Use the exception to further understand the cause of the
                 connectivity problem.
+            :raises DriverError: if the driver has been closed.
 
             .. versionchanged:: 5.0
                 The undocumented return value has been removed.
                 If you need information about the remote server, use
                 :meth:`get_server_info` instead.
+
+            .. versionchanged:: 6.0
+                Raise :exc:`DriverError` if the driver has been closed.
             """
             self._check_state()
             if config:
-                experimental_warn(
-                    "All configuration key-word arguments to "
-                    "verify_connectivity() are experimental. They might be "
-                    "changed or removed in any future version without prior "
-                    "notice."
+                preview_warn(
+                    "Passing key-word arguments to verify_connectivity() is a "
+                    "preview feature."
                 )
             session_config = self._read_session_config(config)
             await self._get_server_info(session_config)
@@ -1145,23 +1114,25 @@ class AsyncDriver:
                 :meth:`session`.
 
                 .. warning::
-                    All configuration key-word arguments are experimental.
-                    They might be changed or removed in any future version
-                    without prior notice.
+                    Passing key-word arguments is a preview feature.
+                    It might be changed or removed in any future
+                    version without prior notice.
 
             :raises Exception: if the driver cannot connect to the remote.
                 Use the exception to further understand the cause of the
                 connectivity problem.
+            :raises DriverError: if the driver has been closed.
 
             .. versionadded:: 5.0
+
+            .. versionchanged:: 6.0
+                Raise :exc:`DriverError` if the driver has been closed.
             """
             self._check_state()
             if config:
-                experimental_warn(
-                    "All configuration key-word arguments to "
-                    "get_server_info() are experimental. They might be "
-                    "changed or removed in any future version without prior "
-                    "notice."
+                preview_warn(
+                    "Passing key-word arguments to get_server_info() is a "
+                    "preview feature."
                 )
             session_config = self._read_session_config(config)
             return await self._get_server_info(session_config)
@@ -1170,15 +1141,20 @@ class AsyncDriver:
         """
         Check if the server or cluster supports multi-databases.
 
-        :returns: Returns true if the server or cluster the driver connects to
-            supports multi-databases, otherwise false.
-
         .. note::
             Feature support query based solely on the Bolt protocol version.
             The feature might still be disabled on the server side even if this
             function return :data:`True`. It just guarantees that the driver
             won't throw a :exc:`.ConfigurationError` when trying to use this
             driver feature.
+
+        :returns: Returns true if the server or cluster the driver connects to
+            supports multi-databases, otherwise false.
+
+        :raises DriverError: if the driver has been closed.
+
+        .. versionchanged:: 6.0
+            Raise :exc:`DriverError` if the driver has been closed.
         """
         self._check_state()
         session_config = self._read_session_config({})
@@ -1239,25 +1215,27 @@ class AsyncDriver:
                 :meth:`session`.
 
                 .. warning::
-                    All configuration key-word arguments (except ``auth``) are
-                    experimental. They might be changed or removed in any
-                    future version without prior notice.
+                    Passing key-word arguments (except ``auth``) is a preview
+                    feature. It might be changed or removed in any future
+                    version without prior notice.
 
             :raises Exception: if the driver cannot connect to the remote.
                 Use the exception to further understand the cause of the
                 connectivity problem.
+            :raises DriverError: if the driver has been closed.
 
             .. versionadded:: 5.8
 
             .. versionchanged:: 5.14 Stabilized from experimental.
+
+            .. versionchanged:: 6.0
+                Raise :exc:`DriverError` if the driver has been closed.
             """
             self._check_state()
             if config:
-                experimental_warn(
-                    "All configuration key-word arguments but auth to "
-                    "verify_authentication() are experimental. They might be "
-                    "changed or removed in any future version without prior "
-                    "notice."
+                preview_warn(
+                    "Passing key-word arguments except 'auth' to "
+                    "verify_authentication() is a preview feature."
                 )
             if "database" not in config:
                 config["database"] = "system"
@@ -1281,10 +1259,6 @@ class AsyncDriver:
         """
         Check if the remote supports connection re-authentication.
 
-        :returns: Returns true if the server or cluster the driver connects to
-            supports re-authentication of existing connections, otherwise
-            false.
-
         .. note::
             Feature support query based solely on the Bolt protocol version.
             The feature might still be disabled on the server side even if this
@@ -1292,7 +1266,16 @@ class AsyncDriver:
             won't throw a :exc:`.ConfigurationError` when trying to use this
             driver feature.
 
+        :returns: Returns true if the server or cluster the driver connects to
+            supports re-authentication of existing connections, otherwise
+            false.
+
+        :raises DriverError: if the driver has been closed.
+
         .. versionadded:: 5.8
+
+        .. versionchanged:: 6.0
+            Raise :exc:`DriverError` if the driver has been closed.
         """
         self._check_state()
         session_config = self._read_session_config({})
@@ -1308,7 +1291,7 @@ class AsyncDriver:
 
 async def _work(
     tx: AsyncManagedTransaction,
-    query: te.LiteralString,
+    query: t.LiteralString,
     parameters: dict[str, t.Any],
     transformer: t.Callable[[AsyncResult], t.Awaitable[_T]],
 ) -> _T:
@@ -1331,10 +1314,10 @@ class AsyncBoltDriver(_Direct, AsyncDriver):
     """
 
     @classmethod
-    def open(cls, target, **config):
+    def _open(cls, target, **config):
         from .io import AsyncBoltPool
 
-        address = cls.parse_target(target)
+        address = cls._parse_target(target)
         pool_config, default_workspace_config = Config.consume_chain(
             config, AsyncPoolConfig, WorkspaceConfig
         )
@@ -1365,10 +1348,10 @@ class AsyncNeo4jDriver(_Routing, AsyncDriver):
     """
 
     @classmethod
-    def open(cls, *targets, routing_context=None, **config):
+    def _open(cls, *targets, routing_context=None, **config):
         from .io import AsyncNeo4jPool
 
-        addresses = cls.parse_targets(*targets)
+        addresses = cls._parse_targets(*targets)
         pool_config, default_workspace_config = Config.consume_chain(
             config, AsyncPoolConfig, WorkspaceConfig
         )

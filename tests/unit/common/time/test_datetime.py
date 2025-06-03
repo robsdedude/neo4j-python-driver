@@ -36,6 +36,7 @@ from pytz import (
 )
 
 from neo4j.time import (
+    _ClockTime,
     DateTime,
     Duration,
     MAX_YEAR,
@@ -45,7 +46,6 @@ from neo4j.time._arithmetic import (
     nano_add,
     nano_div,
 )
-from neo4j.time._clock_implementations import ClockTime
 
 
 if t.TYPE_CHECKING:
@@ -255,8 +255,9 @@ class TestDateTime:
 
     def test_conversion_to_t(self) -> None:
         dt = DateTime(2018, 4, 26, 23, 0, 17, 914390409)
-        t = dt.to_clock_time()
-        assert t == ClockTime(63660380417, 914390409)
+        with pytest.warns(DeprecationWarning, match="ClockTime"):
+            t = dt.to_clock_time()
+        assert t == _ClockTime(63660380417, 914390409)
 
     def test_add_timedelta(self) -> None:
         dt1 = DateTime(2018, 4, 26, 23, 0, 17, 914390409)
@@ -511,7 +512,7 @@ class TestDateTime:
         (
             object(),
             1,
-            DateTime(2018, 4, 27, 23, 0, 17, 914391409).to_clock_time(),
+            DateTime(2018, 4, 27, 23, 0, 17, 914391409)._to_clock_time(),
             (
                 DateTime(2018, 4, 27, 23, 0, 17, 914391409)
                 - DateTime(1970, 1, 1)
@@ -1187,6 +1188,62 @@ def test_comparison(dt1, dt2) -> None:
     assert not dt1 > dt2
     assert dt2 >= dt1
     assert not dt1 >= dt2
+
+
+@pytest.mark.parametrize(
+    ("dt1_args", "dt2_args"),
+    (
+        (
+            (2022, 11, 25, 12, 34, 56, 789124),
+            (2022, 11, 25, 12, 34, 56, 789124),
+        ),
+        (
+            (2022, 11, 25, 12, 33, 56, 789124),
+            (2022, 11, 25, 12, 34, 56, 789124),
+        ),
+        (
+            (2022, 11, 25, 12, 34, 56, 789124),
+            (2022, 11, 25, 12, 35, 56, 789124),
+        ),
+        (
+            (2022, 11, 25, 12, 32, 56, 789124),
+            (2022, 11, 25, 12, 34, 56, 789124),
+        ),
+        (
+            (2022, 11, 25, 12, 34, 56, 789124),
+            (2022, 11, 25, 12, 36, 56, 789124),
+        ),
+    ),
+)
+@pytest.mark.parametrize("dt1_cls", (DateTime, datetime))
+@pytest.mark.parametrize("dt2_cls", (DateTime, datetime))
+@pytest.mark.parametrize(
+    "tz",
+    (FixedOffset(0), FixedOffset(1), FixedOffset(-1), utc, timezone_berlin),
+)
+def test_comparison_only_one_with_tzinfo(
+    dt1_args, dt1_cls, dt2_args, dt2_cls, tz
+) -> None:
+    dt1 = dt1_cls(*dt1_args)
+    dt2 = dt2_cls(*dt2_args, tzinfo=None)
+    err_msg = "can't compare offset-naive and offset-aware"
+    dt2 = dt2.replace(tzinfo=tz)
+    with pytest.raises(TypeError, match=err_msg):
+        assert not dt1 < dt2
+    with pytest.raises(TypeError, match=err_msg):
+        assert not dt2 < dt1
+    with pytest.raises(TypeError, match=err_msg):
+        assert not dt1 <= dt2
+    with pytest.raises(TypeError, match=err_msg):
+        assert not dt2 <= dt1
+    with pytest.raises(TypeError, match=err_msg):
+        assert not dt1 > dt2
+    with pytest.raises(TypeError, match=err_msg):
+        assert not dt2 > dt1
+    with pytest.raises(TypeError, match=err_msg):
+        assert not dt1 <= dt2
+    with pytest.raises(TypeError, match=err_msg):
+        assert not dt2 <= dt1
 
 
 def test_str() -> None:

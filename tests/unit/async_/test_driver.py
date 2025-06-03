@@ -18,28 +18,20 @@ from __future__ import annotations
 
 import inspect
 import ssl
-import typing as t
 import warnings
 
 import pytest
 
-
-if t.TYPE_CHECKING:
-    import typing_extensions as te
-
 import neo4j
 from neo4j import (
+    _typing as t,
     AsyncBoltDriver,
     AsyncGraphDatabase,
     AsyncNeo4jDriver,
     AsyncResult,
-    ExperimentalWarning,
     NotificationDisabledCategory,
     NotificationMinimumSeverity,
-    PreviewWarning,
     Query,
-    TRUST_ALL_CERTIFICATES,
-    TRUST_SYSTEM_CA_SIGNED_CERTIFICATES,
     TrustAll,
     TrustCustomCAs,
     TrustSystemCAs,
@@ -52,6 +44,7 @@ from neo4j._async.io import (
     AsyncBoltPool,
     AsyncNeo4jPool,
 )
+from neo4j._async_compat.util import AsyncUtil
 from neo4j._debug import ENABLED as DEBUG_ENABLED
 from neo4j.api import (
     AsyncBookmarkManager,
@@ -63,7 +56,11 @@ from neo4j.auth_management import (
     AsyncClientCertificateProvider,
     ClientCertificate,
 )
-from neo4j.exceptions import ConfigurationError
+from neo4j.exceptions import (
+    ConfigurationError,
+    DriverError,
+)
+from neo4j.warnings import PreviewWarning
 
 from ..._async_compat import (
     AsyncTestDecorators,
@@ -101,12 +98,12 @@ async def test_direct_driver_constructor(
 ):
     uri = protocol + host + port + params
     if params:
-        with pytest.warns(DeprecationWarning, match="routing context"):
-            driver = AsyncGraphDatabase.driver(uri, auth=auth_token)
+        with pytest.raises(ConfigurationError, match="Routing context"):
+            AsyncGraphDatabase.driver(uri, auth=auth_token)
     else:
         driver = AsyncGraphDatabase.driver(uri, auth=auth_token)
-    assert isinstance(driver, AsyncBoltDriver)
-    await driver.close()
+        await driver.close()
+        assert isinstance(driver, AsyncBoltDriver)
 
 
 @pytest.mark.parametrize(
@@ -145,17 +142,6 @@ async def test_routing_driver_constructor(
         ({"encrypted": False}, ConfigurationError, '"encrypted"'),
         ({"encrypted": True}, ConfigurationError, '"encrypted"'),
         (
-            {"encrypted": True, "trust": TRUST_ALL_CERTIFICATES},
-            ConfigurationError,
-            '"encrypted"',
-        ),
-        ({"trust": TRUST_ALL_CERTIFICATES}, ConfigurationError, '"trust"'),
-        (
-            {"trust": TRUST_SYSTEM_CA_SIGNED_CERTIFICATES},
-            ConfigurationError,
-            '"trust"',
-        ),
-        (
             {"encrypted": True, "trusted_certificates": TrustAll()},
             ConfigurationError,
             '"encrypted"',
@@ -187,20 +173,13 @@ async def test_routing_driver_constructor(
 async def test_driver_config_error_uri_conflict(
     test_uri, test_config, expected_failure, expected_failure_message
 ):
-    def driver_builder(expect_failure=False):
-        if "trust" in test_config and not expect_failure:
-            with pytest.warns(DeprecationWarning, match="trust"):
-                return AsyncGraphDatabase.driver(test_uri, **test_config)
-        else:
-            return AsyncGraphDatabase.driver(test_uri, **test_config)
-
     if "+" in test_uri:
         # `+s` and `+ssc` are shorthand syntax for not having to configure the
         # encryption behavior of the driver. Specifying both is invalid.
         with pytest.raises(expected_failure, match=expected_failure_message):
-            driver_builder(expect_failure=True)
+            AsyncGraphDatabase.driver(test_uri, **test_config)
     else:
-        driver = driver_builder()
+        driver = AsyncGraphDatabase.driver(test_uri, **test_config)
         await driver.close()
 
 
@@ -215,21 +194,6 @@ async def test_driver_config_error_uri_conflict(
 def test_invalid_protocol(test_uri):
     with pytest.raises(ConfigurationError, match="scheme"):
         AsyncGraphDatabase.driver(test_uri)
-
-
-@pytest.mark.parametrize(
-    ("test_config", "expected_failure", "expected_failure_message"),
-    (
-        ({"trust": 1}, ConfigurationError, "The config setting `trust`"),
-        ({"trust": True}, ConfigurationError, "The config setting `trust`"),
-        ({"trust": None}, ConfigurationError, "The config setting `trust`"),
-    ),
-)
-def test_driver_trust_config_error(
-    test_config, expected_failure, expected_failure_message
-):
-    with pytest.raises(expected_failure, match=expected_failure_message):
-        AsyncGraphDatabase.driver("bolt://127.0.0.1:9001", **test_config)
 
 
 @pytest.mark.parametrize(
@@ -340,7 +304,7 @@ async def test_verify_connectivity_parameters_are_deprecated(
     mocker.patch.object(driver, "_pool", autospec=True)
 
     try:
-        with pytest.warns(ExperimentalWarning, match="configuration"):
+        with pytest.warns(PreviewWarning, match="key-word arguments"):
             await driver.verify_connectivity(**kwargs)
     finally:
         await driver.close()
@@ -369,7 +333,7 @@ async def test_get_server_info_parameters_are_experimental(
     mocker.patch.object(driver, "_pool", autospec=True)
 
     try:
-        with pytest.warns(ExperimentalWarning, match="configuration"):
+        with pytest.warns(PreviewWarning, match="key-word arguments"):
             await driver.get_server_info(**kwargs)
     finally:
         await driver.close()
@@ -529,7 +493,7 @@ async def test_with_custom_ducktype_client_certificate_provider(
 if t.TYPE_CHECKING:
     _T_NotificationMinimumSeverity: t.TypeAlias = (
         NotificationMinimumSeverity
-        | te.Literal[
+        | t.Literal[
             "OFF",
             "WARNING",
             "INFORMATION",
@@ -538,7 +502,7 @@ if t.TYPE_CHECKING:
 
     _T_NotificationDisabledCategory: t.TypeAlias = (
         NotificationDisabledCategory
-        | te.Literal[
+        | t.Literal[
             "HINT",
             "UNRECOGNIZED",
             "UNSUPPORTED",
@@ -550,7 +514,7 @@ if t.TYPE_CHECKING:
 
     _T_NotificationDisabledClassification: t.TypeAlias = (
         NotificationDisabledClassification
-        | te.Literal[
+        | t.Literal[
             "HINT",
             "UNRECOGNIZED",
             "UNSUPPORTED",
@@ -563,14 +527,14 @@ if t.TYPE_CHECKING:
 
 if t.TYPE_CHECKING:
 
-    class NotificationFilter(te.TypedDict):
-        notifications_min_severity: te.NotRequired[
+    class NotificationFilter(t.TypedDict):
+        notifications_min_severity: t.NotRequired[
             _T_NotificationMinimumSeverity | None
         ]
-        notifications_disabled_categories: te.NotRequired[
+        notifications_disabled_categories: t.NotRequired[
             t.Iterable[_T_NotificationDisabledCategory] | None
         ]
-        notifications_disabled_classifications: te.NotRequired[
+        notifications_disabled_classifications: t.NotRequired[
             t.Iterable[_T_NotificationDisabledClassification] | None
         ]
 
@@ -939,7 +903,7 @@ async def test_execute_query_work(mocker) -> None:
 @pytest.mark.parametrize("positional", (True, False))
 @mark_async_test
 async def test_execute_query_query(
-    query: te.LiteralString | Query,
+    query: t.LiteralString | Query,
     positional: bool,
     session_cls_mock,
     unit_of_work_mock,
@@ -1155,7 +1119,7 @@ async def test_execute_query_parameter_precedence(
 async def test_execute_query_routing_control(
     mode: str,
     positional: bool,
-    routing_mode: neo4j.RoutingControl | te.Literal["r", "w"] | None,
+    routing_mode: neo4j.RoutingControl | t.Literal["r", "w"] | None,
     session_cls_mock,
     mocker,
 ) -> None:
@@ -1324,28 +1288,22 @@ async def test_supports_session_auth(session_cls_mock) -> None:
     ),
 )
 @mark_async_test
-async def test_using_closed_driver_where_deprecated(
+async def test_using_closed_driver_where_forbidden(
     method_name, args, kwargs, session_cls_mock
 ) -> None:
     driver = AsyncGraphDatabase.driver("bolt://localhost")
     await driver.close()
 
     method = getattr(driver, method_name)
-    with pytest.warns(
-        DeprecationWarning,
-        match="Using a driver after it has been closed is deprecated.",
-    ):
-        if inspect.iscoroutinefunction(method):
-            await method(*args, **kwargs)
-        else:
-            method(*args, **kwargs)
+    with pytest.raises(DriverError, match="closed"):
+        await AsyncUtil.callback(method, *args, **kwargs)
 
 
 @pytest.mark.parametrize(
     ("method_name", "args", "kwargs"), (("close", (), {}),)
 )
 @mark_async_test
-async def test_using_closed_driver_where_not_deprecated(
+async def test_using_closed_driver_where_no_op(
     method_name, args, kwargs, session_cls_mock
 ) -> None:
     driver = AsyncGraphDatabase.driver("bolt://localhost")
@@ -1354,7 +1312,4 @@ async def test_using_closed_driver_where_not_deprecated(
     method = getattr(driver, method_name)
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        if inspect.iscoroutinefunction(method):
-            await method(*args, **kwargs)
-        else:
-            method(*args, **kwargs)
+        await AsyncUtil.callback(method, *args, **kwargs)
