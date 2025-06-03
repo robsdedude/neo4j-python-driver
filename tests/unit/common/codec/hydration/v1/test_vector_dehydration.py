@@ -16,14 +16,29 @@
 
 import pytest
 
-from neo4j._codec.hydration.v2 import HydrationHandler
+from neo4j import Vector
+from neo4j._codec.hydration.v1 import HydrationHandler
+from neo4j.exceptions import ConfigurationError
 
-from ..v1.test_spacial_dehydration import (
-    TestSpatialDehydration as _TestSpatialDehydration,
-)
+from .._base import HydrationHandlerTestBase
 
 
-class TestSpatialDehydration(_TestSpatialDehydration):
+class TestVectorDehydration(HydrationHandlerTestBase):
     @pytest.fixture
     def hydration_handler(self):
         return HydrationHandler()
+
+    @pytest.fixture
+    def transformer(self, hydration_scope):
+        def transformer(value):
+            transformer_ = hydration_scope.dehydration_hooks.get_transformer(
+                value
+            )
+            assert callable(transformer_)
+            return transformer_(value)
+
+        return transformer
+
+    def test_vector(self, transformer):
+        with pytest.raises(ConfigurationError, match="Vector"):
+            transformer(Vector.from_native("f64", [1.0]))

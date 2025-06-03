@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from neo4j import Vector
 from neo4j._codec.hydration import (
     DehydrationHooks,
     HydrationScope,
@@ -44,7 +45,7 @@ from neo4j.time import (
     Time,
 )
 
-from ._base import HydrationHandlerTestBase
+from .._base import HydrationHandlerTestBase
 
 
 class TestHydrationHandler(HydrationHandlerTestBase):
@@ -85,6 +86,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
             pd.Timestamp,
             pd.Timedelta,
             type(pd.NaT),
+            Vector,
         }
         assert not hooks.subtypes
 

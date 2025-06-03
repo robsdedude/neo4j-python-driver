@@ -16,9 +16,9 @@
 
 import pytest
 
-from neo4j._codec.hydration.v2 import HydrationHandler
+from neo4j._codec.hydration.v3 import HydrationHandler
 
-from ..v1.test_spacial_dehydration import (
+from ..v2.test_spacial_dehydration import (
     TestSpatialDehydration as _TestSpatialDehydration,
 )
 

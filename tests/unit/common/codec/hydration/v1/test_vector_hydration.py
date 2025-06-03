@@ -14,16 +14,26 @@
 # limitations under the License.
 
 
+from struct import pack
+
 import pytest
 
-from neo4j._codec.hydration.v2 import HydrationHandler
+from neo4j._codec.hydration import BrokenHydrationObject
+from neo4j._codec.hydration.v1 import HydrationHandler
+from neo4j._codec.packstream import Structure
 
-from ..v1.test_spacial_dehydration import (
-    TestSpatialDehydration as _TestSpatialDehydration,
-)
+from .._base import HydrationHandlerTestBase
 
 
-class TestSpatialDehydration(_TestSpatialDehydration):
+class TestVectorHydration(HydrationHandlerTestBase):
     @pytest.fixture
     def hydration_handler(self):
         return HydrationHandler()
+
+    def test_vector_structure_tag(self, hydration_scope):
+        struct = Structure(b"V", bytes(0xC1), pack(">f", 1.0))
+        res = hydration_scope.hydration_hooks[Structure](struct)
+        assert isinstance(res, BrokenHydrationObject)
+        error = res.error
+        assert isinstance(error, ValueError)
+        assert repr(b"V") in str(error)

@@ -12,18 +12,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-import pytest
-
-from neo4j._codec.hydration.v2 import HydrationHandler
-
-from ..v1.test_spacial_dehydration import (
-    TestSpatialDehydration as _TestSpatialDehydration,
-)
-
-
-class TestSpatialDehydration(_TestSpatialDehydration):
-    @pytest.fixture
-    def hydration_handler(self):
-        return HydrationHandler()

@@ -20,7 +20,7 @@ from neo4j._codec.hydration import BrokenHydrationObject
 from neo4j._codec.hydration.v1 import HydrationHandler
 from neo4j._codec.packstream import Structure
 
-from ._base import HydrationHandlerTestBase
+from .._base import HydrationHandlerTestBase
 
 
 class TestUnknownHydration(HydrationHandlerTestBase):
