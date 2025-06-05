@@ -586,6 +586,15 @@ class Bolt(abc.ABC):
 
     def _set_defunct(self, message, error=None, silent=False):
         direct_driver = isinstance(self.pool, BoltPool)
+        connection_failed = isinstance(
+            error,
+            (
+                ServiceUnavailable,
+                SessionExpired,
+                OSError,
+                SocketDeadlineExceeded,
+            ),
+        )
 
         if error:
             log.debug("[#%04X]  %r", self.local_port, error)
@@ -595,6 +604,12 @@ class Bolt(abc.ABC):
         # connection from the client side, and remove the address
         # from the connection pool.
         self._defunct = True
+        if not connection_failed:
+            # Something else but the connection failed
+            # => we're not sure which state we're in
+            # => ditch the connection and raise the error for user-awareness
+            self.close()
+            raise error
         if not self._closing:
             # If we fail while closing the connection, there is no need to
             # remove the connection from the pool, nor to try to close the
