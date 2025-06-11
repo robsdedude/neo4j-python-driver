@@ -16,7 +16,11 @@
 [project]
 name = "neo4j"
 description = "Neo4j Bolt driver for Python"
-license = {text = "Apache License, Version 2.0"}
+license = "Apache-2.0 AND Python-2.0"
+license-files = [
+    "LICENSE*.txt",
+    "NOTICE*.txt",
+]
 readme = "README.rst"
 authors = [
     {name = "Neo4j, Inc.", email = "drivers@neo4j.com"},
@@ -28,7 +32,6 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: AsyncIO",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -61,7 +64,7 @@ pyarrow = ["pyarrow >= 1.0.0"]
 
 [build-system]
 requires = [
-    "setuptools == 75.6.0",
+    "setuptools == 80.9.0",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -325,9 +328,6 @@ select = [
     "RSE",
     # check return statements
     "RET",
-    # TODO: 6.0 - enable and add __slots__ to applicable classes
-    # # check __slots__ usage
-    # "SLOT",
     # check type-checking usage
     "TCH",
     # copyright notice
