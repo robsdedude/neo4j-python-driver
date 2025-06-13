@@ -59,12 +59,12 @@ class Vector:
     """
     A class representing a Neo4j vector.
 
-    Internally, vectors are represented as a contiguous block of memory,
-    with the data type of the vector's elements in big-endian order.
+    Internally, a vector is stored as a contiguous block of memory, in
+    big-endian order.
 
     To be able to send and receive these types, the driver must be connected
     to a DBMS supporting Bolt version 6.0 or later. This corresponds to Neo4j
-    2025.5 or later.
+    2025.05 or later.
 
     TODO: check and update final server version above!
 
@@ -72,10 +72,10 @@ class Vector:
         See :attr:`.dtype` for currently supported inner data types.
     :param data: The bytes representing the vector.
     :param byteorder: The endianness of the data.
-        If ``"little"``, the bytes in data will be flipped to big-endian
-        which will try to use ``neo4j-rust-ext`` or ``numpy`` to speed up the
-        byte flipping if installed. Use :data:`sys.byteorder` if you want to
-        use the system's native endianness.
+        If ``"little"``, the bytes in data will be flipped to big-endian. If
+        installed, ``neo4j-rust-ext`` or ``numpy`` will be used to speed up the
+        byte flipping. Use :data:`sys.byteorder` if you want to use the
+        system's native endianness.
 
     :raises ValueError:
       * If the dtype is not supported or data's size is not a multiple of
@@ -109,9 +109,9 @@ class Vector:
         """
         Get the raw bytes of the vector.
 
-        The data is a continuous block of memory, containing an array the
-        vector's data type. The data is stored in big-endian order. You may
-        pass another byte-order to this method to get the converted data.
+        The data is a continuous block of memory, containing an array of the
+        vector's data type. The data is stored in big-endian order. Pass
+        another byte-order to this method to get the converted data.
 
         :param byteorder: The endianness the data should be returned in.
             If the data's byte-order needs flipping, this method tries to use
