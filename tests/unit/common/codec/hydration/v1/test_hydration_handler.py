@@ -25,7 +25,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from neo4j import Vector
 from neo4j._codec.hydration import (
     DehydrationHooks,
     HydrationScope,
@@ -44,6 +43,7 @@ from neo4j.time import (
     Duration,
     Time,
 )
+from neo4j.vector import Vector
 
 from .._base import HydrationHandlerTestBase
 

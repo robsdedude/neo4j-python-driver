@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-from ...._vector import Vector
+from ....vector import Vector
 from ...packstream import Structure
 
 

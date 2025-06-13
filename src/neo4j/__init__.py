@@ -57,7 +57,6 @@ from ._sync.work import (
     Session,
     Transaction,
 )
-from ._vector import Vector
 from ._warnings import (
     deprecation_warn as _deprecation_warn,
     preview_warn as _preview_warn,
@@ -154,7 +153,6 @@ __all__ = [
     "TrustAll",
     "TrustCustomCAs",
     "TrustSystemCAs",
-    "Vector",
     "__version__",
     "basic_auth",
     "bearer_auth",

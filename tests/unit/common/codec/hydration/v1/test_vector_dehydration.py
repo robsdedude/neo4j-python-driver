@@ -16,9 +16,9 @@
 
 import pytest
 
-from neo4j import Vector
 from neo4j._codec.hydration.v1 import HydrationHandler
 from neo4j.exceptions import ConfigurationError
+from neo4j.vector import Vector
 
 from .._base import HydrationHandlerTestBase
 

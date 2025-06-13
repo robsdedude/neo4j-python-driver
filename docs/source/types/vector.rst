@@ -4,5 +4,5 @@
 Vector Data Types
 *****************
 
-.. autoclass:: neo4j.Vector
+.. autoclass:: neo4j.vector.Vector
     :members:

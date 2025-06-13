@@ -25,8 +25,8 @@ import abc as abc_
 import struct as struct_
 import sys as sys_
 
-from typing as _t
-from .._optional_deps import (
+from . import _typing as _t
+from ._optional_deps import (
     np as _np,
     pa as _pa,
 )
@@ -40,7 +40,6 @@ except ImportError:
 if _t.TYPE_CHECKING:
     import numpy  # type: ignore[import]
     import pyarrow  # type: ignore[import]
-    import typing_extensions as te
 
 
 class Vector:
@@ -84,17 +83,14 @@ class Vector:
         data: bytes,
         /,
         *,
-        byteorder:
-            # sphinx doesn't resolve the type alias properly :/
-            # T_VectorEndian
-            # so we spell it out
-        VectorEndian | _t.Literal["big", "little"]
-            = "big",
+        byteorder: _t.Literal["big", "little"] = "big",
     ) -> None:
         type_ = get_type(dtype)
         self._inner = type_(data, byteorder=byteorder)
 
-    def raw(self, *, byteorder: T_VectorEndian = "big") -> bytes:
+    def raw(
+        self, /, *, byteorder: _t.Literal["big", "little"] = "big"
+    ) -> bytes:
         """
         Get the raw bytes of the vector.
 
@@ -129,7 +125,7 @@ class Vector:
         data: bytes,
         /,
         *,
-        byteorder: T_VectorEndian = "big",
+        byteorder: _t.Literal["big", "little"] = "big",
     ) -> None:
         """
         Set the raw bytes of the vector.
@@ -199,14 +195,16 @@ class Vector:
     @classmethod
     @_t.overload
     def from_native(
-        cls, dtype: _t.Literal["i8", "i16", "i32", "i64"], data: _t.Iterable[int]
+        cls,
+        dtype: _t.Literal["i8", "i16", "i32", "i64"],
+        data: _t.Iterable[int],
     ) -> _t.Self: ...
 
     @classmethod
     def from_native(
         cls,
         dtype: _t.Literal["f32", "f64", "i8", "i16", "i32", "i64"],
-        data: _t.Iterable[object],
+        data: _t.Iterable[float] | _t.Iterable[int],
     ) -> _t.Self:
         """
         Create a Vector instance from an iterable of values.
@@ -416,7 +414,7 @@ class InnerVector(abc_.ABC):
     dtype: _t.ClassVar[str]
     size: _t.ClassVar[int]
     _data: bytes
-    _data_le: None | bytes
+    _data_le: bytes | None
 
     def __init__(
         self, data: bytes, /, *, byteorder: _t.Literal["big", "little"] = "big"
@@ -442,7 +440,7 @@ class InnerVector(abc_.ABC):
         return self._data
 
     @data.setter
-    def data(self, data: bytes) -> None:
+    def data(self, data: bytes, /) -> None:
         if not isinstance(data, bytes):
             raise TypeError("Data must be of type bytes")
         if not len(data) % self.size == 0:
@@ -458,7 +456,7 @@ class InnerVector(abc_.ABC):
         return self._data_le
 
     @data_le.setter
-    def data_le(self, data: bytes) -> None:
+    def data_le(self, data: bytes, /) -> None:
         self.data = swap_endian(self.size, data)
         self._data_le = data
 
@@ -498,13 +496,13 @@ class InnerVector(abc_.ABC):
 
     @classmethod
     @abc_.abstractmethod
-    def from_native(cls, data: _t.Iterable[object]) -> _t.Self: ...
+    def from_native(cls, data: _t.Iterable[object], /) -> _t.Self: ...
 
     @abc_.abstractmethod
     def to_native(self) -> list[object]: ...
 
     @classmethod
-    def from_numpy(cls, data: numpy.ndarray) -> _t.Self:
+    def from_numpy(cls, data: numpy.ndarray, /) -> _t.Self:
         if data.dtype.byteorder == "<" or (
             data.dtype.byteorder == "=" and sys_.byteorder == "little"
         ):
@@ -515,7 +513,7 @@ class InnerVector(abc_.ABC):
     def to_numpy(self) -> numpy.ndarray: ...
 
     @classmethod
-    def from_pyarrow(cls, data: pyarrow.Array) -> _t.Self:
+    def from_pyarrow(cls, data: pyarrow.Array, /) -> _t.Self:
         width = data.type.byte_width
         assert cls.size == width
         if _pa.compute.count(data, mode="only_null").as_py():
@@ -537,7 +535,7 @@ class VecF64(InnerVector):
     size = 8
 
     @classmethod
-    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
+    def from_native(cls, data: _t.Iterable[object], /) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, float):
@@ -550,7 +548,7 @@ class VecF64(InnerVector):
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">d", self.data[i: i + self.size])[0]
+            struct_.unpack(">d", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -575,7 +573,7 @@ class VecF32(InnerVector):
     size = 4
 
     @classmethod
-    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
+    def from_native(cls, data: _t.Iterable[object], /) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, float):
@@ -588,7 +586,7 @@ class VecF32(InnerVector):
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">f", self.data[i: i + self.size])[0]
+            struct_.unpack(">f", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -620,7 +618,7 @@ class VecI64(InnerVector):
     size = 8
 
     @classmethod
-    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
+    def from_native(cls, data: _t.Iterable[object], /) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, int):
@@ -638,7 +636,7 @@ class VecI64(InnerVector):
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">q", self.data[i: i + self.size])[0]
+            struct_.unpack(">q", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -663,7 +661,7 @@ class VecI32(InnerVector):
     size = 4
 
     @classmethod
-    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
+    def from_native(cls, data: _t.Iterable[object], /) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, int):
@@ -681,7 +679,7 @@ class VecI32(InnerVector):
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">i", self.data[i: i + self.size])[0]
+            struct_.unpack(">i", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -706,7 +704,7 @@ class VecI16(InnerVector):
     size = 2
 
     @classmethod
-    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
+    def from_native(cls, data: _t.Iterable[object], /) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, int):
@@ -723,7 +721,7 @@ class VecI16(InnerVector):
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">h", self.data[i: i + self.size])[0]
+            struct_.unpack(">h", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -748,7 +746,7 @@ class VecI8(InnerVector):
     size = 1
 
     @classmethod
-    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
+    def from_native(cls, data: _t.Iterable[object], /) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, int):
@@ -765,7 +763,7 @@ class VecI8(InnerVector):
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">b", self.data[i: i + self.size])[0]
+            struct_.unpack(">b", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 

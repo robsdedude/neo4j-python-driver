@@ -25,12 +25,14 @@ import typing as t
 
 import pytest
 
-from neo4j import Vector
 from neo4j._optional_deps import (
     np,
     pa,
 )
-from neo4j._vector import swap_endian
+from neo4j.vector import (
+    swap_endian,
+    Vector,
+)
 
 
 if t.TYPE_CHECKING:
@@ -124,7 +126,7 @@ def _dtype_to_pack_format(dtype: str) -> str:
 
 
 def _mock_mask_extensions(mocker, used_ext):
-    from neo4j._vector import (
+    from neo4j.vector import (
         _swap_endian_unchecked_np,
         _swap_endian_unchecked_py,
         _swap_endian_unchecked_rust,
@@ -135,19 +137,19 @@ def _mock_mask_extensions(mocker, used_ext):
             if _swap_endian_unchecked_np is None:
                 pytest.skip("numpy not installed")
             mocker.patch(
-                "neo4j._vector._swap_endian_unchecked",
+                "neo4j.vector._swap_endian_unchecked",
                 new=_swap_endian_unchecked_np,
             )
         case "rust":
             if _swap_endian_unchecked_rust is None:
                 pytest.skip("rust extensions are not installed")
             mocker.patch(
-                "neo4j._vector._swap_endian_unchecked",
+                "neo4j.vector._swap_endian_unchecked",
                 new=_swap_endian_unchecked_rust,
             )
         case "python":
             mocker.patch(
-                "neo4j._vector._swap_endian_unchecked",
+                "neo4j.vector._swap_endian_unchecked",
                 new=_swap_endian_unchecked_py,
             )
         case _:

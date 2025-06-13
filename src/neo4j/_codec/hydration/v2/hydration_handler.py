@@ -25,7 +25,6 @@ from ...._optional_deps import (
     np,
     pd,
 )
-from ...._vector import Vector
 from ....spatial import (
     CartesianPoint,
     Point,
@@ -37,6 +36,7 @@ from ....time import (
     Duration,
     Time,
 )
+from ....vector import Vector
 from .._common import HydrationScope
 from .._interface import HydrationHandlerABC
 from ..v1 import (

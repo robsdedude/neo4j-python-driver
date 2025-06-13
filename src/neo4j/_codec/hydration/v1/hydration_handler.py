@@ -25,7 +25,6 @@ from ...._optional_deps import (
     np,
     pd,
 )
-from ...._vector import Vector
 from ....graph import (
     Graph,
     Node,
@@ -42,6 +41,7 @@ from ....time import (
     Duration,
     Time,
 )
+from ....vector import Vector
 from .._common import (
     GraphHydrator,
     HydrationScope,
