@@ -30,7 +30,7 @@ from neo4j._optional_deps import (
     pa,
 )
 from neo4j.vector import (
-    swap_endian,
+    _swap_endian,
     Vector,
 )
 
@@ -160,26 +160,26 @@ def _mock_mask_extensions(mocker, used_ext):
 def _test_bench_swap_endian(mocker, ext):
     data = bytes(i % 256 for i in range(100_000))
     _mock_mask_extensions(mocker, ext)
-    print(timeit.timeit(lambda: swap_endian(2, data), number=1_000))  # noqa: T201
-    print(timeit.timeit(lambda: swap_endian(4, data), number=1_000))  # noqa: T201
-    print(timeit.timeit(lambda: swap_endian(8, data), number=1_000))  # noqa: T201
+    print(timeit.timeit(lambda: _swap_endian(2, data), number=1_000))  # noqa: T201
+    print(timeit.timeit(lambda: _swap_endian(4, data), number=1_000))  # noqa: T201
+    print(timeit.timeit(lambda: _swap_endian(8, data), number=1_000))  # noqa: T201
 
 
 @pytest.mark.parametrize("ext", ("numpy", "rust", "python"))
 def test_swap_endian(mocker, ext):
     data = bytes(range(1, 17))
     _mock_mask_extensions(mocker, ext)
-    res = swap_endian(2, data)
+    res = _swap_endian(2, data)
     assert isinstance(res, bytes)
     assert res == bytes(
         (2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15)
     )
-    res = swap_endian(4, data)
+    res = _swap_endian(4, data)
     assert isinstance(res, bytes)
     assert res == bytes(
         (4, 3, 2, 1, 8, 7, 6, 5, 12, 11, 10, 9, 16, 15, 14, 13)
     )
-    res = swap_endian(8, data)
+    res = _swap_endian(8, data)
     assert isinstance(res, bytes)
     assert res == bytes(
         (8, 7, 6, 5, 4, 3, 2, 1, 16, 15, 14, 13, 12, 11, 10, 9)
@@ -193,7 +193,7 @@ def test_swap_endian_unhandled_size(mocker, ext, type_size):
     _mock_mask_extensions(mocker, ext)
 
     with pytest.raises(ValueError, match=str(type_size)):
-        swap_endian(type_size, data)
+        _swap_endian(type_size, data)
 
 
 @pytest.mark.parametrize(
@@ -233,7 +233,7 @@ def test_raw_data(
     data: bytes,
     input_endian: t.Literal["big", "little"] | None,
 ) -> None:
-    swapped_data = swap_endian(_get_type_size(dtype), data)
+    swapped_data = _swap_endian(_get_type_size(dtype), data)
     if input_endian is None:
         v = Vector(dtype, data)
     elif input_endian == "big":
@@ -447,7 +447,7 @@ def _vector_from_data(
             return Vector(dtype, data, byteorder=endian)
         case "little":
             type_size = _get_type_size(dtype)
-            data_le = swap_endian(type_size, data)
+            data_le = _swap_endian(type_size, data)
             return Vector(dtype, data_le, byteorder=endian)
         case _:
             raise ValueError(f"Invalid endian {endian}")
@@ -513,11 +513,11 @@ def _get_numpy_array(
             data_in = data_be
             np_type = f">{np_type}"
         case "little":
-            data_in = swap_endian(type_size, data_be)
+            data_in = _swap_endian(type_size, data_be)
             np_type = f"<{np_type}"
         case "native":
             if sys.byteorder == "little":
-                data_in = swap_endian(type_size, data_be)
+                data_in = _swap_endian(type_size, data_be)
             np_type = f"={np_type}"
     return np.frombuffer(data_in, dtype=np_type)
 
@@ -614,7 +614,7 @@ def _get_pyarrow_array(data_be: bytes, dtype: str) -> pyarrow.Array:
     length = len(data_be) // type_size
     data_in = data_be
     if sys.byteorder == "little":
-        data_in = swap_endian(type_size, data_be)
+        data_in = _swap_endian(type_size, data_be)
     pa_type = _get_pyarrow_dtype(dtype)
     buffers = [None, pa.py_buffer(data_in)]
     return pa.Array.from_buffers(pa_type, length, buffers, 0)
@@ -670,7 +670,7 @@ def test_to_pyarrow_random(
         data_be = _random_value_be_bytes(type_size, size)
         data_ne = data_be
         if sys.byteorder == "little":
-            data_ne = swap_endian(type_size, data_be)
+            data_ne = _swap_endian(type_size, data_be)
         v = _vector_from_data(dtype, data_be, endian)
         array = v.to_pyarrow()
         assert array.type == pa_type
@@ -694,7 +694,7 @@ def test_to_pyarrow_special_values(
     type_size = _get_type_size(dtype)
     data_ne = data_be
     if sys.byteorder == "little":
-        data_ne = swap_endian(type_size, data_be)
+        data_ne = _swap_endian(type_size, data_be)
     pa_type = _get_pyarrow_dtype(dtype)
     v = _vector_from_data(dtype, data_be, endian)
     array = v.to_pyarrow()

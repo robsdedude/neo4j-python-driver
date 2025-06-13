@@ -21,9 +21,9 @@ https://trello.com/c/2xcLszsC/1164-python-vector-types-design-investigation
 
 from __future__ import annotations as _
 
-import abc as abc_
-import struct as struct_
-import sys as sys_
+import abc as _abc
+import struct as _struct
+import sys as _sys
 from enum import Enum as _Enum
 
 from . import _typing as _t
@@ -46,6 +46,13 @@ except ImportError:
 if _t.TYPE_CHECKING:
     import numpy  # type: ignore[import]
     import pyarrow  # type: ignore[import]
+
+
+__all__ = [
+    "Vector",
+    "VectorDType",
+    "VectorEndian",
+]
 
 
 class Vector:
@@ -81,7 +88,7 @@ class Vector:
 
     __slots__ = ("__weakref__", "_inner")
 
-    _inner: InnerVector
+    _inner: _InnerVector
 
     def __init__(
         self,
@@ -95,7 +102,7 @@ class Vector:
         # so we spell it out
         VectorEndian | _t.Literal["big", "little"] = "big",
     ) -> None:
-        type_ = get_type(dtype)
+        type_ = _get_type(dtype)
         self._inner = type_(data, byteorder=byteorder)
 
     def raw(self, /, *, byteorder: _T_VectorEndian = "big") -> bytes:
@@ -227,7 +234,7 @@ class Vector:
             depending on dtype.
         :raises OverflowError: If the value is out of range for the given type.
         """
-        inner = get_type(dtype).from_native(data)
+        inner = _get_type(dtype).from_native(data)
         obj = cls.__new__(cls)
         obj._inner = inner
         return obj
@@ -263,20 +270,20 @@ class Vector:
         """
         if data.ndim != 1:
             raise ValueError("Data must be one-dimensional")
-        type_: type[InnerVector]
+        type_: type[_InnerVector]
         match data.dtype.name:
             case "float64":
-                type_ = VecF64
+                type_ = _VecF64
             case "float32":
-                type_ = VecF32
+                type_ = _VecF32
             case "int64":
-                type_ = VecI64
+                type_ = _VecI64
             case "int32":
-                type_ = VecI32
+                type_ = _VecI32
             case "int16":
-                type_ = VecI16
+                type_ = _VecI16
             case "int8":
-                type_ = VecI8
+                type_ = _VecI8
             case _:
                 raise ValueError(f"Unsupported numpy dtype: {data.dtype.name}")
         inner = type_.from_numpy(data)
@@ -319,19 +326,19 @@ class Vector:
         """
         import pyarrow
 
-        type_: type[InnerVector]
+        type_: type[_InnerVector]
         if data.type == pyarrow.float64():
-            type_ = VecF64
+            type_ = _VecF64
         elif data.type == pyarrow.float32():
-            type_ = VecF32
+            type_ = _VecF32
         elif data.type == pyarrow.int64():
-            type_ = VecI64
+            type_ = _VecI64
         elif data.type == pyarrow.int32():
-            type_ = VecI32
+            type_ = _VecI32
         elif data.type == pyarrow.int16():
-            type_ = VecI16
+            type_ = _VecI16
         elif data.type == pyarrow.int8():
-            type_ = VecI8
+            type_ = _VecI8
         else:
             raise ValueError(f"Unsupported pyarrow dtype: {data.type}")
         inner = type_.from_pyarrow(data)
@@ -433,7 +440,7 @@ _T_VectorDTypeFloat = _t.Literal[
 ]
 
 
-def swap_endian(type_size: int, data: bytes, /) -> bytes:
+def _swap_endian(type_size: int, data: bytes, /) -> bytes:
     """Swap from big endian to little endian."""
     if type_size == 1:
         return data
@@ -475,7 +482,7 @@ else:
     _swap_endian_unchecked = _swap_endian_unchecked_py
 
 
-def get_type(dtype: _T_VectorDType, /) -> type[InnerVector]:
+def _get_type(dtype: _T_VectorDType, /) -> type[_InnerVector]:
     if isinstance(dtype, str):
         if dtype not in VectorDType:
             raise ValueError(f"Unsupported vector type: {dtype!r}.")
@@ -485,10 +492,10 @@ def get_type(dtype: _T_VectorDType, /) -> type[InnerVector]:
     return _TYPES[dtype]
 
 
-_TYPES: dict[VectorDType, type[InnerVector]] = {}
+_TYPES: dict[VectorDType, type[_InnerVector]] = {}
 
 
-class InnerVector(abc_.ABC):
+class _InnerVector(_abc.ABC):
     __slots__ = ("_data", "_data_le")
 
     dtype: _t.ClassVar[VectorDType]
@@ -500,14 +507,14 @@ class InnerVector(abc_.ABC):
         self, data: bytes, /, *, byteorder: _T_VectorEndian = "big"
     ) -> None:
         super().__init__()
-        if self.__class__ == InnerVector:
+        if self.__class__ == _InnerVector:
             raise TypeError("Cannot instantiate abstract class InnerVector")
         match byteorder:
             case "big":
                 self.data = data
                 self._data_le = None
             case "little":
-                self.data = swap_endian(self.size, data)
+                self.data = _swap_endian(self.size, data)
                 self._data_le = data
             case _:
                 raise ValueError(
@@ -532,12 +539,12 @@ class InnerVector(abc_.ABC):
     @property
     def data_le(self) -> bytes:
         if self._data_le is None:
-            self._data_le = swap_endian(self.size, self.data)
+            self._data_le = _swap_endian(self.size, self.data)
         return self._data_le
 
     @data_le.setter
     def data_le(self, data: bytes, /) -> None:
-        self.data = swap_endian(self.size, data)
+        self.data = _swap_endian(self.size, data)
         self._data_le = data
 
     def __init_subclass__(cls) -> None:
@@ -576,21 +583,21 @@ class InnerVector(abc_.ABC):
         return f"{cls_name}({self.data!r})"
 
     @classmethod
-    @abc_.abstractmethod
+    @_abc.abstractmethod
     def from_native(cls, data: _t.Iterable[object], /) -> _t.Self: ...
 
-    @abc_.abstractmethod
+    @_abc.abstractmethod
     def to_native(self) -> list[object]: ...
 
     @classmethod
     def from_numpy(cls, data: numpy.ndarray, /) -> _t.Self:
         if data.dtype.byteorder == "<" or (
-            data.dtype.byteorder == "=" and sys_.byteorder == "little"
+            data.dtype.byteorder == "=" and _sys.byteorder == "little"
         ):
             data = data.byteswap()
         return cls(data.tobytes())
 
-    @abc_.abstractmethod
+    @_abc.abstractmethod
     def to_numpy(self) -> numpy.ndarray: ...
 
     @classmethod
@@ -603,13 +610,13 @@ class InnerVector(abc_.ABC):
         buffer = buffer[
             data.offset * width : (data.offset + len(data)) * width
         ]
-        return cls(bytes(buffer), byteorder=sys_.byteorder)
+        return cls(bytes(buffer), byteorder=_sys.byteorder)
 
-    @abc_.abstractmethod
+    @_abc.abstractmethod
     def to_pyarrow(self) -> pyarrow.Array: ...
 
 
-class VecF64(InnerVector):
+class _VecF64(_InnerVector):
     __slots__ = ()
 
     dtype = VectorDType.F64
@@ -624,12 +631,12 @@ class VecF64(InnerVector):
                     f"Cannot build f64 vector from {type(item).__name__}, "
                     "expected float."
                 )
-            bytes_.extend(struct_.pack(">d", item))
+            bytes_.extend(_struct.pack(">d", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">d", self.data[i : i + self.size])[0]
+            _struct.unpack(">d", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -647,7 +654,7 @@ class VecF64(InnerVector):
         )
 
 
-class VecF32(InnerVector):
+class _VecF32(_InnerVector):
     __slots__ = ()
 
     dtype = VectorDType.F32
@@ -662,12 +669,12 @@ class VecF32(InnerVector):
                     f"Cannot build f32 vector from {type(item).__name__}, "
                     "expected float."
                 )
-            bytes_.extend(struct_.pack(">f", item))
+            bytes_.extend(_struct.pack(">f", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">f", self.data[i : i + self.size])[0]
+            _struct.unpack(">f", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -685,14 +692,14 @@ class VecF32(InnerVector):
         )
 
 
-class _VecI(abc_.ABC):
+class _VecI(_abc.ABC):
     __slots__ = ()
 
     MAX: int
     MIN: int
 
 
-class VecI64(InnerVector):
+class _VecI64(_InnerVector):
     __slots__ = ()
 
     dtype = VectorDType.I64
@@ -712,12 +719,12 @@ class VecI64(InnerVector):
                     f"Value {item} is out of range for i64: "
                     "[-9223372036854775808, 9223372036854775807]"
                 )
-            bytes_.extend(struct_.pack(">q", item))
+            bytes_.extend(_struct.pack(">q", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">q", self.data[i : i + self.size])[0]
+            _struct.unpack(">q", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -735,7 +742,7 @@ class VecI64(InnerVector):
         )
 
 
-class VecI32(InnerVector):
+class _VecI32(_InnerVector):
     __slots__ = ()
 
     dtype = VectorDType.I32
@@ -755,12 +762,12 @@ class VecI32(InnerVector):
                     f"Value {item} is out of range for i32: "
                     "[-2147483648, 2147483647]"
                 )
-            bytes_.extend(struct_.pack(">i", item))
+            bytes_.extend(_struct.pack(">i", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">i", self.data[i : i + self.size])[0]
+            _struct.unpack(">i", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -778,7 +785,7 @@ class VecI32(InnerVector):
         )
 
 
-class VecI16(InnerVector):
+class _VecI16(_InnerVector):
     __slots__ = ()
 
     dtype = VectorDType.I16
@@ -797,12 +804,12 @@ class VecI16(InnerVector):
                 raise OverflowError(
                     f"Value {item} is out of range for i16: [-32768, 32767]"
                 )
-            bytes_.extend(struct_.pack(">h", item))
+            bytes_.extend(_struct.pack(">h", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">h", self.data[i : i + self.size])[0]
+            _struct.unpack(">h", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -820,7 +827,7 @@ class VecI16(InnerVector):
         )
 
 
-class VecI8(InnerVector):
+class _VecI8(_InnerVector):
     __slots__ = ()
 
     dtype = VectorDType.I8
@@ -839,12 +846,12 @@ class VecI8(InnerVector):
                 raise OverflowError(
                     f"Value {item} is out of range for i8: [-128, 127]"
                 )
-            bytes_.extend(struct_.pack(">b", item))
+            bytes_.extend(_struct.pack(">b", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct_.unpack(">b", self.data[i : i + self.size])[0]
+            _struct.unpack(">b", self.data[i : i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
