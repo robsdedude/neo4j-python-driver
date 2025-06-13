@@ -19,16 +19,16 @@ Vectors.
 https://trello.com/c/2xcLszsC/1164-python-vector-types-design-investigation
 """
 
-from __future__ import annotations
+from __future__ import annotations as _
 
-import abc
-import struct
-import sys
-import typing as t
+import abc as abc_
+import struct as struct_
+import sys as sys_
 
-from ._optional_deps import (
-    np,
-    pa,
+from typing as _t
+from .._optional_deps import (
+    np as _np,
+    pa as _pa,
 )
 
 
@@ -37,7 +37,7 @@ try:
 except ImportError:
     _swap_endian_unchecked_rust = None
 
-if t.TYPE_CHECKING:
+if _t.TYPE_CHECKING:
     import numpy  # type: ignore[import]
     import pyarrow  # type: ignore[import]
     import typing_extensions as te
@@ -84,12 +84,17 @@ class Vector:
         data: bytes,
         /,
         *,
-        byteorder: t.Literal["big", "little"] = "big",
+        byteorder:
+            # sphinx doesn't resolve the type alias properly :/
+            # T_VectorEndian
+            # so we spell it out
+        VectorEndian | _t.Literal["big", "little"]
+            = "big",
     ) -> None:
         type_ = get_type(dtype)
         self._inner = type_(data, byteorder=byteorder)
 
-    def raw(self, *, byteorder: t.Literal["big", "little"] = "big") -> bytes:
+    def raw(self, *, byteorder: T_VectorEndian = "big") -> bytes:
         """
         Get the raw bytes of the vector.
 
@@ -124,7 +129,7 @@ class Vector:
         data: bytes,
         /,
         *,
-        byteorder: t.Literal["big", "little"] = "big",
+        byteorder: T_VectorEndian = "big",
     ) -> None:
         """
         Set the raw bytes of the vector.
@@ -186,23 +191,23 @@ class Vector:
         return f"Vector(dtype={self.dtype!r}, data={self.raw()!r})"
 
     @classmethod
-    @t.overload
+    @_t.overload
     def from_native(
-        cls, dtype: t.Literal["f32", "f64"], data: t.Iterable[float]
-    ) -> te.Self: ...
+        cls, dtype: _t.Literal["f32", "f64"], data: _t.Iterable[float]
+    ) -> _t.Self: ...
 
     @classmethod
-    @t.overload
+    @_t.overload
     def from_native(
-        cls, dtype: t.Literal["i8", "i16", "i32", "i64"], data: t.Iterable[int]
-    ) -> te.Self: ...
+        cls, dtype: _t.Literal["i8", "i16", "i32", "i64"], data: _t.Iterable[int]
+    ) -> _t.Self: ...
 
     @classmethod
     def from_native(
         cls,
-        dtype: t.Literal["f32", "f64", "i8", "i16", "i32", "i64"],
-        data: t.Iterable[object],
-    ) -> te.Self:
+        dtype: _t.Literal["f32", "f64", "i8", "i16", "i32", "i64"],
+        data: _t.Iterable[object],
+    ) -> _t.Self:
         """
         Create a Vector instance from an iterable of values.
 
@@ -243,7 +248,7 @@ class Vector:
         return self._inner.to_native()
 
     @classmethod
-    def from_numpy(cls, data: numpy.ndarray) -> te.Self:
+    def from_numpy(cls, data: numpy.ndarray) -> _t.Self:
         """
         Create a Vector instance from a numpy array.
 
@@ -297,7 +302,7 @@ class Vector:
         return self._inner.to_numpy()
 
     @classmethod
-    def from_pyarrow(cls, data: pyarrow.Array) -> te.Self:
+    def from_pyarrow(cls, data: pyarrow.Array) -> _t.Self:
         """
         Create a Vector instance from a pyarrow array.
 
@@ -370,14 +375,14 @@ def swap_endian(type_size: int, data: bytes) -> bytes:
 def _swap_endian_unchecked_np(type_size: int, data: bytes) -> bytes:
     match type_size:
         case 2:
-            dtype = np.dtype("<i2")
+            dtype = _np.dtype("<i2")
         case 4:
-            dtype = np.dtype("<i4")
+            dtype = _np.dtype("<i4")
         case 8:
-            dtype = np.dtype("<i8")
+            dtype = _np.dtype("<i8")
         case _:
             raise ValueError(f"Unsupported type size: {type_size}")
-    return np.frombuffer(data, dtype=dtype).byteswap().tobytes()
+    return _np.frombuffer(data, dtype=dtype).byteswap().tobytes()
 
 
 def _swap_endian_unchecked_py(type_size: int, data: bytes) -> bytes:
@@ -390,7 +395,7 @@ def _swap_endian_unchecked_py(type_size: int, data: bytes) -> bytes:
 
 if _swap_endian_unchecked_rust is not None:
     _swap_endian_unchecked = _swap_endian_unchecked_rust
-elif np is not None:
+elif _np is not None:
     _swap_endian_unchecked = _swap_endian_unchecked_np
 else:
     _swap_endian_unchecked = _swap_endian_unchecked_py
@@ -405,16 +410,16 @@ def get_type(dtype: str) -> type[InnerVector]:
 _TYPES: dict[str, type[InnerVector]] = {}
 
 
-class InnerVector(abc.ABC):
+class InnerVector(abc_.ABC):
     __slots__ = ("_data", "_data_le")
 
-    dtype: t.ClassVar[str]
-    size: t.ClassVar[int]
+    dtype: _t.ClassVar[str]
+    size: _t.ClassVar[int]
     _data: bytes
     _data_le: None | bytes
 
     def __init__(
-        self, data: bytes, /, *, byteorder: t.Literal["big", "little"] = "big"
+        self, data: bytes, /, *, byteorder: _t.Literal["big", "little"] = "big"
     ) -> None:
         super().__init__()
         if self.__class__ == InnerVector:
@@ -492,36 +497,36 @@ class InnerVector(abc.ABC):
         return f"{cls_name}({self.data!r})"
 
     @classmethod
-    @abc.abstractmethod
-    def from_native(cls, data: t.Iterable[object]) -> te.Self: ...
+    @abc_.abstractmethod
+    def from_native(cls, data: _t.Iterable[object]) -> _t.Self: ...
 
-    @abc.abstractmethod
+    @abc_.abstractmethod
     def to_native(self) -> list[object]: ...
 
     @classmethod
-    def from_numpy(cls, data: numpy.ndarray) -> te.Self:
+    def from_numpy(cls, data: numpy.ndarray) -> _t.Self:
         if data.dtype.byteorder == "<" or (
-            data.dtype.byteorder == "=" and sys.byteorder == "little"
+            data.dtype.byteorder == "=" and sys_.byteorder == "little"
         ):
             data = data.byteswap()
         return cls(data.tobytes())
 
-    @abc.abstractmethod
+    @abc_.abstractmethod
     def to_numpy(self) -> numpy.ndarray: ...
 
     @classmethod
-    def from_pyarrow(cls, data: pyarrow.Array) -> te.Self:
+    def from_pyarrow(cls, data: pyarrow.Array) -> _t.Self:
         width = data.type.byte_width
         assert cls.size == width
-        if pa.compute.count(data, mode="only_null").as_py():
+        if _pa.compute.count(data, mode="only_null").as_py():
             raise ValueError("PyArrow array must not contain any null values.")
         _, buffer = data.buffers()
         buffer = buffer[
             data.offset * width : (data.offset + len(data)) * width
         ]
-        return cls(bytes(buffer), byteorder=sys.byteorder)
+        return cls(bytes(buffer), byteorder=sys_.byteorder)
 
-    @abc.abstractmethod
+    @abc_.abstractmethod
     def to_pyarrow(self) -> pyarrow.Array: ...
 
 
@@ -532,7 +537,7 @@ class VecF64(InnerVector):
     size = 8
 
     @classmethod
-    def from_native(cls, data: t.Iterable[object]) -> te.Self:
+    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, float):
@@ -540,12 +545,12 @@ class VecF64(InnerVector):
                     f"Cannot build f64 vector from {type(item).__name__}, "
                     "expected float."
                 )
-            bytes_.extend(struct.pack(">d", item))
+            bytes_.extend(struct_.pack(">d", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct.unpack(">d", self.data[i : i + self.size])[0]
+            struct_.unpack(">d", self.data[i: i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -570,7 +575,7 @@ class VecF32(InnerVector):
     size = 4
 
     @classmethod
-    def from_native(cls, data: t.Iterable[object]) -> te.Self:
+    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, float):
@@ -578,12 +583,12 @@ class VecF32(InnerVector):
                     f"Cannot build f32 vector from {type(item).__name__}, "
                     "expected float."
                 )
-            bytes_.extend(struct.pack(">f", item))
+            bytes_.extend(struct_.pack(">f", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct.unpack(">f", self.data[i : i + self.size])[0]
+            struct_.unpack(">f", self.data[i: i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -601,7 +606,7 @@ class VecF32(InnerVector):
         )
 
 
-class _VecI(abc.ABC):
+class _VecI(abc_.ABC):
     __slots__ = ()
 
     MAX: int
@@ -615,7 +620,7 @@ class VecI64(InnerVector):
     size = 8
 
     @classmethod
-    def from_native(cls, data: t.Iterable[object]) -> te.Self:
+    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, int):
@@ -628,12 +633,12 @@ class VecI64(InnerVector):
                     f"Value {item} is out of range for i64: "
                     "[-9223372036854775808, 9223372036854775807]"
                 )
-            bytes_.extend(struct.pack(">q", item))
+            bytes_.extend(struct_.pack(">q", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct.unpack(">q", self.data[i : i + self.size])[0]
+            struct_.unpack(">q", self.data[i: i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -658,7 +663,7 @@ class VecI32(InnerVector):
     size = 4
 
     @classmethod
-    def from_native(cls, data: t.Iterable[object]) -> te.Self:
+    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, int):
@@ -671,12 +676,12 @@ class VecI32(InnerVector):
                     f"Value {item} is out of range for i32: "
                     "[-2147483648, 2147483647]"
                 )
-            bytes_.extend(struct.pack(">i", item))
+            bytes_.extend(struct_.pack(">i", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct.unpack(">i", self.data[i : i + self.size])[0]
+            struct_.unpack(">i", self.data[i: i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -701,7 +706,7 @@ class VecI16(InnerVector):
     size = 2
 
     @classmethod
-    def from_native(cls, data: t.Iterable[object]) -> te.Self:
+    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, int):
@@ -713,12 +718,12 @@ class VecI16(InnerVector):
                 raise OverflowError(
                     f"Value {item} is out of range for i16: [-32768, 32767]"
                 )
-            bytes_.extend(struct.pack(">h", item))
+            bytes_.extend(struct_.pack(">h", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct.unpack(">h", self.data[i : i + self.size])[0]
+            struct_.unpack(">h", self.data[i: i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 
@@ -743,7 +748,7 @@ class VecI8(InnerVector):
     size = 1
 
     @classmethod
-    def from_native(cls, data: t.Iterable[object]) -> te.Self:
+    def from_native(cls, data: _t.Iterable[object]) -> _t.Self:
         bytes_ = bytearray()
         for item in data:
             if not isinstance(item, int):
@@ -755,12 +760,12 @@ class VecI8(InnerVector):
                 raise OverflowError(
                     f"Value {item} is out of range for i8: [-128, 127]"
                 )
-            bytes_.extend(struct.pack(">b", item))
+            bytes_.extend(struct_.pack(">b", item))
         return cls(bytes(bytes_))
 
     def to_native(self) -> list[object]:
         return [
-            struct.unpack(">b", self.data[i : i + self.size])[0]
+            struct_.unpack(">b", self.data[i: i + self.size])[0]
             for i in range(0, len(self.data), self.size)
         ]
 

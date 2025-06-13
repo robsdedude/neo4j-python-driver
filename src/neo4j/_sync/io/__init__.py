@@ -28,7 +28,6 @@ __all__ = [
     "BoltPool",
     "Neo4jPool",
     "ConnectionErrorHandler",
-    "check_supported_server_product",
 ]
 
 
@@ -40,10 +39,7 @@ from . import (  # noqa - imports needed to register protocol handlers
     _bolt6,
 )
 from ._bolt import Bolt
-from ._common import (
-    check_supported_server_product,
-    ConnectionErrorHandler,
-)
+from ._common import ConnectionErrorHandler
 from ._pool import (
     AcquisitionAuth,
     AcquisitionDatabase,

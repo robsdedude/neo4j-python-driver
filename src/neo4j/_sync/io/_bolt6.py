@@ -44,7 +44,6 @@ from ._bolt5 import (
     ServerStateManager5x1,
 )
 from ._common import (
-    check_supported_server_product,
     CommitResponse,
     InitResponse,
     LogonResponse,
@@ -184,7 +183,6 @@ class Bolt6x0(Bolt):
         self.logon(dehydration_hooks, hydration_hooks)
         self.send_all()
         self.fetch_all()
-        check_supported_server_product(self.server_info.agent)
 
     def logon(self, dehydration_hooks=None, hydration_hooks=None):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(

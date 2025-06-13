@@ -44,7 +44,6 @@ from ._bolt5 import (
     ServerStateManager5x1,
 )
 from ._common import (
-    check_supported_server_product,
     CommitResponse,
     InitResponse,
     LogonResponse,
@@ -184,7 +183,6 @@ class AsyncBolt6x0(AsyncBolt):
         self.logon(dehydration_hooks, hydration_hooks)
         await self.send_all()
         await self.fetch_all()
-        check_supported_server_product(self.server_info.agent)
 
     def logon(self, dehydration_hooks=None, hydration_hooks=None):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
