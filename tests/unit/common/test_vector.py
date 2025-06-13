@@ -160,9 +160,9 @@ def _mock_mask_extensions(mocker, used_ext):
 def _test_bench_swap_endian(mocker, ext):
     data = bytes(i % 256 for i in range(100_000))
     _mock_mask_extensions(mocker, ext)
-    print(timeit.timeit(lambda: swap_endian(2, data), number=1_000))
-    print(timeit.timeit(lambda: swap_endian(4, data), number=1_000))
-    print(timeit.timeit(lambda: swap_endian(8, data), number=1_000))
+    print(timeit.timeit(lambda: swap_endian(2, data), number=1_000))  # noqa: T201
+    print(timeit.timeit(lambda: swap_endian(4, data), number=1_000))  # noqa: T201
+    print(timeit.timeit(lambda: swap_endian(8, data), number=1_000))  # noqa: T201
 
 
 @pytest.mark.parametrize("ext", ("numpy", "rust", "python"))
