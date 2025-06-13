@@ -22,7 +22,7 @@ import sys
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath(os.path.join("..", "..")))
+sys.path.insert(0, os.path.abspath(os.path.join("..", "..", "src")))
 
 
 from neo4j import __version__ as project_version
