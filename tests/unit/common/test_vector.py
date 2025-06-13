@@ -229,7 +229,9 @@ def test_swap_endian_unhandled_size(mocker, ext, type_size):
 )
 @pytest.mark.parametrize("input_endian", (None, "big", "little"))
 def test_raw_data(
-    dtype: str, data: bytes, input_endian: t.Literal["big", "little"] | None
+    dtype: t.Literal["i8", "i16", "i32", "i64", "f32", "f64"],
+    data: bytes,
+    input_endian: t.Literal["big", "little"] | None,
 ) -> None:
     swapped_data = swap_endian(_get_type_size(dtype), data)
     if input_endian is None:

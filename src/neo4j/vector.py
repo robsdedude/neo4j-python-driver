@@ -24,6 +24,7 @@ from __future__ import annotations as _
 import abc as abc_
 import struct as struct_
 import sys as sys_
+from enum import Enum as _Enum
 
 from . import _typing as _t
 from ._optional_deps import (
@@ -84,18 +85,20 @@ class Vector:
 
     def __init__(
         self,
-        dtype: str,
+        dtype: _T_VectorDType,
         data: bytes,
         /,
         *,
-        byteorder: _t.Literal["big", "little"] = "big",
+        byteorder:
+        # Sphinx fails to resolve the type alias
+        # _T_VectorEndian
+        # so we spell it out
+        VectorEndian | _t.Literal["big", "little"] = "big",
     ) -> None:
         type_ = get_type(dtype)
         self._inner = type_(data, byteorder=byteorder)
 
-    def raw(
-        self, /, *, byteorder: _t.Literal["big", "little"] = "big"
-    ) -> bytes:
+    def raw(self, /, *, byteorder: _T_VectorEndian = "big") -> bytes:
         """
         Get the raw bytes of the vector.
 
@@ -130,7 +133,7 @@ class Vector:
         data: bytes,
         /,
         *,
-        byteorder: _t.Literal["big", "little"] = "big",
+        byteorder: _T_VectorEndian = "big",
     ) -> None:
         """
         Set the raw bytes of the vector.
@@ -160,18 +163,9 @@ class Vector:
                 )
 
     @property
-    def dtype(self) -> str:
+    def dtype(self) -> VectorDType:
         """
         Get the type of the vector.
-
-        Currently supported types are:
-
-        * ``f32``: 32-bit floating point number (single)
-        * ``f64``: 64-bit floating point number (double)
-        * ``i8``: 8-bit integer
-        * ``i16``: 16-bit integer
-        * ``i32``: 32-bit integer
-        * ``i64``: 64-bit integer
 
         :returns: The type of the vector.
         """
@@ -194,22 +188,21 @@ class Vector:
     @classmethod
     @_t.overload
     def from_native(
-        cls, dtype: _t.Literal["f32", "f64"], data: _t.Iterable[float]
+        cls, dtype: _T_VectorDTypeFloat, data: _t.Iterable[float], /
     ) -> _t.Self: ...
 
     @classmethod
     @_t.overload
     def from_native(
-        cls,
-        dtype: _t.Literal["i8", "i16", "i32", "i64"],
-        data: _t.Iterable[int],
+        cls, dtype: _T_VectorDTypeInt, data: _t.Iterable[int], /
     ) -> _t.Self: ...
 
     @classmethod
     def from_native(
         cls,
-        dtype: _t.Literal["f32", "f64", "i8", "i16", "i32", "i64"],
+        dtype: _T_VectorDType,
         data: _t.Iterable[float] | _t.Iterable[int],
+        /,
     ) -> _t.Self:
         """
         Create a Vector instance from an iterable of values.
@@ -251,7 +244,7 @@ class Vector:
         return self._inner.to_native()
 
     @classmethod
-    def from_numpy(cls, data: numpy.ndarray) -> _t.Self:
+    def from_numpy(cls, data: numpy.ndarray, /) -> _t.Self:
         """
         Create a Vector instance from a numpy array.
 
@@ -305,7 +298,7 @@ class Vector:
         return self._inner.to_numpy()
 
     @classmethod
-    def from_pyarrow(cls, data: pyarrow.Array) -> _t.Self:
+    def from_pyarrow(cls, data: pyarrow.Array, /) -> _t.Self:
         """
         Create a Vector instance from a pyarrow array.
 
@@ -362,7 +355,85 @@ class Vector:
     #   * polars
 
 
-def swap_endian(type_size: int, data: bytes) -> bytes:
+class VectorEndian(str, _Enum):
+    """
+    Data endianness (i.e., byte order) of the elements in a :class:`Vector`.
+
+    Inherits from :class:`str` and :class:`enum.Enum`.
+    Every driver API accepting a :class:`.VectorEndian` value will also accept
+    a string::
+
+        >>> VectorEndian.BIG == "big"
+        True
+        >>> VectorEndian.LITTLE == "little"
+        True
+
+    .. seealso:: :attr:`Vector.raw`
+
+    .. versionadded:: 6.0
+    """
+
+    BIG = "big"
+    LITTLE = "little"
+
+
+_T_VectorEndian = VectorEndian | _t.Literal["big", "little"]
+
+
+class VectorDType(str, _Enum):
+    """
+    The data type of the elements in a :class:`Vector`.
+
+    Currently supported types are:
+
+        * ``f32``: 32-bit floating point number (single)
+        * ``f64``: 64-bit floating point number (double)
+        * ``i8``: 8-bit integer
+        * ``i16``: 16-bit integer
+        * ``i32``: 32-bit integer
+        * ``i64``: 64-bit integer
+
+    Inherits from :class:`str` and :class:`enum.Enum`.
+    Every driver API accepting a :class:`.VectorDType` value will also accept
+    a string::
+
+        >>> VectorDType.F32 == "f32"
+        True
+        >>> VectorDType.I8 == "i8"
+        True
+
+    .. seealso:: :attr:`Vector.dtype`
+
+    .. versionadded:: 6.0
+    """
+
+    F32 = "f32"
+    F64 = "f64"
+    I8 = "i8"
+    I16 = "i16"
+    I32 = "i32"
+    I64 = "i64"
+
+
+_T_VectorDType = (
+    VectorDType | _t.Literal["f32", "f64", "i8", "i16", "i32", "i64"]
+)
+_T_VectorDTypeInt = _t.Literal[
+    VectorDType.I8,
+    VectorDType.I16,
+    VectorDType.I32,
+    VectorDType.I64,
+    "i8",
+    "i16",
+    "i32",
+    "i64",
+]
+_T_VectorDTypeFloat = _t.Literal[
+    VectorDType.F32, VectorDType.F64, "f32", "f64"
+]
+
+
+def swap_endian(type_size: int, data: bytes, /) -> bytes:
     """Swap from big endian to little endian."""
     if type_size == 1:
         return data
@@ -375,7 +446,7 @@ def swap_endian(type_size: int, data: bytes) -> bytes:
     return _swap_endian_unchecked(type_size, data)
 
 
-def _swap_endian_unchecked_np(type_size: int, data: bytes) -> bytes:
+def _swap_endian_unchecked_np(type_size: int, data: bytes, /) -> bytes:
     match type_size:
         case 2:
             dtype = _np.dtype("<i2")
@@ -388,7 +459,7 @@ def _swap_endian_unchecked_np(type_size: int, data: bytes) -> bytes:
     return _np.frombuffer(data, dtype=dtype).byteswap().tobytes()
 
 
-def _swap_endian_unchecked_py(type_size: int, data: bytes) -> bytes:
+def _swap_endian_unchecked_py(type_size: int, data: bytes, /) -> bytes:
     return bytes(
         byte
         for i in range(0, len(data), type_size)
@@ -404,25 +475,29 @@ else:
     _swap_endian_unchecked = _swap_endian_unchecked_py
 
 
-def get_type(dtype: str) -> type[InnerVector]:
+def get_type(dtype: _T_VectorDType, /) -> type[InnerVector]:
+    if isinstance(dtype, str):
+        if dtype not in VectorDType:
+            raise ValueError(f"Unsupported vector type: {dtype!r}.")
+        dtype = VectorDType(dtype)
     if dtype not in _TYPES:
-        raise ValueError(f"Unsupported vector type: {dtype}")
+        raise ValueError(f"Unsupported vector type: {dtype!r}.")
     return _TYPES[dtype]
 
 
-_TYPES: dict[str, type[InnerVector]] = {}
+_TYPES: dict[VectorDType, type[InnerVector]] = {}
 
 
 class InnerVector(abc_.ABC):
     __slots__ = ("_data", "_data_le")
 
-    dtype: _t.ClassVar[str]
+    dtype: _t.ClassVar[VectorDType]
     size: _t.ClassVar[int]
     _data: bytes
     _data_le: bytes | None
 
     def __init__(
-        self, data: bytes, /, *, byteorder: _t.Literal["big", "little"] = "big"
+        self, data: bytes, /, *, byteorder: _T_VectorEndian = "big"
     ) -> None:
         super().__init__()
         if self.__class__ == InnerVector:
@@ -468,9 +543,10 @@ class InnerVector(abc_.ABC):
     def __init_subclass__(cls) -> None:
         super().__init_subclass__()
         dtype = getattr(cls, "dtype", None)
-        if not isinstance(dtype, str):
+        if not isinstance(dtype, VectorDType):
             raise TypeError(
-                f"Class {cls.__name__} must have a str attribute 'dtype'"
+                f"Class {cls.__name__} must have a VectorDType attribute"
+                "'dtype'"
             )
         if not isinstance(getattr(cls, "size", None), int):
             raise TypeError(
@@ -536,7 +612,7 @@ class InnerVector(abc_.ABC):
 class VecF64(InnerVector):
     __slots__ = ()
 
-    dtype = "f64"
+    dtype = VectorDType.F64
     size = 8
 
     @classmethod
@@ -574,7 +650,7 @@ class VecF64(InnerVector):
 class VecF32(InnerVector):
     __slots__ = ()
 
-    dtype = "f32"
+    dtype = VectorDType.F32
     size = 4
 
     @classmethod
@@ -619,7 +695,7 @@ class _VecI(abc_.ABC):
 class VecI64(InnerVector):
     __slots__ = ()
 
-    dtype = "i64"
+    dtype = VectorDType.I64
     size = 8
 
     @classmethod
@@ -662,7 +738,7 @@ class VecI64(InnerVector):
 class VecI32(InnerVector):
     __slots__ = ()
 
-    dtype = "i32"
+    dtype = VectorDType.I32
     size = 4
 
     @classmethod
@@ -705,7 +781,7 @@ class VecI32(InnerVector):
 class VecI16(InnerVector):
     __slots__ = ()
 
-    dtype = "i16"
+    dtype = VectorDType.I16
     size = 2
 
     @classmethod
@@ -747,7 +823,7 @@ class VecI16(InnerVector):
 class VecI8(InnerVector):
     __slots__ = ()
 
-    dtype = "i8"
+    dtype = VectorDType.I8
     size = 1
 
     @classmethod

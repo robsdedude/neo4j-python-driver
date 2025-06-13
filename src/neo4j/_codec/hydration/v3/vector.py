@@ -14,17 +14,20 @@
 # limitations under the License.
 
 
-from ....vector import Vector
+from ....vector import (
+    Vector,
+    VectorDType,
+)
 from ...packstream import Structure
 
 
 _DTYPE_LOOKUP = {
-    b"\xc8": "i8",
-    b"\xc9": "i16",
-    b"\xca": "i32",
-    b"\xcb": "i64",
-    b"\xc6": "f32",
-    b"\xc1": "f64",
+    b"\xc8": VectorDType.I8,
+    b"\xc9": VectorDType.I16,
+    b"\xca": VectorDType.I32,
+    b"\xcb": VectorDType.I64,
+    b"\xc6": VectorDType.F32,
+    b"\xc1": VectorDType.F64,
 }
 
 _TYP_LOOKUP = {v: k for k, v in _DTYPE_LOOKUP.items()}
