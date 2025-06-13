@@ -32,6 +32,11 @@ from ._optional_deps import (
 )
 
 
+if False:
+    # Ugly work-around to make sphinx understand `@_t.overload`
+    import typing as _t  # type: ignore[no-redef]
+
+
 try:
     from ._rust.vector import swap_endian as _swap_endian_unchecked_rust
 except ImportError:
@@ -239,7 +244,7 @@ class Vector:
         Convert the vector to a native Python list.
 
         The type of the elements in the list depends on the dtype of the
-        vector. See :meth:`.from_native` for details.
+        vector. See :meth:`Vector.from_native` for details.
 
         :returns: A list of values representing the vector.
         """
