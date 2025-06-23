@@ -37,6 +37,10 @@ from neo4j.time import (
     Duration,
     Time,
 )
+from neo4j.vector import (
+    Vector,
+    VectorDType,
+)
 
 from ._preview_imports import NotificationDisabledClassification
 
@@ -184,6 +188,11 @@ def to_param(m):
             days=data["days"],
             seconds=data["seconds"],
             nanoseconds=data["nanoseconds"],
+        )
+    if name == "CypherVector":
+        return Vector(
+            VectorDType(data["dtype"]),
+            bytes([int(byte, 16) for byte in data["data"].split()]),
         )
     raise ValueError("Unknown param type " + name)
 
