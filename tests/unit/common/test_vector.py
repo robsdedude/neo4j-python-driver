@@ -235,11 +235,11 @@ def test_raw_data(
 ) -> None:
     swapped_data = _swap_endian(_get_type_size(dtype), data)
     if input_endian is None:
-        v = Vector(dtype, data)
+        v = Vector(data, dtype)
     elif input_endian == "big":
-        v = Vector(dtype, data, byteorder=input_endian)
+        v = Vector(data, dtype, byteorder=input_endian)
     elif input_endian == "little":
-        v = Vector(dtype, swapped_data, byteorder=input_endian)
+        v = Vector(swapped_data, dtype, byteorder=input_endian)
     else:
         raise ValueError(f"Invalid input_endian {input_endian}")
     assert v.dtype == dtype
@@ -436,19 +436,19 @@ def test_from_native_special_values(
 
 
 def _vector_from_data(
-    dtype: t.Literal["i8", "i16", "i32", "i64", "f32", "f64"],
     data: bytes,
+    dtype: t.Literal["i8", "i16", "i32", "i64", "f32", "f64"],
     endian: t.Literal["big", "little"] | None,
 ) -> Vector:
     match endian:
         case None:
-            return Vector(dtype, data)
+            return Vector(data, dtype)
         case "big":
-            return Vector(dtype, data, byteorder=endian)
+            return Vector(data, dtype, byteorder=endian)
         case "little":
             type_size = _get_type_size(dtype)
             data_le = _swap_endian(type_size, data)
-            return Vector(dtype, data_le, byteorder=endian)
+            return Vector(data_le, dtype, byteorder=endian)
         case _:
             raise ValueError(f"Invalid endian {endian}")
 
@@ -471,7 +471,7 @@ def test_to_native_random(
             )[0]
             for i in range(0, len(data), type_size)
         ]
-        v = _vector_from_data(dtype, data, endian)
+        v = _vector_from_data(data, dtype, endian)
         assert nan_equals(v.to_native(), expected)
 
 
@@ -487,7 +487,7 @@ def test_to_native_special_values(
         struct.unpack(pack_format, data_be[i : i + type_size])[0]
         for i in range(0, len(data_be), type_size)
     ]
-    v = Vector(dtype, data_be)
+    v = Vector(data_be, dtype)
     assert nan_equals(v.to_native(), expected)
 
 
@@ -572,7 +572,7 @@ def test_to_numpy_random(
     np_type = _get_numpy_dtype(dtype)
     for _ in range(repeat):
         data = _random_value_be_bytes(type_size, size)
-        v = _vector_from_data(dtype, data, endian)
+        v = _vector_from_data(data, dtype, endian)
         array = v.to_numpy()
         assert array.dtype == np.dtype(f">{np_type}")
         assert array.size == len(data) // type_size
@@ -590,7 +590,7 @@ def test_to_numpy_special_values(
     data_be: bytes,
 ) -> None:
     np_type = _get_numpy_dtype(dtype)
-    v = _vector_from_data(dtype, data_be, endian)
+    v = _vector_from_data(data_be, dtype, endian)
     array = v.to_numpy()
     assert array.dtype == np.dtype(f">{np_type}")
     assert array.size == 1
@@ -671,7 +671,7 @@ def test_to_pyarrow_random(
         data_ne = data_be
         if sys.byteorder == "little":
             data_ne = _swap_endian(type_size, data_be)
-        v = _vector_from_data(dtype, data_be, endian)
+        v = _vector_from_data(data_be, dtype, endian)
         array = v.to_pyarrow()
         assert array.type == pa_type
         assert pa.compute.count(array, mode="only_null").as_py() == 0
@@ -696,7 +696,7 @@ def test_to_pyarrow_special_values(
     if sys.byteorder == "little":
         data_ne = _swap_endian(type_size, data_be)
     pa_type = _get_pyarrow_dtype(dtype)
-    v = _vector_from_data(dtype, data_be, endian)
+    v = _vector_from_data(data_be, dtype, endian)
     array = v.to_pyarrow()
     assert array.type == pa_type
     assert pa.compute.count(array, mode="only_null").as_py() == 0

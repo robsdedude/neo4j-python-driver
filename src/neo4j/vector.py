@@ -59,29 +59,70 @@ class Vector:
     """
     A class representing a Neo4j vector.
 
-    Internally, a vector is stored as a contiguous block of memory, in
-    big-endian order.
+    Internally, a vector is stored as a contiguous block of memory
+    (:class:`bytes`), containing homogeneous values encoded in big-endian
+    order.
 
     To be able to send and receive these types, the driver must be connected
     to a DBMS supporting Bolt version 6.0 or later. This corresponds to Neo4j
     2025.05 or later.
 
+    The constructor accepts various types of data to create a vector.
+    Depending on ``data``'s type, further arguments may be required/allowed.
+
     TODO: check and update final server version above!
 
+    :param data:
+        The data from which the vector will be constructed.
+        The constructor accepts the following types:
+
+        * `bytes`: Use raw bytes to construct the vector.
+          The ``dtype`` parameter is required and ``byteorder`` is optional.
+        * `Iterable[float]`, `Iterable[float]`:
+          Use an iterable of floats or an iterable of ints to construct the
+          vector from native Python values.
+        * `numpy.ndarray`: Use a numpy array to construct the vector.
+          No further parameters are accepted.
+        * `pyarrow.Array`: Use a pyarrow array to construct the vector.
+        No further parameters are accepted.
     :param dtype: The type of the vector.
         See :attr:`.dtype` for currently supported inner data types.
-    :param data: The bytes representing the vector.
+
+        This parameter is required if ``data`` is of type :class:`bytes`,
+        `Iterable[float]`, or `Iterable[int]`. Otherwise, it must be omitted.
     :param byteorder: The endianness of the data.
         If ``"little"``, the bytes in data will be flipped to big-endian. If
         installed, ``neo4j-rust-ext`` or ``numpy`` will be used to speed up the
         byte flipping. Use :data:`sys.byteorder` if you want to use the
         system's native endianness.
 
+        This parameter is optional and only used if ``data`` is of type
+        :class:`bytes`. If omitted, the data is assumed to be in big-endian.
+        For other types of ``data``, the parameter must be omitted.
+
     :raises ValueError:
-      * If the dtype is not supported or data's size is not a multiple of
-        dtype's size.
-      * If byteorder is not one of ``"big"`` or ``"little"``.
-    :raises TypeError: If the data is not of type bytes.
+        Depending on the type of ``data``:
+            * ``bytes``:
+                * If the dtype is not supported or data's size is not a
+                  multiple of dtype's size.
+                * If byteorder is not one of ``"big"`` or ``"little"``.
+            * ``Iterable[float]``, ``Iterable[float]``:
+                * If the dtype is not supported.
+            * ``numpy.ndarray``:
+                * If the dtype is not supported.
+                * If the array is not one-dimensional.
+            * ``pyarrow.Array``:
+                * If the array's type is not supported.
+                * If the array contains null values.
+    :raises TypeError:
+        Depending on the type of ``data``:
+            * ``Iterable[float]``, ``Iterable[int]``:
+                * If data's elements don't match the expected type depending on
+                  dtype.
+    :raises OverflowError:
+        Depending on the type of ``data``:
+            * ``Iterable[float]``, ``Iterable[int]``:
+                * If the value is out of range for the given type.
 
     .. versionadded: 6.0
     """
@@ -90,20 +131,47 @@ class Vector:
 
     _inner: _InnerVector
 
+    @_t.overload
     def __init__(
         self,
-        dtype: _T_VectorDType,
         data: bytes,
+        dtype: _T_VectorDType,
         /,
         *,
-        byteorder:
-        # Sphinx fails to resolve the type alias
-        # _T_VectorEndian
-        # so we spell it out
-        VectorEndian | _t.Literal["big", "little"] = "big",
-    ) -> None:
-        type_ = _get_type(dtype)
-        self._inner = type_(data, byteorder=byteorder)
+        byteorder: _T_VectorEndian = "big",
+    ) -> None: ...
+
+    @_t.overload
+    def __init__(
+        self,
+        data: _t.Iterable[float],
+        dtype: _T_VectorDTypeFloat,
+        /,
+    ) -> None: ...
+
+    @_t.overload
+    def __init__(
+        self,
+        data: _t.Iterable[int],
+        dtype: _T_VectorDTypeInt,
+        /,
+    ) -> None: ...
+
+    @_t.overload
+    def __init__(self, data: numpy.ndarray, /) -> None: ...
+
+    @_t.overload
+    def __init__(self, data: pyarrow.Array, /) -> None: ...
+
+    def __init__(self, data, *args, **kwargs) -> None:
+        if isinstance(data, bytes):
+            self._set_bytes(data, *args, **kwargs)
+        elif _np is not None and isinstance(data, _np.ndarray):
+            self._set_numpy(data, *args, **kwargs)
+        elif _pa is not None and isinstance(data, _pa.Array):
+            self._set_pyarrow(data, *args, **kwargs)
+        else:
+            self._set_native(data, *args, **kwargs)
 
     def raw(self, /, *, byteorder: _T_VectorEndian = "big") -> bytes:
         """
@@ -193,6 +261,46 @@ class Vector:
         return f"Vector(dtype={self.dtype!r}, data={self.raw()!r})"
 
     @classmethod
+    def from_bytes(
+        cls,
+        data: bytes,
+        dtype: _T_VectorDType,
+        /,
+        *,
+        byteorder: _T_VectorEndian = "big",
+    ) -> _t.Self:
+        """
+        Create a Vector instance from raw bytes.
+
+        :param data: The raw bytes to create the vector from.
+        :param dtype: The type of the vector.
+            See also :attr:`.dtype`.
+        :param byteorder: The endianness of the data.
+            If ``"little"``, the bytes in data will be flipped to big-endian.
+            If installed, ``neo4j-rust-ext`` or ``numpy`` will be used to speed
+            up the byte flipping. Use :data:`sys.byteorder` if you want to use
+            the system's native endianness.
+
+        :raises ValueError:
+          * If data's size is not a multiple of dtype's size.
+          * If byteorder is not one of ``"big"`` or ``"little"``.
+        :raises TypeError: If the data is not of type bytes.
+        """
+        obj = cls.__new__(cls)
+        obj._set_bytes(data, dtype, byteorder=byteorder)
+        return obj
+
+    def _set_bytes(
+        self,
+        data: bytes,
+        dtype: _T_VectorDType,
+        /,
+        *,
+        byteorder: _T_VectorEndian = "big",
+    ) -> None:
+        self._inner = _get_type(dtype)(data, byteorder=byteorder)
+
+    @classmethod
     @_t.overload
     def from_native(
         cls, dtype: _T_VectorDTypeFloat, data: _t.Iterable[float], /
@@ -234,10 +342,16 @@ class Vector:
             depending on dtype.
         :raises OverflowError: If the value is out of range for the given type.
         """
-        inner = _get_type(dtype).from_native(data)
         obj = cls.__new__(cls)
-        obj._inner = inner
+        obj._set_native(dtype, data)
         return obj
+
+    def _set_native(
+        self,
+        dtype: _T_VectorDType,
+        data: _t.Iterable[float] | _t.Iterable[int],
+    ) -> None:
+        self._inner = _get_type(dtype).from_native(data)
 
     def to_native(self) -> list[object]:
         """
@@ -268,6 +382,24 @@ class Vector:
 
         :returns: A Vector instance constructed from the numpy array.
         """
+        obj = cls.__new__(cls)
+        obj._set_numpy(data)
+        return obj
+
+    def to_numpy(self) -> numpy.ndarray:
+        """
+        Convert the vector to a numpy array.
+
+        The array's dtype depends on the dtype of the vector. However, it will
+        always be in big-endian order.
+
+        :returns: A numpy array representing the vector.
+
+        :raises ImportError: If numpy is not installed.
+        """
+        return self._inner.to_numpy()
+
+    def _set_numpy(self, data: numpy.ndarray, /) -> None:
         if data.ndim != 1:
             raise ValueError("Data must be one-dimensional")
         type_: type[_InnerVector]
@@ -286,23 +418,7 @@ class Vector:
                 type_ = _VecI8
             case _:
                 raise ValueError(f"Unsupported numpy dtype: {data.dtype.name}")
-        inner = type_.from_numpy(data)
-        obj = cls.__new__(cls)
-        obj._inner = inner
-        return obj
-
-    def to_numpy(self) -> numpy.ndarray:
-        """
-        Convert the vector to a numpy array.
-
-        The array's dtype depends on the dtype of the vector. However, it will
-        always be in big-endian order.
-
-        :returns: A numpy array representing the vector.
-
-        :raises ImportError: If numpy is not installed.
-        """
-        return self._inner.to_numpy()
+        self._inner = type_.from_numpy(data)
 
     @classmethod
     def from_pyarrow(cls, data: pyarrow.Array, /) -> _t.Self:
@@ -324,6 +440,21 @@ class Vector:
 
         :returns: A Vector instance constructed from the pyarrow array.
         """
+        obj = cls.__new__(cls)
+        obj._set_pyarrow(data)
+        return obj
+
+    def to_pyarrow(self) -> pyarrow.Array:
+        """
+        Convert the vector to a pyarrow array.
+
+        :returns: A pyarrow array representing the vector.
+
+        :raises ImportError: If pyarrow is not installed.
+        """
+        return self._inner.to_pyarrow()
+
+    def _set_pyarrow(self, data: pyarrow.Array, /) -> None:
         import pyarrow
 
         type_: type[_InnerVector]
@@ -342,19 +473,7 @@ class Vector:
         else:
             raise ValueError(f"Unsupported pyarrow dtype: {data.type}")
         inner = type_.from_pyarrow(data)
-        obj = cls.__new__(cls)
-        obj._inner = inner
-        return obj
-
-    def to_pyarrow(self) -> pyarrow.Array:
-        """
-        Convert the vector to a pyarrow array.
-
-        :returns: A pyarrow array representing the vector.
-
-        :raises ImportError: If pyarrow is not installed.
-        """
-        return self._inner.to_pyarrow()
+        self._inner = inner
 
     # TODO: consider conversion to/from
     #   * tensorflow

@@ -42,7 +42,7 @@ def hydrate_vector(typ: bytes, data: bytes) -> Vector:
     :returns: Vector
     """
     dtype = _DTYPE_LOOKUP[typ]
-    return Vector(dtype, data)
+    return Vector(data, dtype)
 
 
 def dehydrate_vector(value: Vector) -> Structure:
