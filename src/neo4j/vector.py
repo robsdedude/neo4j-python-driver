@@ -96,8 +96,7 @@ class Vector:
         byte flipping. Use :data:`sys.byteorder` if you want to use the
         system's native endianness.
 
-        This parameter is optional and only used if ``data`` is of type
-        :class:`bytes`. If omitted, the data is assumed to be in big-endian.
+        This parameter is optional if ``data`` is of type ``bytes``.
         For other types of ``data``, the parameter must be omitted.
 
     :raises ValueError:
