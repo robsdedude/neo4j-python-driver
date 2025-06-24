@@ -76,20 +76,20 @@ class Vector:
         The data from which the vector will be constructed.
         The constructor accepts the following types:
 
-        * `bytes`: Use raw bytes to construct the vector.
+        * ``bytes``: Use raw bytes to construct the vector.
           The ``dtype`` parameter is required and ``byteorder`` is optional.
-        * `Iterable[float]`, `Iterable[float]`:
+        * ``Iterable[float]``, ``Iterable[float]``:
           Use an iterable of floats or an iterable of ints to construct the
           vector from native Python values.
-        * `numpy.ndarray`: Use a numpy array to construct the vector.
+        * ``numpy.ndarray``: Use a numpy array to construct the vector.
           No further parameters are accepted.
-        * `pyarrow.Array`: Use a pyarrow array to construct the vector.
+        * ``pyarrow.Array``: Use a pyarrow array to construct the vector.
         No further parameters are accepted.
     :param dtype: The type of the vector.
         See :attr:`.dtype` for currently supported inner data types.
 
         This parameter is required if ``data`` is of type :class:`bytes`,
-        `Iterable[float]`, or `Iterable[int]`. Otherwise, it must be omitted.
+        ``Iterable[float]`, or ``Iterable[int]`. Otherwise, it must be omitted.
     :param byteorder: The endianness of the data.
         If ``"little"``, the bytes in data will be flipped to big-endian. If
         installed, ``neo4j-rust-ext`` or ``numpy`` will be used to speed up the
