@@ -868,3 +868,33 @@ def test_deprecated_setter(attr):
         setattr(error, attr, obj)
 
     assert getattr(error, attr) is not obj
+
+
+@pytest.mark.parametrize("insert_after", range(-1, 3))
+def test_find_by_gql_status(insert_after: int) -> None:
+    error_to_find = _make_test_gql_error("12345")
+
+    root = None
+    if insert_after == -1:
+        root = error_to_find = _make_test_gql_error("12345")
+    for i in range(3):
+        root = _make_test_gql_error(f"{i + 2}2345", cause=root)
+        if i == insert_after:
+            root = error_to_find = _make_test_gql_error("12345", cause=root)
+
+    if root is None:
+        raise RuntimeError("unreachable, loop is not empty")
+
+    assert root.find_by_gql_status("12345") is error_to_find
+
+
+def test_find_by_gql_status_no_match() -> None:
+    root = None
+    for i in range(3):
+        root = _make_test_gql_error(f"{i + 1}2345", cause=root)
+
+    if root is None:
+        raise RuntimeError("unreachable, loop is not empty")
+
+    for status in ("2345", "02345", "42345", "54321"):
+        assert root.find_by_gql_status(status) is None
