@@ -220,12 +220,12 @@ class GqlError(Exception):
     Further, it is used as the :attr:`__cause__` of GqlError subclasses.
 
     Sometimes it is helpful or necessary to traverse the cause chain of
-    GQLErrors to fully understand or appropriately handle the error. In such
+    GqlErrors to fully understand or appropriately handle the error. In such
     cases, users can either traverse the :attr:`__cause__` attribute of the
     error(s) or use the helper method :meth:`.find_by_gql_status`. Note that
     :attr:`__cause__` is a standard attribute of all Python
-    :class:`Exception`s. Therefore, the cause chain may also contain other
-    types besides GqlError.
+    :class:`BaseException` s: the cause chain may contain other exception types
+    besides GqlError.
 
     .. versionadded: 5.26
 
@@ -240,6 +240,16 @@ class GqlError(Exception):
     _status_diagnostic_record: dict[str, _t.Any]  # original, internal only
     _diagnostic_record: dict[str, _t.Any]  # copy to be used externally
     _gql_cause: GqlError | None
+
+    __cause__: BaseException | None
+    """
+    The GqlError's cause, if any.
+
+    Sometimes it is helpful or necessary to traverse the cause chain of
+    GqlErrors to fully understand or appropriately handle the error.
+
+    .. seealso:: :meth:`.find_by_gql_status`
+    """
 
     @staticmethod
     def _hydrate_cause(**metadata: _t.Any) -> GqlError:
