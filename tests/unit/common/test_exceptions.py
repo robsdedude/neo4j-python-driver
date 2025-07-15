@@ -872,9 +872,7 @@ def test_deprecated_setter(attr):
 
 @pytest.mark.parametrize("insert_after", range(-1, 3))
 def test_find_by_gql_status(insert_after: int) -> None:
-    error_to_find = _make_test_gql_error("12345")
-
-    root = None
+    root = error_to_find = None
     if insert_after == -1:
         root = error_to_find = _make_test_gql_error("12345")
     for i in range(3):
@@ -884,6 +882,10 @@ def test_find_by_gql_status(insert_after: int) -> None:
 
     if root is None:
         raise RuntimeError("unreachable, loop is not empty")
+    if error_to_find is None:
+        raise ValueError(
+            f"insert_after is out of range [-1, 3), got {insert_after}"
+        )
 
     assert root.find_by_gql_status("12345") is error_to_find
 
