@@ -495,6 +495,15 @@ class SummaryInputPosition:
             f"line: {self.line}, column: {self.column}, offset: {self.offset}"
         )
 
+    def __repr__(self) -> str:
+        return (
+            f"<{self.__class__.__name__} "
+            f"line={self.line!r}, "
+            f"column={self.column!r}, "
+            f"offset={self.offset!r}"
+            ">"
+        )
+
 
 # Deprecated alias for :class:`.SummaryInputPosition`.
 #
@@ -744,7 +753,7 @@ class GqlStatusObject:
 
     def __repr__(self) -> str:
         return (
-            "GqlStatusObject("
+            f"<{self.__class__.__name__} "
             f"gql_status={self.gql_status!r}, "
             f"status_description={self.status_description!r}, "
             f"position={self.position!r}, "
@@ -753,7 +762,7 @@ class GqlStatusObject:
             f"raw_severity={self.raw_severity!r}, "
             f"severity={self.severity!r}, "
             f"diagnostic_record={self.diagnostic_record!r}"
-            ")"
+            ">"
         )
 
     @property
