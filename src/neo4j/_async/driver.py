@@ -23,6 +23,7 @@ from .. import _typing as t
 from .._addressing import Address
 from .._api import (
     DRIVER_BOLT,
+    DRIVER_HTTP,
     DRIVER_NEO4J,
     NotificationMinimumSeverity,
     parse_neo4j_uri,
@@ -62,6 +63,8 @@ from ..api import (
     URI_SCHEME_BOLT,
     URI_SCHEME_BOLT_SECURE,
     URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE,
+    URI_SCHEME_HTTP,
+    URI_SCHEME_HTTPS,
     URI_SCHEME_NEO4J,
     URI_SCHEME_NEO4J_SECURE,
     URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE,
@@ -231,12 +234,14 @@ class AsyncGraphDatabase:
                         [
                             URI_SCHEME_BOLT,
                             URI_SCHEME_NEO4J,
+                            URI_SCHEME_HTTP,
                         ],
                         [
                             URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE,
                             URI_SCHEME_BOLT_SECURE,
                             URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE,
                             URI_SCHEME_NEO4J_SECURE,
+                            URI_SCHEME_HTTPS,
                         ],
                     )
                 )
@@ -266,8 +271,13 @@ class AsyncGraphDatabase:
                     f"{liveness_check_timeout}."
                 )
 
-            assert driver_type in {DRIVER_BOLT, DRIVER_NEO4J}
-            if driver_type == DRIVER_BOLT:
+            assert driver_type in {DRIVER_BOLT, DRIVER_NEO4J, DRIVER_HTTP}
+            if driver_type == DRIVER_NEO4J:
+                routing_context = parse_routing_context(parsed.query)
+                return cls._neo4j_driver(
+                    parsed.netloc, routing_context=routing_context, **config
+                )
+            elif driver_type == DRIVER_BOLT:
                 if parse_routing_context(parsed.query):
                     raise ConfigurationError(
                         "Routing context (URI query parameters) are not "
@@ -275,11 +285,17 @@ class AsyncGraphDatabase:
                         f'("bolt[+s[sc]]://" scheme). Given URI: {uri!r}.'
                     )
                 return cls._bolt_driver(parsed.netloc, **config)
-            # else driver_type == DRIVER_NEO4J
-            routing_context = parse_routing_context(parsed.query)
-            return cls._neo4j_driver(
-                parsed.netloc, routing_context=routing_context, **config
-            )
+            else:  # driver_type == DRIVER_HTTP
+                # TODO: preview warning on HTTP
+                preview_warn(
+                    (
+                        "The Query API/HTTP support in the Neo4j Python driver "
+                        "is currently in preview. It may change or be removed "
+                        "in future releases."
+                    ),
+                    stack_level=2,
+                )
+                return cls._http_driver(parsed.netloc, **config)
 
     @classmethod
     def bookmark_manager(
@@ -430,6 +446,26 @@ class AsyncGraphDatabase:
 
             raise ServiceUnavailable(str(error)) from error
 
+    @classmethod
+    def _http_driver(cls, target, **config):
+        """
+        Create an HTTP driver.
+
+        Create a driver for accessing a Neo4j service via the HTTP v2/Query
+        API.
+        """
+        from .._exceptions import (
+            BoltHandshakeError,
+            BoltSecurityError,
+        )
+
+        try:
+            return AsyncHttpDriver._open(target, **config)
+        except (BoltHandshakeError, BoltSecurityError) as error:
+            from ..exceptions import ServiceUnavailable
+
+            raise ServiceUnavailable(str(error)) from error
+
 
 class _Direct:
     _default_host = "localhost"
@@ -478,6 +514,10 @@ class _Routing:
             default_host=cls._default_host,
             default_port=cls._default_port,
         )
+
+
+class _Http(_Direct):
+    _default_port = 7687
 
 
 class AsyncDriver:
@@ -1316,13 +1356,13 @@ class AsyncBoltDriver(_Direct, AsyncDriver):
 
     @classmethod
     def _open(cls, target, **config):
-        from .io import AsyncBoltPool
+        from .io import AsyncDirectBoltPool
 
         address = cls._parse_target(target)
         pool_config, default_workspace_config = Config.consume_chain(
             config, AsyncPoolConfig, WorkspaceConfig
         )
-        pool = AsyncBoltPool.open(
+        pool = AsyncDirectBoltPool.open(
             address,
             pool_config=pool_config,
             workspace_config=default_workspace_config,
@@ -1350,13 +1390,13 @@ class AsyncNeo4jDriver(_Routing, AsyncDriver):
 
     @classmethod
     def _open(cls, *targets, routing_context=None, **config):
-        from .io import AsyncNeo4jPool
+        from .io import AsyncRoutedBoltPool
 
         addresses = cls._parse_targets(*targets)
         pool_config, default_workspace_config = Config.consume_chain(
             config, AsyncPoolConfig, WorkspaceConfig
         )
-        pool = AsyncNeo4jPool.open(
+        pool = AsyncRoutedBoltPool.open(
             *addresses,
             routing_context=routing_context,
             pool_config=pool_config,
@@ -1366,6 +1406,33 @@ class AsyncNeo4jDriver(_Routing, AsyncDriver):
 
     def __init__(self, pool, default_workspace_config):
         _Routing.__init__(self, [pool.address])
+        AsyncDriver.__init__(self, pool, default_workspace_config)
+
+
+# TODO: mark preview
+# TODO: flesh out docs
+class AsyncHttpDriver(_Http, AsyncDriver):
+    """
+    :class:`.AsyncHttpDriver` is instantiated for ``http`` URIs.
+    """
+
+    @classmethod
+    def _open(cls, target, **config):
+        from .io import AsyncHttpV2Pool
+
+        address = cls._parse_target(target)
+        pool_config, default_workspace_config = Config.consume_chain(
+            config, AsyncPoolConfig, WorkspaceConfig
+        )
+        pool = AsyncHttpV2Pool.open(
+            address,
+            pool_config=pool_config,
+            workspace_config=default_workspace_config,
+        )
+        return cls(pool, default_workspace_config)
+
+    def __init__(self, pool, default_workspace_config):
+        _Http.__init__(self, pool.address)
         AsyncDriver.__init__(self, pool, default_workspace_config)
 
 

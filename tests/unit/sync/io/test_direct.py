@@ -24,7 +24,7 @@ from neo4j._conf import (
 from neo4j._deadline import Deadline
 from neo4j._sync.config import PoolConfig
 from neo4j._sync.io import Bolt
-from neo4j._sync.io._pool import IOPool
+from neo4j._sync.io._pool import BoltPool
 from neo4j.auth_management import AuthManagers
 from neo4j.exceptions import (
     ConnectionAcquisitionTimeoutError,
@@ -37,7 +37,7 @@ from ...._async_compat import (
 )
 
 
-class FakeBoltPool(IOPool):
+class FakeBoltPool(BoltPool):
     is_direct_pool = False
 
     def __init__(self, connection_gen, address, *, auth=None, **config):

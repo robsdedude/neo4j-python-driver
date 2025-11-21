@@ -47,7 +47,10 @@ from ..._deadline import (
 )
 from ..._exceptions import BoltError
 from ..._routing import RoutingTable
-from ...api import READ_ACCESS
+from ...api import (
+    READ_ACCESS,
+    SYSTEM_DATABASE,
+)
 from ...exceptions import (
     ConfigurationError,
     ConnectionAcquisitionTimeoutError,
@@ -62,13 +65,26 @@ from ...exceptions import (
 from ..config import AsyncPoolConfig
 from ..home_db_cache import AsyncHomeDbCache
 from ._bolt import AsyncBolt
+from ._connection import AsyncConnection
+from ._http import AsyncHttpConnection
 
+
+_TCon = t.TypeVar("_TCon", bound=AsyncConnection)
 
 if t.TYPE_CHECKING:
+    from types import TracebackType
+
+    from ..._addressing import Address
+    from ...api import _TAuth
     from ...auth_management import (
         AsyncAuthManager,
         AuthManager,
     )
+
+    _TOpener: t.TypeAlias = t.Callable[
+        [Address, AsyncAuthManager | AuthManager, Deadline],
+        t.Awaitable[_TCon],
+    ]
 
 
 # Set up logger
@@ -118,17 +134,130 @@ class ConnectionFeatureTracker:
             self.without_feature -= 1
 
 
-class AsyncIOPool(abc.ABC):
-    """A collection of connections to one or more server addresses."""
+class AsyncIOPool(abc.ABC, t.Generic[_TCon]):
+    opener: _TOpener[_TCon]
+    pool_config: AsyncPoolConfig
+    workspace_config: WorkspaceConfig
+    auth_provider: AsyncAuthManager | AuthManager
+    address: Address
+    home_db_cache: AsyncHomeDbCache
 
-    def __init__(self, opener, pool_config, workspace_config):
+    def __init__(
+        self,
+        opener: _TOpener[_TCon],
+        pool_config: AsyncPoolConfig,
+        workspace_config: WorkspaceConfig,
+        address: Address,
+    ):
         assert callable(opener)
         assert isinstance(pool_config, AsyncPoolConfig)
         assert isinstance(workspace_config, WorkspaceConfig)
+        assert pool_config.auth is not None
 
         self.opener = opener
         self.pool_config = pool_config
         self.workspace_config = workspace_config
+        self.auth_provider = pool_config.auth
+        self.address = address
+        self.home_db_cache = AsyncHomeDbCache(enabled=False)
+
+    @property
+    @abc.abstractmethod
+    def is_direct_pool(self) -> bool:
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def ssr_enabled(self) -> bool:
+        raise NotImplementedError
+
+    async def __aenter__(self) -> t.Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        await self.close()
+
+    async def get_auth(self) -> _TAuth:
+        return await AsyncUtil.callback(self.auth_provider.get_auth)
+
+    @abc.abstractmethod
+    async def acquire(
+        self,
+        access_mode,
+        timeout,
+        database,
+        bookmarks,
+        auth: AcquisitionAuth | None,
+        liveness_check_timeout,
+        unprepared: bool = False,
+        database_callback=None,
+    ) -> _TCon:
+        """
+        Acquire a connection to a server that can satisfy a set of parameters.
+
+        :param access_mode:
+        :param timeout: timeout for the core acquisition
+            (excluding potential preparation like fetching routing tables).
+        :param database:
+        :param bookmarks:
+        :param auth:
+        :param liveness_check_timeout:
+        :param unprepared: If True, no messages will be pipelined on the
+            connection. Meant to be used if no work is to be executed on the
+            connection.
+        :param database_callback:
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def kill_and_release(self, *connections: _TCon) -> None:
+        """
+        Release connections back into the pool after closing them.
+
+        This method is thread-safe.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    async def release(self, *connections: _TCon) -> None:
+        """
+        Release connections back into the pool.
+
+        This method is thread-safe.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    async def close(self) -> None:
+        """
+        Close all connections and empty the pool.
+
+        This method is thread-safe.
+        """
+        raise NotImplementedError
+
+    async def on_neo4j_error(self, error, connection):
+        assert isinstance(error, Neo4jError)
+        if error._has_security_code():
+            handled = await AsyncUtil.callback(
+                connection.auth_manager.handle_security_exception,
+                connection.auth,
+                error,
+            )
+            if handled:
+                error._retryable = True
+
+
+class AsyncBoltPool(AsyncIOPool[AsyncBolt], abc.ABC):
+    """A collection of connections to one or more server addresses."""
+
+    def __init__(self, opener, pool_config, workspace_config, address):
+        super().__init__(opener, pool_config, workspace_config, address)
         self.connections = defaultdict(deque)
         self.connections_reservations = defaultdict(lambda: 0)
         self.lock = AsyncCooperativeRLock()
@@ -139,22 +268,9 @@ class AsyncIOPool(abc.ABC):
         )
 
     @property
-    @abc.abstractmethod
-    def is_direct_pool(self) -> bool: ...
-
-    @property
     def ssr_enabled(self) -> bool:
         with self.lock:
             return self._ssr_feature_tracker.has_feature
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc_value, traceback):
-        await self.close()
-
-    async def get_auth(self):
-        return await AsyncUtil.callback(self.pool_config.auth.get_auth)
 
     async def _acquire_from_pool(self, address):
         with self.lock:
@@ -330,7 +446,7 @@ class AsyncIOPool(abc.ABC):
         The address supplied should always be an IP address, not
         a host name.
 
-        This method is thread safe.
+        This method is thread-safe.
         """
         if auth is None:
             auth = AcquisitionAuth(None)
@@ -420,40 +536,11 @@ class AsyncIOPool(abc.ABC):
         log.debug("[#0000]  _: <POOL> trying to hand out new connection")
         return await connection_creator()
 
-    @abc.abstractmethod
-    async def acquire(
-        self,
-        access_mode,
-        timeout,
-        database,
-        bookmarks,
-        auth: AcquisitionAuth,
-        liveness_check_timeout,
-        unprepared=False,
-        database_callback=None,
-    ):
-        """
-        Acquire a connection to a server that can satisfy a set of parameters.
-
-        :param access_mode:
-        :param timeout: timeout for the core acquisition
-            (excluding potential preparation like fetching routing tables).
-        :param database:
-        :param bookmarks:
-        :param auth:
-        :param liveness_check_timeout:
-        :param unprepared: If True, no messages will be pipelined on the
-            connection. Meant to be used if no work is to be executed on the
-            connection.
-        :param database_callback:
-        """
-        ...
-
     def kill_and_release(self, *connections):
         """
         Release connections back into the pool after closing them.
 
-        This method is thread safe.
+        This method is thread-safe.
         """
         for connection in connections:
             if not (connection.defunct() or connection.closed()):
@@ -472,7 +559,7 @@ class AsyncIOPool(abc.ABC):
         """
         Release connections back into the pool.
 
-        This method is thread safe.
+        This method is thread-safe.
         """
         cancelled = None
         for connection in connections:
@@ -582,7 +669,7 @@ class AsyncIOPool(abc.ABC):
         )
 
     async def on_neo4j_error(self, error, connection):
-        assert isinstance(error, Neo4jError)
+        await super().on_neo4j_error(error, connection)
         if error._unauthenticates_all_connections():
             address = connection.unresolved_address
             log.debug(
@@ -593,20 +680,12 @@ class AsyncIOPool(abc.ABC):
             with self.lock:
                 for connection_ in self.connections.get(address, ()):
                     connection_.mark_unauthenticated()
-        if error._has_security_code():
-            handled = await AsyncUtil.callback(
-                connection.auth_manager.handle_security_exception,
-                connection.auth,
-                error,
-            )
-            if handled:
-                error._retryable = True
 
     async def close(self):
         """
         Close all connections and empty the pool.
 
-        This method is thread safe.
+        This method is thread-safe.
         """
         log.debug("[#0000]  _: <POOL> close")
         try:
@@ -623,13 +702,13 @@ class AsyncIOPool(abc.ABC):
             pass
 
 
-class AsyncBoltPool(AsyncIOPool):
+class AsyncDirectBoltPool(AsyncBoltPool):
     is_direct_pool = True
 
     @classmethod
     def open(cls, address, *, pool_config, workspace_config):
         """
-        Create a new AsyncBoltPool.
+        Create a new AsyncDirectBoltPool.
 
         :param address:
         :param pool_config:
@@ -649,10 +728,6 @@ class AsyncBoltPool(AsyncIOPool):
         pool = cls(opener, pool_config, workspace_config, address)
         log.debug("[#0000]  _: <POOL> created, direct address %r", address)
         return pool
-
-    def __init__(self, opener, pool_config, workspace_config, address):
-        super().__init__(opener, pool_config, workspace_config)
-        self.address = address
 
     def __repr__(self):
         return f"<{self.__class__.__name__} address={self.address!r}>"
@@ -683,7 +758,7 @@ class AsyncBoltPool(AsyncIOPool):
         )
 
 
-class AsyncNeo4jPool(AsyncIOPool):
+class AsyncRoutedBoltPool(AsyncBoltPool):
     """Connection pool with routing table."""
 
     is_direct_pool = False
@@ -693,7 +768,7 @@ class AsyncNeo4jPool(AsyncIOPool):
         cls, *addresses, pool_config, workspace_config, routing_context=None
     ):
         """
-        Create a new AsyncNeo4jPool.
+        Create a new AsyncRoutedBoltPool.
 
         :param addresses: one or more address as positional argument
         :param pool_config:
@@ -725,17 +800,16 @@ class AsyncNeo4jPool(AsyncIOPool):
 
     def __init__(self, opener, pool_config, workspace_config, address):
         """
-        Initialize a AsyncNeo4jPool.
+        Initialize a AsyncRoutedBoltPool.
 
         :param opener:
         :param pool_config:
         :param workspace_config:
         :param address:
         """
-        super().__init__(opener, pool_config, workspace_config)
+        super().__init__(opener, pool_config, workspace_config, address)
         # Each database have a routing table, the default database is a special
         # case.
-        self.address = address
         self.routing_tables = {}
         self.refresh_lock = AsyncRLock()
         self.is_direct_pool = False
@@ -1293,6 +1367,96 @@ class AsyncNeo4jPool(AsyncIOPool):
             if table is not None:
                 table.writers.discard(address)
         log.debug("[#0000]  _: <POOL> table=%r", self.routing_tables)
+
+
+class AsyncHttpV2Pool(AsyncIOPool[AsyncHttpConnection]):
+    @property
+    def is_direct_pool(self) -> bool:
+        return True
+
+    @classmethod
+    def open(
+        cls,
+        address: Address,
+        *,
+        pool_config: AsyncPoolConfig,
+        workspace_config: WorkspaceConfig,
+    ) -> t.Self:
+        async def opener(
+            addr: Address,
+            auth_manager: AsyncAuthManager | AuthManager,
+            deadline,
+        ) -> AsyncHttpConnection:
+            return await AsyncHttpConnection.open(
+                addr,
+                auth_manager=auth_manager,
+                deadline=deadline,
+                routing_context=None,
+                pool_config=pool_config,
+            )
+
+        pool = cls(opener, pool_config, workspace_config, address)
+        log.debug(
+            "[#0000]  _: <POOL> created, Query API/HTTP address %r", address
+        )
+        return pool
+
+    @property
+    def ssr_enabled(self) -> bool:
+        return True
+
+    async def acquire(
+        self,
+        access_mode,
+        timeout,
+        database,
+        bookmarks,
+        auth: AcquisitionAuth | None,
+        liveness_check_timeout,
+        unprepared: bool = False,
+        database_callback=None,
+    ) -> AsyncHttpConnection:
+        check_access_mode(access_mode)
+        deadline = acquisition_timeout_to_deadline(timeout)
+        if auth is None:
+            auth = AcquisitionAuth(None)
+        force_auth = auth.force_auth
+        auth_manager = auth.auth or self.pool_config.auth
+        connection = await self.opener(self.address, auth_manager, deadline)
+        if unprepared and (liveness_check_timeout == 0 or force_auth):
+            await self._ping(connection)
+        return connection
+
+    @staticmethod
+    async def _ping(connection: AsyncHttpConnection):
+        hydration_scope = connection.new_hydration_scope()
+        connection.run(
+            "CALL db.ping()",
+            mode=READ_ACCESS,
+            db=SYSTEM_DATABASE,
+            dehydration_hooks=hydration_scope.dehydration_hooks,
+            hydration_hooks=hydration_scope.hydration_hooks,
+        )
+        connection.discard(
+            dehydration_hooks=hydration_scope.dehydration_hooks,
+            hydration_hooks=hydration_scope.hydration_hooks,
+        )
+        await connection.send_all()
+        await connection.fetch_all()
+
+    def kill_and_release(self, *connections: AsyncHttpConnection) -> None:
+        pass
+
+    async def release(self, *connections: AsyncHttpConnection) -> None:
+        for connection in connections:
+            log.debug(
+                "[#0000]  _: <POOL> released %s",
+                connection.connection_id,
+            )
+            await connection.close()
+
+    async def close(self) -> None:
+        await AsyncHttpConnection.shutdown()
 
 
 def acquisition_timeout_to_deadline(timeout: object) -> Deadline:

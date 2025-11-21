@@ -23,9 +23,7 @@ from struct import (
     unpack as struct_unpack,
 )
 
-from ...hydration import DehydrationHooks
-from .._common import Structure
-from .types import (
+from ..._types import (
     BYTES_TYPES,
     FALSE_VALUES,
     FLOAT_TYPES,
@@ -35,6 +33,8 @@ from .types import (
     SEQUENCE_TYPES,
     TRUE_VALUES,
 )
+from ...hydration import DehydrationHooks
+from .._common import Structure
 
 
 try:
@@ -79,8 +79,10 @@ class Packer:
     @classmethod
     def _inject_hooks(cls, dehydration_hooks=None):
         if dehydration_hooks is None:
-            return DehydrationHooks(exact_types={tuple: list}, subtypes={})
-        return dehydration_hooks.extend(exact_types={tuple: list}, subtypes={})
+            return DehydrationHooks(
+                exact_values={}, exact_types={tuple: list}, subtypes={}
+            )
+        return dehydration_hooks.extend(exact_types={tuple: list})
 
     def _py_pack(self, value, dehydration_hooks=None):
         write = self._write

@@ -1,0 +1,384 @@
+# Copyright (c) "Neo4j"
+# Neo4j Sweden AB [https://neo4j.com]
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+from __future__ import annotations
+
+import datetime
+import re
+
+from ..... import _typing as t
+from ....._exceptions import QueryApiHttpError
+from ....._optional_deps import (
+    np,
+    pd,
+)
+from .....time import (
+    _NANO_SECONDS,
+    Date,
+    DateTime,
+    Duration,
+    MAX_INT64,
+    MAX_YEAR,
+    MIN_INT64,
+    MIN_YEAR,
+    Time,
+)
+from .._common import (
+    make_value_dict,
+    value_as_str,
+)
+
+
+if t.TYPE_CHECKING:
+    import numpy
+
+    from .._common import ValueDict
+
+
+ANY_BUILTIN_DATETIME = datetime.datetime(1970, 1, 1)
+
+
+# def get_date_unix_epoch():
+#     return Date(1970, 1, 1)
+#
+#
+# def get_date_unix_epoch_ordinal():
+#     return get_date_unix_epoch().to_ordinal()
+#
+#
+# def get_datetime_unix_epoch_utc():
+#     from pytz import utc
+#
+#     return DateTime(1970, 1, 1, 0, 0, 0, utc)
+
+
+def hydrate_date(value: object) -> Date:
+    value = value_as_str(value)
+    try:
+        return Date.parse(value)
+    except Exception as e:
+        raise QueryApiHttpError(f"expected date string, got: {value!r}") from e
+
+
+def dehydrate_date(value: Date | datetime.date) -> ValueDict[str]:
+    return make_value_dict("Date", value.isoformat())
+
+
+def hydrate_zoned_time(value: object) -> Time:
+    time_ = _hydrate_time(value)
+    if time_.tzinfo is None:
+        raise QueryApiHttpError(f"expected zoned time string, got: {value!r}")
+    return time_
+
+
+def hydrate_local_time(value: object) -> Time:
+    time_ = _hydrate_time(value)
+    if time_.tzinfo is not None:
+        raise QueryApiHttpError(f"expected local time string, got: {value!r}")
+    return time_
+
+
+def _hydrate_time(value: object) -> Time:
+    value = value_as_str(value)
+    try:
+        time_ = Time.from_iso_format(value)
+        if time_.tzinfo is None:
+            raise QueryApiHttpError(
+                f"expected zoned time string, got: {value!r}"
+            )
+        return time_
+    except Exception as e:
+        raise QueryApiHttpError(f"expected time string, got: {value!r}") from e
+
+
+def dehydrate_time(value: Time | datetime.time) -> ValueDict[str]:
+    tag = "LocalTime" if value.tzinfo is None else "Time"
+    return make_value_dict(tag, value.isoformat())
+
+
+ZONED_DATETIME_RE = re.compile(
+    r"^(\d{4}|[+-]\d+)-(\d{2})-(\d{2})T"
+    r"(\d{2}):(\d{2}):(\d{2})(?:\.(\d+)?)?"
+    r"(?:(Z)|([+-])(\d{2})(?::?(\d{2}))?(?::?(\d{2}))?)"
+    r"(?:\[(.+)])?$"
+)
+
+
+def hydrate_zoned_datetime(value: object) -> DateTime:
+    from pytz import (
+        FixedOffset,
+        timezone,
+    )
+
+    value = value_as_str(value)
+    match = ZONED_DATETIME_RE.match(value)
+    if not match:
+        raise QueryApiHttpError(
+            f"expected zoned datetime string, got: {value!r}"
+        )
+
+    year = int(match.group(1))
+    month = int(match.group(2))
+    day = int(match.group(3))
+    date = Date(year, month, day)
+    hour = int(match.group(4))
+    minute = int(match.group(5))
+    second = int(match.group(6))
+    nanosecond = 0
+    if match.group(7):
+        nanosecond = int(match.group(7)[:9].ljust(9, "0"))
+    time_ = Time(hour, minute, second, nanosecond)
+    dt = DateTime.combine(date, time_)
+
+    if match.group(8) == "Z":
+        offset_min = offset_sec = 0
+    else:
+        offset = (
+            int(match.group(10)) * 3600
+            + int(match.group(11) or 0) * 60
+            + int(match.group(12) or 0)
+        )
+        offset_min, offset_sec = divmod(offset, 60)
+        if match.group(9) == "-":
+            offset_min *= -1
+            offset_sec *= -1
+        dt -= Duration(minutes=offset_min, seconds=offset_sec)
+    tz_name = match.group(13)
+    zone: datetime.tzinfo = (
+        timezone(tz_name) if tz_name else FixedOffset(offset_min)
+    )
+    zoned_dt = zone.fromutc(dt)
+    assert isinstance(zoned_dt, DateTime)
+    return zoned_dt
+
+
+LOCAL_DATETIME_RE = re.compile(
+    r"^(\d{4}|[+-]\d+)-(\d{2})-(\d{2})T"
+    r"(\d{2}):(\d{2}):(\d{2})(?:\.(\d+)?)?$"
+)
+
+
+def hydrate_local_datetime(value: object) -> DateTime:
+    value = value_as_str(value)
+    match = LOCAL_DATETIME_RE.match(value)
+    if not match:
+        raise QueryApiHttpError(
+            f"expected local datetime string, got: {value!r}"
+        )
+
+    year = int(match.group(1))
+    month = int(match.group(2))
+    day = int(match.group(3))
+    date = Date(year, month, day)
+    hour = int(match.group(4))
+    minute = int(match.group(5))
+    second = int(match.group(6))
+    nanosecond = 0
+    if match.group(7):
+        nanosecond = int(match.group(7)[:9].ljust(9, "0"))
+    time_ = Time(hour, minute, second, nanosecond)
+    return DateTime.combine(date, time_)
+
+
+def dehydrate_datetime(value: DateTime | datetime.datetime) -> ValueDict[str]:
+    tz = value.tzinfo
+    if tz is None:
+        return make_value_dict("LocalDateTime", value.isoformat())
+    elif hasattr(tz, "zone") and tz.zone and isinstance(tz.zone, str):
+        # with named pytz time zone
+        return _dehydrate_zoned_datetime(value, tz.zone)
+    elif hasattr(tz, "key") and tz.key and isinstance(tz.key, str):
+        # with named zoneinfo (Python 3.9+) time zone
+        return _dehydrate_zoned_datetime(value, tz.key)
+    else:
+        return _dehydrate_zoned_datetime(value)
+    t.assert_never(tz)
+
+
+def _dehydrate_local_datetime(
+    value: DateTime | datetime.datetime,
+) -> ValueDict[str]:
+    assert value.tzinfo is None
+    return make_value_dict("LocalDateTime", value.isoformat())
+
+
+def _dehydrate_zoned_datetime(
+    value: DateTime | datetime.datetime,
+    zone_name: str | None = None,
+) -> ValueDict[str]:
+    tz = value.tzinfo
+    assert tz is not None
+    value = value.replace(tzinfo=None)
+    offset: datetime.timedelta | None
+    if isinstance(tz, datetime.timezone):
+        # offset of the timezone is constant, so any date will do
+        offset = tz.utcoffset(ANY_BUILTIN_DATETIME)
+    else:
+        offset = tz.utcoffset(value)
+    if not isinstance(offset, datetime.timedelta):
+        raise ValueError("Unsupported: date time with unknown offset type")
+    tz_str = _format_tzinfo(offset, zone_name)
+    value_str = value.isoformat()
+    return make_value_dict("OffsetDateTime", f"{value_str}{tz_str}")
+
+
+def _format_tzinfo(
+    offset: datetime.timedelta,
+    zone_name: str | None,
+) -> str:
+    total_seconds = int(offset.total_seconds())
+    if not -64800 <= total_seconds <= 64800:
+        raise ValueError("Unsupported: timezone offset outside valid range")
+    if total_seconds < 0:
+        sign = "-"
+        total_seconds = -total_seconds
+    else:
+        sign = "+"
+    minutes, seconds = divmod(total_seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    tz_str = f"{sign}{hours:02}:{minutes:02}"
+    if seconds != 0:
+        tz_str += f":{seconds:02}"
+    if zone_name is not None:
+        tz_str += f"[{zone_name}]"
+    return tz_str
+
+
+if np is not None:
+    _NP_YEAR_MAX = np.datetime64(MAX_YEAR + 1 - 1970, "Y")
+    _NP_YEAR_MIN = np.datetime64(MIN_YEAR - 1970, "Y")
+
+    def dehydrate_np_datetime(
+        value: numpy.datetime64,
+    ) -> ValueDict[str | None]:
+        """
+        Dehydrator for ``numpy.datetime64`` values.
+
+        :param value:
+        :type value: numpy.datetime64
+        :returns:
+        """
+        if np.isnat(value):
+            return make_value_dict("Null", None)
+        if not _NP_YEAR_MIN <= value < _NP_YEAR_MAX:
+            # while we could encode years outside the range, they would fail
+            # when retrieved from the database.
+            raise ValueError(
+                f"Year out of range ({MIN_YEAR:d}..{MAX_YEAR:d}) found {value}"
+            )
+        value_str = str(value.astype("datetime64[s]"))
+        assert "." not in value_str
+        nanoseconds = (
+            value.astype("datetime64[ns]").astype(np.int64) % _NANO_SECONDS
+        )
+        if nanoseconds:
+            value_str += f".{nanoseconds:09d}".rstrip("0")
+
+        return make_value_dict("LocalDateTime", value_str)
+
+
+if pd is not None:
+
+    def dehydrate_pandas_datetime(value):
+        return dehydrate_datetime(
+            DateTime(
+                value.year,
+                value.month,
+                value.day,
+                value.hour,
+                value.minute,
+                value.second,
+                value.microsecond * 1000 + value.nanosecond,
+                value.tzinfo,
+            )
+        )
+
+
+def hydrate_duration(value: object) -> Duration:
+    value = value_as_str(value)
+    try:
+        return Duration.from_iso_format(value)
+    except Exception as e:
+        raise QueryApiHttpError(
+            f"expected duration string, got: {value!r}"
+        ) from e
+
+
+def dehydrate_duration(value: Duration) -> ValueDict[str]:
+    return make_value_dict("Duration", value.iso_format())
+
+
+def dehydrate_timedelta(value: datetime.timedelta) -> ValueDict[str]:
+    seconds = value.days * 86400 + value.seconds
+    microseconds = value.microseconds
+    sign = ""
+    if microseconds:
+        if seconds < 0:
+            if seconds <= -MAX_INT64:
+                raise OverflowError(
+                    "Timedelta cannot be encoded: out of range"
+                )
+            sign = "-"
+            seconds = abs(seconds + 1)
+            microseconds = 1_000_000 - value.microseconds
+        sub_seconds = f".{microseconds:06d}"
+    else:
+        sub_seconds = ""
+    if not MIN_INT64 <= seconds <= MAX_INT64:
+        raise OverflowError("Timedelta cannot be encoded: out of range")
+    value_str = f"PT{sign}{seconds}{sub_seconds}S"
+    return make_value_dict("Duration", value_str)
+
+
+if np is not None:
+    _NUMPY_DURATION_NS_FALLBACK = object()
+    _NUMPY_DURATION_UNITS = {
+        "Y": "years",
+        "M": "months",
+        "W": "weeks",
+        "D": "days",
+        "h": "hours",
+        "m": "minutes",
+        "s": "seconds",
+        "ms": "milliseconds",
+        "us": "microseconds",
+        "ns": "nanoseconds",
+        "ps": _NUMPY_DURATION_NS_FALLBACK,
+        "fs": _NUMPY_DURATION_NS_FALLBACK,
+        "as": _NUMPY_DURATION_NS_FALLBACK,
+    }
+
+    def dehydrate_np_timedelta(value):
+        if np.isnat(value):
+            return None
+        unit, step_size = np.datetime_data(value)
+        numer = int(value.astype(np.int64))
+        try:
+            kwarg = _NUMPY_DURATION_UNITS[unit]
+        except KeyError:
+            raise TypeError(
+                f"Unsupported numpy.timedelta64 unit: {unit!r}"
+            ) from None
+        if kwarg is _NUMPY_DURATION_NS_FALLBACK:
+            nanoseconds = value.astype("timedelta64[ns]").astype(np.int64)
+            return dehydrate_duration(Duration(nanoseconds=nanoseconds))
+        return dehydrate_duration(Duration(**{kwarg: numer * step_size}))
+
+
+if pd is not None:
+
+    def dehydrate_pandas_timedelta(value):
+        return dehydrate_duration(Duration(nanoseconds=value.value))

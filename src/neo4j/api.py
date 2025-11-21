@@ -40,6 +40,8 @@ __all__ = [
     "URI_SCHEME_BOLT_ROUTING",
     "URI_SCHEME_BOLT_SECURE",
     "URI_SCHEME_BOLT_SELF_SIGNED_CERTIFICATE",
+    "URI_SCHEME_HTTP",
+    "URI_SCHEME_HTTPS",
     "URI_SCHEME_NEO4J",
     "URI_SCHEME_NEO4J_SECURE",
     "URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE",
@@ -67,6 +69,10 @@ URI_SCHEME_BOLT_SECURE: _t.Final[str] = "bolt+s"
 URI_SCHEME_NEO4J: _t.Final[str] = "neo4j"
 URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE: _t.Final[str] = "neo4j+ssc"
 URI_SCHEME_NEO4J_SECURE: _t.Final[str] = "neo4j+s"
+
+# TODO: mark preview
+URI_SCHEME_HTTP: _t.Final[str] = "http"
+URI_SCHEME_HTTPS: _t.Final[str] = "https"
 
 URI_SCHEME_BOLT_ROUTING: _t.Final[str] = "bolt+routing"
 

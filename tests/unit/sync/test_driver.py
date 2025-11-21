@@ -43,8 +43,8 @@ from neo4j._sync.auth_management import _StaticClientCertificateProvider
 from neo4j._sync.config import PoolConfig
 from neo4j._sync.driver import _work
 from neo4j._sync.io import (
-    BoltPool,
-    Neo4jPool,
+    DirectBoltPool,
+    RoutedBoltPool,
 )
 from neo4j.api import (
     BookmarkManager,
@@ -642,12 +642,16 @@ def test_driver_factory_with_notification_filters(
     dis_cats: t.Iterable[_T_NotificationDisabledCategory] | None,
     dis_clss: t.Iterable[_T_NotificationDisabledClassification] | None,
 ) -> None:
-    pool_cls = Neo4jPool if uri.startswith("neo4j://") else BoltPool
+    pool_cls = (
+        RoutedBoltPool
+        if uri.startswith("neo4j://")
+        else DirectBoltPool
+    )
     open_mock = mocker.patch.object(
         pool_cls, "open", return_value=mocker.MagicMock(spec=pool_cls)
     )
     open_mock.return_value.address = mocker.Mock()
-    mocker.patch.object(BoltPool, "open", new=open_mock)
+    mocker.patch.object(DirectBoltPool, "open", new=open_mock)
 
     filter_kwargs: NotificationFilter = {}
     if min_sev is not ...:
@@ -822,7 +826,11 @@ def test_session_factory_with_notification_filter(
     dis_cats: t.Iterable[_T_NotificationDisabledCategory] | None,
     dis_clss: t.Iterable[_T_NotificationDisabledClassification] | None,
 ) -> None:
-    pool_cls = Neo4jPool if uri.startswith("neo4j://") else BoltPool
+    pool_cls = (
+        RoutedBoltPool
+        if uri.startswith("neo4j://")
+        else DirectBoltPool
+    )
     pool_mock: t.Any = mocker.MagicMock(spec=pool_cls)
     mocker.patch.object(pool_cls, "open", return_value=pool_mock)
     pool_mock.address = mocker.Mock()

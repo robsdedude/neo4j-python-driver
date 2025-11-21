@@ -31,7 +31,7 @@ from neo4j._async.config import AsyncPoolConfig
 from neo4j._async.io import (
     AcquisitionDatabase,
     AsyncBolt,
-    AsyncNeo4jPool,
+    AsyncRoutedBoltPool,
 )
 from neo4j._async_compat import async_sleep
 from neo4j._async_compat.util import AsyncUtil
@@ -150,8 +150,8 @@ def _auth_manager(auth):
     return AsyncAuthManagers.static(auth)
 
 
-def _simple_pool(opener) -> AsyncNeo4jPool:
-    return AsyncNeo4jPool(
+def _simple_pool(opener) -> AsyncRoutedBoltPool:
+    return AsyncRoutedBoltPool(
         opener, _pool_config(), WorkspaceConfig(), ROUTER1_ADDRESS
     )
 
@@ -599,7 +599,9 @@ async def test_failing_opener_leaves_connections_in_use_alone(opener):
 async def test__acquire_new_later_with_room(opener):
     config = _pool_config()
     config.max_connection_pool_size = 1
-    pool = AsyncNeo4jPool(opener, config, WorkspaceConfig(), ROUTER1_ADDRESS)
+    pool = AsyncRoutedBoltPool(
+        opener, config, WorkspaceConfig(), ROUTER1_ADDRESS
+    )
     assert pool.connections_reservations[READER1_ADDRESS] == 0
     creator = pool._acquire_new_later(READER1_ADDRESS, None, Deadline(1))
     assert pool.connections_reservations[READER1_ADDRESS] == 1
@@ -612,7 +614,9 @@ async def test__acquire_new_later_with_room(opener):
 async def test__acquire_new_later_without_room(opener):
     config = _pool_config()
     config.max_connection_pool_size = 1
-    pool = AsyncNeo4jPool(opener, config, WorkspaceConfig(), ROUTER1_ADDRESS)
+    pool = AsyncRoutedBoltPool(
+        opener, config, WorkspaceConfig(), ROUTER1_ADDRESS
+    )
     _ = await pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     # pool is full now
     assert pool.connections_reservations[READER1_ADDRESS] == 0
@@ -627,7 +631,7 @@ async def test_passes_pool_config_to_connection(mocker):
 
     pool_config = AsyncPoolConfig()
     workspace_config = WorkspaceConfig()
-    pool = AsyncNeo4jPool.open(
+    pool = AsyncRoutedBoltPool.open(
         mocker.Mock, pool_config=pool_config, workspace_config=workspace_config
     )
 
@@ -661,7 +665,7 @@ async def test_discovery_is_retried(custom_routing_opener, error):
             error,  # will be retried
         ]
     )
-    pool = AsyncNeo4jPool(
+    pool = AsyncRoutedBoltPool(
         opener,
         _pool_config(),
         WorkspaceConfig(),
@@ -708,7 +712,7 @@ async def test_failed_discovery_chains_errors(custom_routing_opener) -> None:
             error4,  # initial router fails
         ]
     )
-    pool = AsyncNeo4jPool(
+    pool = AsyncRoutedBoltPool(
         opener,
         _pool_config(),
         WorkspaceConfig(),
@@ -775,7 +779,7 @@ async def test_fast_failing_discovery(custom_routing_opener, error):
             error,  # will be retried
         ]
     )
-    pool = AsyncNeo4jPool(
+    pool = AsyncRoutedBoltPool(
         opener,
         _pool_config(),
         WorkspaceConfig(),
@@ -825,7 +829,9 @@ async def test_connection_error_callback(
         auth_manager, "handle_security_exception", autospec=True
     )
     config.auth = auth_manager
-    pool = AsyncNeo4jPool(opener, config, WorkspaceConfig(), ROUTER1_ADDRESS)
+    pool = AsyncRoutedBoltPool(
+        opener, config, WorkspaceConfig(), ROUTER1_ADDRESS
+    )
     cxs_read = [
         await pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
         for _ in range(5)
@@ -867,7 +873,7 @@ async def test_pool_closes_connections_dropped_from_rt(custom_routing_opener):
 
     opener = custom_routing_opener(get_readers=get_readers)
 
-    pool = AsyncNeo4jPool(
+    pool = AsyncRoutedBoltPool(
         opener, _pool_config(), WorkspaceConfig(), ROUTER1_ADDRESS
     )
     cx1 = await pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
@@ -905,7 +911,7 @@ async def test_pool_does_not_close_connections_dropped_from_rt_for_other_server(
 
     opener = custom_routing_opener(get_readers=get_readers)
 
-    pool = AsyncNeo4jPool(
+    pool = AsyncRoutedBoltPool(
         opener, _pool_config(), WorkspaceConfig(), ROUTER1_ADDRESS
     )
     cx1 = await pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
@@ -956,7 +962,7 @@ async def test_tracks_ssr_connection_hints(custom_routing_opener):
         connection.ssr_enabled = connection_count != 2
 
     opener = custom_routing_opener(on_open=on_open)
-    pool = AsyncNeo4jPool(
+    pool = AsyncRoutedBoltPool(
         opener, _pool_config(), WorkspaceConfig(), ROUTER1_ADDRESS
     )
 

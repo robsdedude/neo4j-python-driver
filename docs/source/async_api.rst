@@ -535,7 +535,7 @@ All database activity is co-ordinated through two mechanisms:
 A **session** is a logical container for any number of causally-related transactional units of work.
 Sessions automatically provide guarantees of causal consistency within a clustered environment but multiple sessions can also be causally chained if required.
 Sessions provide the top level of containment for database activity.
-Session creation is a lightweight operation and *sessions are not thread safe*.
+Session creation is a lightweight operation and *sessions are not thread-safe*.
 
 Connections are drawn from the :class:`neo4j.AsyncDriver` connection pool as required.
 

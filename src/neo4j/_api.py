@@ -51,6 +51,7 @@ __all__ = [
 
 DRIVER_BOLT: t.Final[str] = "DRIVER_BOLT"
 DRIVER_NEO4J: t.Final[str] = "DRIVER_NEO4J"
+DRIVER_HTTP: t.Final[str] = "DRIVER_HTTP"
 
 SECURITY_TYPE_NOT_SECURE: t.Final[str] = "SECURITY_TYPE_NOT_SECURE"
 SECURITY_TYPE_SELF_SIGNED_CERTIFICATE: t.Final[str] = (
@@ -91,6 +92,12 @@ def parse_neo4j_uri(uri):
     elif parsed.scheme == api.URI_SCHEME_NEO4J_SECURE:
         driver_type = DRIVER_NEO4J
         security_type = SECURITY_TYPE_SECURE
+    elif parsed.scheme == api.URI_SCHEME_HTTP:
+        driver_type = DRIVER_HTTP
+        security_type = SECURITY_TYPE_NOT_SECURE
+    elif parsed.scheme == api.URI_SCHEME_HTTPS:
+        driver_type = DRIVER_HTTP
+        security_type = SECURITY_TYPE_SECURE
     else:
         supported_schemes = [
             api.URI_SCHEME_BOLT,
@@ -99,6 +106,8 @@ def parse_neo4j_uri(uri):
             api.URI_SCHEME_NEO4J,
             api.URI_SCHEME_NEO4J_SELF_SIGNED_CERTIFICATE,
             api.URI_SCHEME_NEO4J_SECURE,
+            api.URI_SCHEME_HTTP,
+            api.URI_SCHEME_HTTPS,
         ]
         raise ConfigurationError(
             f"URI scheme {parsed.scheme!r} is not supported. "

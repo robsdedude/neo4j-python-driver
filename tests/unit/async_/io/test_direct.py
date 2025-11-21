@@ -19,7 +19,7 @@ import pytest
 import neo4j
 from neo4j._async.config import AsyncPoolConfig
 from neo4j._async.io import AsyncBolt
-from neo4j._async.io._pool import AsyncIOPool
+from neo4j._async.io._pool import AsyncBoltPool
 from neo4j._conf import (
     Config,
     WorkspaceConfig,
@@ -37,7 +37,7 @@ from ...._async_compat import (
 )
 
 
-class AsyncFakeBoltPool(AsyncIOPool):
+class AsyncFakeBoltPool(AsyncBoltPool):
     is_direct_pool = False
 
     def __init__(self, connection_gen, address, *, auth=None, **config):

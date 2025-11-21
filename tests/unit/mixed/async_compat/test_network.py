@@ -23,9 +23,9 @@ import freezegun
 import pytest
 
 from neo4j import _typing as t
-from neo4j._async.io._bolt_socket import AsyncBoltSocket
+from neo4j._async.io._bolt._bolt_socket import AsyncBoltSocket
 from neo4j._exceptions import SocketDeadlineExceededError
-from neo4j._sync.io._bolt_socket import BoltSocket
+from neo4j._sync.io._bolt._bolt_socket import BoltSocket
 
 from ...._async_compat.mark_decorator import mark_async_test
 

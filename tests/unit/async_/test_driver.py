@@ -41,8 +41,8 @@ from neo4j._async.auth_management import _AsyncStaticClientCertificateProvider
 from neo4j._async.config import AsyncPoolConfig
 from neo4j._async.driver import _work
 from neo4j._async.io import (
-    AsyncBoltPool,
-    AsyncNeo4jPool,
+    AsyncDirectBoltPool,
+    AsyncRoutedBoltPool,
 )
 from neo4j._async_compat.util import AsyncUtil
 from neo4j._debug import ENABLED as DEBUG_ENABLED
@@ -643,12 +643,16 @@ async def test_driver_factory_with_notification_filters(
     dis_cats: t.Iterable[_T_NotificationDisabledCategory] | None,
     dis_clss: t.Iterable[_T_NotificationDisabledClassification] | None,
 ) -> None:
-    pool_cls = AsyncNeo4jPool if uri.startswith("neo4j://") else AsyncBoltPool
+    pool_cls = (
+        AsyncRoutedBoltPool
+        if uri.startswith("neo4j://")
+        else AsyncDirectBoltPool
+    )
     open_mock = mocker.patch.object(
         pool_cls, "open", return_value=mocker.AsyncMock(spec=pool_cls)
     )
     open_mock.return_value.address = mocker.Mock()
-    mocker.patch.object(AsyncBoltPool, "open", new=open_mock)
+    mocker.patch.object(AsyncDirectBoltPool, "open", new=open_mock)
 
     filter_kwargs: NotificationFilter = {}
     if min_sev is not ...:
@@ -823,7 +827,11 @@ async def test_session_factory_with_notification_filter(
     dis_cats: t.Iterable[_T_NotificationDisabledCategory] | None,
     dis_clss: t.Iterable[_T_NotificationDisabledClassification] | None,
 ) -> None:
-    pool_cls = AsyncNeo4jPool if uri.startswith("neo4j://") else AsyncBoltPool
+    pool_cls = (
+        AsyncRoutedBoltPool
+        if uri.startswith("neo4j://")
+        else AsyncDirectBoltPool
+    )
     pool_mock: t.Any = mocker.AsyncMock(spec=pool_cls)
     mocker.patch.object(pool_cls, "open", return_value=pool_mock)
     pool_mock.address = mocker.Mock()

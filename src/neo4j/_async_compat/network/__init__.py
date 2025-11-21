@@ -18,6 +18,12 @@ from ._bolt_socket import (
     AsyncBoltSocketBase,
     BoltSocketBase,
 )
+from ._http_query_api import (
+    AsyncHTTPQueryAPI,
+    HTTPQueryAPI,
+    HTTPQueryAPIResponse,
+    HTTPVerb,
+)
 from ._util import (
     AsyncNetworkUtil,
     NetworkUtil,
@@ -26,7 +32,11 @@ from ._util import (
 
 __all__ = [
     "AsyncBoltSocketBase",
+    "AsyncHTTPQueryAPI",
     "AsyncNetworkUtil",
     "BoltSocketBase",
+    "HTTPQueryAPI",
+    "HTTPQueryAPIResponse",
+    "HTTPVerb",
     "NetworkUtil",
 ]

@@ -61,6 +61,10 @@ pandas = [
     "numpy >= 1.21.2, < 3.0.0",
 ]
 pyarrow = ["pyarrow >= 6.0.0, < 23.0.0"]
+http = [
+    "aiohttp[speedups] >= 3.12.15, < 4.0.0",
+    "requests >= 2.32.5, < 3.0.0",
+]
 
 
 [build-system]
@@ -156,6 +160,8 @@ dep-project-dependencies = [
     "numpy >= 1.7.0, < 3.0.0",
     "pandas[timezone] >= 1.1.0, < 4.0.0",
     "pyarrow >= 6.0.0, < 23.0.0",
+    "aiohttp[speedups] >= 3.12.15, < 4.0.0",
+    "requests >= 2.32.5, < 3.0.0",
 ]
 
 [tool.setuptools.dynamic]
