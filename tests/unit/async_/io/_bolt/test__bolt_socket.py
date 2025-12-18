@@ -26,7 +26,7 @@ from neo4j._async.io._bolt import AsyncBolt
 from neo4j._deadline import Deadline
 from neo4j.addressing import Address
 
-from ...._async_compat import mark_async_test
+from ....._async_compat import mark_async_test
 
 
 if typing.TYPE_CHECKING:

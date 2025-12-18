@@ -333,7 +333,7 @@ class Connection(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_message(self) -> tuple[int, int]:
+    def fetch_message(self):
         """
         Fetch the next outstanding messages.
 
@@ -343,7 +343,7 @@ class Connection(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_all(self) -> tuple[int, int]:
+    def fetch_all(self) -> None:
         """
         Fetch all outstanding messages.
 
@@ -354,22 +354,16 @@ class Connection(abc.ABC):
 
     @abc.abstractmethod
     def defunct(self) -> bool:
-        """
-        TODO: docs
-        """
+        """TODO: docs."""
         raise NotImplementedError
 
     @abc.abstractmethod
     def closed(self) -> bool:
-        """
-        TODO: docs
-        """
+        """TODO: docs."""
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
     def is_reset(self) -> bool:
-        """
-        TODO: docs
-        """
+        """TODO: docs."""
         raise NotImplementedError

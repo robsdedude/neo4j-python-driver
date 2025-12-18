@@ -37,7 +37,7 @@ from neo4j._async.io._bolt._bolt5 import (
 )
 from neo4j.exceptions import ServiceUnavailable
 
-from ...._async_compat import mark_async_test
+from ....._async_compat import mark_async_test
 
 
 @pytest.fixture(

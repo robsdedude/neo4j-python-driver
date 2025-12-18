@@ -33,7 +33,6 @@ from ...._async_compat.network import (
 )
 from ...._async_compat.util import AsyncUtil
 from ...._auth_management import to_auth_dict
-from ...._codec.hydration import HydrationScope
 from ...._codec.hydration.http import (
     LiteralJson,
     LiteralJsonRecursive,
@@ -41,14 +40,11 @@ from ...._codec.hydration.http import (
     value_as_bool,
     value_as_dict,
     value_as_int,
-    value_as_list,
     value_as_list_dict,
     value_as_list_list,
     value_as_list_str,
     value_as_str,
-    value_dict_key,
 )
-from ...._deadline import Deadline
 from ...._exceptions import QueryApiHttpError
 from ....api import (
     READ_ACCESS,
@@ -60,7 +56,6 @@ from ....exceptions import (
     ServiceUnavailable,
     SessionExpired,
 )
-from ...config import AsyncPoolConfig
 from ._base import AsyncHttpConnection
 from ._common import ResponseHandler
 
@@ -74,11 +69,13 @@ if t.TYPE_CHECKING:
     )
     from ...._codec.hydration import (
         DehydrationHooks,
+        HydrationScope,
         T_TYPE_MAP_DICT,
     )
     from ....api import _TAuth
 
     _TAsyncFn = t.Callable[[], t.Awaitable[None]]
+    _TFn = t.Callable[[], None]
     _TState = t.TypeVar("_TState", bound="_ConnectionState")
     _TState2 = t.TypeVar("_TState2", bound="_ConnectionState")
 
@@ -159,7 +156,7 @@ class _QueryResult:
         data = value_as_dict(body.get("data"))
         records = value_as_list_list(data.get("values", []))
         counters = _map_counters(value_as_dict(body.get("counters", {})))
-        notifications_raw = body.get("notifications", None)
+        notifications_raw = body.get("notifications")
         profile = value_as_dict(body.get("profiledQueryPlan", {}))
         _map_profile(profile)
         plan = value_as_dict(body.get("queryPlan", {}))
@@ -198,7 +195,7 @@ class _QueryResult:
 
 @dataclass
 class _Request:
-    handler: _TAsyncFn
+    handler: _TAsyncFn | _TFn
     name: str
 
 
@@ -209,45 +206,8 @@ class _CommitRequest(_Request):
 
 @dataclass
 class _Response:
-    handler: _TAsyncFn
+    handler: _TAsyncFn | _TFn
     name: str
-
-
-#
-# @dataclass
-# class _Request: pass
-#
-# @dataclass
-# class _RequestRun(_Request):
-#     query: str
-#     parameters: dict[str, t.Any] | None
-#     mode: str
-#     bookmarks: t.Iterable[str] | None
-#     metadata: dict[str, t.Any] | None
-#     timeout
-#     db
-#     imp_user
-#     notifications_min_severity
-#     notifications_disabled_classifications
-#     dehydration_hooks
-#     hydration_hooks
-#     **handlers,
-#
-#
-# @dataclass
-# class _TxState(_Request):
-#     tx_id: int
-#
-#     def end_tx(self) -> _InitState:
-#         return _InitState()
-#
-#
-# @dataclass
-# class _TxRunState(_Request):
-#     tx_id: int
-#
-#     def end_tx(self) -> _InitState:
-#         return _InitState()
 
 
 SHARED_HYDRATION_HANDLER = hydration_v2.HydrationHandler()
@@ -255,7 +215,7 @@ SHARED_HYDRATION_HANDLER = hydration_v2.HydrationHandler()
 
 class AsyncHttpV2(AsyncHttpConnection):
     _state: _ConnectionState
-    _query_api: AsyncHTTPQueryAPI | None
+    _query_api: AsyncHTTPQueryAPI
     _requests: deque[_Request]
     _responses: deque[_Response]
     auth_manager: AsyncAuthManager | AuthManager | None = None
@@ -482,7 +442,7 @@ class AsyncHttpV2(AsyncHttpConnection):
         )
 
         @self._handler
-        async def req_handler_discard() -> None:
+        def req_handler_discard() -> None:
             handler = ResponseHandler(**handlers)
             if self._check_failure_state(handler):
                 return
@@ -490,13 +450,13 @@ class AsyncHttpV2(AsyncHttpConnection):
                 self._state, (_AutoCommitState, _TxState), "discard records"
             )
             if isinstance(state, _AutoCommitState):
-                await req_handler_discard_auto_commit(state, handler)
+                req_handler_discard_auto_commit(state, handler)
             elif isinstance(state, _TxState):
-                await req_handler_discard_tx(state, handler)
+                req_handler_discard_tx(state, handler)
             else:
                 t.assert_never(state)
 
-        async def req_handler_discard_auto_commit(
+        def req_handler_discard_auto_commit(
             state_: _AutoCommitState, handler: ResponseHandler
         ) -> None:
             if qid != -1:
@@ -511,10 +471,7 @@ class AsyncHttpV2(AsyncHttpConnection):
             result.validate_consistent_hooks(
                 dehydration_hooks, hydration_hooks
             )
-            if n < 0:
-                to_pull = len(result.records_buffer)
-            else:
-                to_pull = n
+            to_pull = len(result.records_buffer) if n < 0 else n
             result.records_buffer = result.records_buffer[to_pull:]
             has_more = bool(result.records_buffer)
             if has_more:
@@ -544,14 +501,14 @@ class AsyncHttpV2(AsyncHttpConnection):
                 self._responses.append(_Response(success_response, "SUCCESS"))
                 self._state = state_.done()
 
-        async def req_handler_discard_tx(
+        def req_handler_discard_tx(
             state_: _TxState, handler: ResponseHandler
         ) -> None:
             if state_.current_qid is None:
                 self._enqueue_failure(
                     handler,
                     "Neo.ClientError.Request.Invalid",
-                    f"Cannot PULL without running a query first",
+                    "Cannot PULL without running a query first",
                 )
                 return
             qid_ = qid
@@ -568,10 +525,7 @@ class AsyncHttpV2(AsyncHttpConnection):
             result.validate_consistent_hooks(
                 dehydration_hooks, hydration_hooks
             )
-            if n < 0:
-                to_pull = len(result.records_buffer)
-            else:
-                to_pull = n
+            to_pull = len(result.records_buffer) if n < 0 else n
             result.records_buffer = result.records_buffer[to_pull:]
             has_more = bool(result.records_buffer)
             if has_more:
@@ -614,7 +568,7 @@ class AsyncHttpV2(AsyncHttpConnection):
         )
 
         @self._handler
-        async def req_handler_pull() -> None:
+        def req_handler_pull() -> None:
             handler = ResponseHandler(**handlers)
             if self._check_failure_state(handler):
                 return
@@ -622,13 +576,13 @@ class AsyncHttpV2(AsyncHttpConnection):
                 self._state, (_AutoCommitState, _TxState), "pull records"
             )
             if isinstance(state, _AutoCommitState):
-                await req_handler_pull_auto_commit(state, handler)
+                req_handler_pull_auto_commit(state, handler)
             elif isinstance(state, _TxState):
-                await req_handler_pull_tx(state, handler)
+                req_handler_pull_tx(state, handler)
             else:
                 t.assert_never(state)
 
-        async def req_handler_pull_auto_commit(
+        def req_handler_pull_auto_commit(
             state_: _AutoCommitState, handler: ResponseHandler
         ) -> None:
             if qid != -1:
@@ -643,10 +597,7 @@ class AsyncHttpV2(AsyncHttpConnection):
             result.validate_consistent_hooks(
                 dehydration_hooks, hydration_hooks
             )
-            if n < 0:
-                to_pull = len(result.records_buffer)
-            else:
-                to_pull = n
+            to_pull = len(result.records_buffer) if n < 0 else n
             records = result.records_buffer[:to_pull]
             result.records_buffer = result.records_buffer[to_pull:]
             self._enqueue_records(handler, records)
@@ -678,14 +629,14 @@ class AsyncHttpV2(AsyncHttpConnection):
                 self._responses.append(_Response(success_response, "SUCCESS"))
                 self._state = state_.done()
 
-        async def req_handler_pull_tx(
+        def req_handler_pull_tx(
             state_: _TxState, handler: ResponseHandler
         ) -> None:
             if state_.current_qid is None:
                 self._enqueue_failure(
                     handler,
                     "Neo.ClientError.Request.Invalid",
-                    f"Cannot PULL without running a query first",
+                    "Cannot PULL without running a query first",
                 )
                 return
             qid_ = qid
@@ -702,10 +653,7 @@ class AsyncHttpV2(AsyncHttpConnection):
             result.validate_consistent_hooks(
                 dehydration_hooks, hydration_hooks
             )
-            if n < 0:
-                to_pull = len(result.records_buffer)
-            else:
-                to_pull = n
+            to_pull = len(result.records_buffer) if n < 0 else n
             records = result.records_buffer[:to_pull]
             result.records_buffer = result.records_buffer[to_pull:]
             self._enqueue_records(handler, records)
@@ -903,7 +851,6 @@ class AsyncHttpV2(AsyncHttpConnection):
             self._responses.append(_Response(success_response, "SUCCESS"))
 
         self._requests.append(_Request(req_handler_rollback, "ROLLBACK"))
-        pass
 
     async def reset(
         self, dehydration_hooks=None, hydration_hooks=None
@@ -924,7 +871,7 @@ class AsyncHttpV2(AsyncHttpConnection):
 
         while self._requests:
             req = self._requests.popleft()
-            await req.handler()
+            await AsyncUtil.callback(req.handler)
 
     async def fetch_message(self) -> None:
         if self.closed():
@@ -940,7 +887,7 @@ class AsyncHttpV2(AsyncHttpConnection):
         if not self._responses:
             return
         res = self._responses.popleft()
-        await res.handler()
+        await AsyncUtil.callback(res.handler)
 
     async def fetch_all(self) -> None:
         while self._responses:
@@ -950,12 +897,10 @@ class AsyncHttpV2(AsyncHttpConnection):
         return self._defunct
 
     def closed(self) -> bool:
-        return self._query_api is None
+        return self._query_api.closed()
 
     async def close(self) -> None:
-        if self._query_api is not None:
-            await self._query_api.close()
-            self._query_api = None
+        await self._query_api.close()
 
     @property
     def is_reset(self) -> bool:
@@ -1050,21 +995,18 @@ class AsyncHttpV2(AsyncHttpConnection):
 
     def _handler(
         self,
-        handler: t.Callable[[], t.Awaitable[None]],
+        handler: _TAsyncFn | _TFn,
     ) -> t.Callable[[], t.Awaitable[None]]:
         async def inner() -> None:
             try:
-                await handler()
+                await AsyncUtil.callback(handler)
             except Exception as error:
                 user_cancelled = isinstance(error, asyncio.CancelledError)
                 protocol_error = isinstance(error, QueryApiHttpError)
                 connection_failed = isinstance(
                     error, AsyncHTTPQueryAPI.CONNECTION_ERRORS
                 )
-                if not user_cancelled:
-                    log_call = log.error
-                else:
-                    log_call = log.debug
+                log_call = log.debug if user_cancelled else log.error
                 message = "Failed to process Query API/HTTP request"
                 log_call(
                     "[#%04X]  _: Connection error: %r",
@@ -1196,8 +1138,7 @@ async def _get_auth_dict(
     if auth_manager is None:
         return {}
     auth = await AsyncUtil.callback(auth_manager.get_auth)
-    auth_dict = to_auth_dict(auth)
-    return auth_dict
+    return to_auth_dict(auth)
 
 
 def _auth_dict_to_header(
@@ -1279,15 +1220,14 @@ def _map_counters(counters_dict: dict) -> dict:
         }
     except KeyError as e:
         raise QueryApiHttpError(
-            f"Unexpected counter key in Query API/HTTP response"
+            "Unexpected counter key in Query API/HTTP response"
         ) from e
 
 
 def _map_profile(profile: dict) -> None:
     if "arguments" in profile:
         profile["args"] = profile.pop("arguments")
-    if "hasPageCacheStats" in profile:
-        del profile["hasPageCacheStats"]
+    profile.pop("hasPageCacheStats", None)
     if "records" in profile:
         profile["rows"] = profile.pop("records")
     children = profile.get("children")

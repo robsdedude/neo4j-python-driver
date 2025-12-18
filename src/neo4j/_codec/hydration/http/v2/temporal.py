@@ -229,7 +229,9 @@ def _dehydrate_zoned_datetime(
     else:
         offset = tz.utcoffset(value)
     if not isinstance(offset, datetime.timedelta):
-        raise ValueError("Unsupported: date time with unknown offset type")
+        raise TypeError(
+            f"Unsupported: date time with unknown offset type: {type(offset)}"
+        )
     tz_str = _format_tzinfo(offset, zone_name)
     value_str = value.isoformat()
     return make_value_dict("OffsetDateTime", f"{value_str}{tz_str}")

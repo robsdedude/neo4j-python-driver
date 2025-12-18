@@ -64,6 +64,7 @@ class GraphHydratorBolt(GraphHydrator):
 
 class HydrationScopeBolt(HydrationScope):
     _struct_hydration_functions: T_STRUCT_MAP_DICT
+    _graph_hydrator: GraphHydratorBolt
 
     def __init__(
         self,

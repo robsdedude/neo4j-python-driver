@@ -86,7 +86,7 @@ NEO4J_SERVER_URI = _LazyEvalFunc(
 )
 
 
-__all__ = (
+__all__ = [
     "NEO4J_EDITION",
     "NEO4J_HOST",
     "NEO4J_IS_CLUSTER",
@@ -96,4 +96,4 @@ __all__ = (
     "NEO4J_SERVER_URI",
     "NEO4J_USER",
     "NEO4J_VERSION",
-)
+]

@@ -27,11 +27,11 @@ from ..io import ConnectionErrorHandler
 from .result import Result
 
 
-__all__ = (
+__all__ = [
     "ManagedTransaction",
     "Transaction",
     "TransactionBase",
-)
+]
 
 
 class TransactionBase(NonConcurrentMethodChecker):

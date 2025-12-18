@@ -288,9 +288,8 @@ class GraphDatabase:
                 # TODO: preview warning on HTTP
                 preview_warn(
                     (
-                        "The Query API/HTTP support in the Neo4j Python driver "
-                        "is currently in preview. It may change or be removed "
-                        "in future releases."
+                        "The Query API/HTTP support in the Neo4j Python "
+                        "driver is currently in preview."
                     ),
                     stack_level=2,
                 )
@@ -1412,6 +1411,8 @@ class Neo4jDriver(_Routing, Driver):
 # TODO: flesh out docs
 class HttpDriver(_Http, Driver):
     """
+    TODO: docs.
+
     :class:`.HttpDriver` is instantiated for ``http`` URIs.
     """
 

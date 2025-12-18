@@ -27,11 +27,11 @@ from ..io import ConnectionErrorHandler
 from .result import AsyncResult
 
 
-__all__ = (
+__all__ = [
     "AsyncManagedTransaction",
     "AsyncTransaction",
     "AsyncTransactionBase",
-)
+]
 
 
 class AsyncTransactionBase(AsyncNonConcurrentMethodChecker):

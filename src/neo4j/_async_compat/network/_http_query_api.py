@@ -24,19 +24,19 @@ from logging import getLogger
 import aiohttp
 
 from ... import _typing as t
-from ..._addressing import Address
-from ..._async.config import AsyncPoolConfig
-from ..._deadline import Deadline
 from ..._exceptions import QueryApiHttpError
 from ..._meta import USER_AGENT
-from ..._sync.config import PoolConfig
 
 
 if t.TYPE_CHECKING:
+    from ..._addressing import Address
+    from ..._async.config import AsyncPoolConfig
     from ..._codec.hydration import (
         DehydrationHooks,
         T_TYPE_MAP_DICT,
     )
+    from ..._deadline import Deadline
+    from ..._sync.config import PoolConfig
 
 
 log = getLogger("neo4j.io")
@@ -122,6 +122,9 @@ class AsyncHTTPQueryAPI:
     async def close(self) -> None:
         await self._session.close()
 
+    def closed(self) -> bool:
+        return self._session.closed
+
     @classmethod
     async def shutdown(cls) -> None:
         if cls._config_cache is None:
@@ -181,11 +184,10 @@ class AsyncHTTPQueryAPI:
                 "Accept": "application/vnd.neo4j.query",
                 "Content-Type": "application/vnd.neo4j.query",
             }
-        if data is not _default:
-            if dehydration_hooks is not None:
-                transformer = dehydration_hooks.get_transformer(data)
-                if transformer is not None:
-                    data = transformer(data)
+        if data is not _default and dehydration_hooks is not None:
+            transformer = dehydration_hooks.get_transformer(data)
+            if transformer is not None:
+                data = transformer(data)
 
         res = await self._request(
             method,
@@ -288,6 +290,20 @@ class HTTPQueryAPI:
         hydration_hooks: T_TYPE_MAP_DICT,
         log_id: int,
     ) -> HTTPQueryAPIResponse:
+        raise NotImplementedError  # TODO
+
+    def discovery(
+        self,
+        *,
+        log_id: int,
+    ) -> HTTPQueryAPIResponse:
+        raise NotImplementedError  # TODO
+
+    def closed(self) -> bool:
+        raise NotImplementedError  # TODO
+
+    @classmethod
+    def shutdown(cls) -> None:
         raise NotImplementedError  # TODO
 
 

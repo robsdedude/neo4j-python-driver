@@ -57,7 +57,7 @@ from typing import (
 )
 
 
-__all__: tuple[str, ...] = (
+__all__: list[str] = [
     "TYPE_CHECKING",
     "Any",
     "AsyncIterator",
@@ -93,7 +93,7 @@ __all__: tuple[str, ...] = (
     "assert_never",
     "cast",
     "overload",
-)
+]
 
 
 _te_available = _find_spec("typing_extensions") is not None
@@ -107,7 +107,7 @@ if TYPE_CHECKING or _te_available:
     from typing_extensions import TypeVarTuple  # Python 3.11+
     from typing_extensions import Unpack  # Python 3.11+
 
-    __all__ = (  # noqa: PLE0604 false positive
+    __all__ = [  # noqa: PLE0604 false positive
         *__all__,
         "LiteralString",
         "Never",
@@ -115,7 +115,7 @@ if TYPE_CHECKING or _te_available:
         "NotRequired",
         "Unpack",
         "TypeVarTuple",
-    )
+    ]
 else:
 
     def assert_never(arg: Any, /) -> None:

@@ -27,8 +27,8 @@ from neo4j._async.io._bolt._bolt3 import AsyncBolt3
 from neo4j._meta import USER_AGENT
 from neo4j.exceptions import ConfigurationError
 
-from ...._async_compat import mark_async_test
-from ....iter_util import powerset
+from ....._async_compat import mark_async_test
+from .....iter_util import powerset
 
 
 @pytest.mark.parametrize("set_stale", (True, False))

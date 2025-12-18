@@ -253,17 +253,18 @@ class HydrationHandler(HydrationHandlerHttpBase):
         }
         self.dehydration_hooks.update(
             exact_values={
-                **{v: base_types.dehydrate_null for v in NONE_VALUES},
-                **{v: base_types.dehydrate_true for v in TRUE_VALUES},
-                **{v: base_types.dehydrate_false for v in FALSE_VALUES},
+                **dict.fromkeys(NONE_VALUES, base_types.dehydrate_null),
+                **dict.fromkeys(TRUE_VALUES, base_types.dehydrate_true),
+                **dict.fromkeys(FALSE_VALUES, base_types.dehydrate_false),
             },
             exact_types={
-                **{v: base_types.dehydrate_float for v in FLOAT_TYPES},
-                **{v: base_types.dehydrate_integer for v in INT_TYPES},
+                **dict.fromkeys(FLOAT_TYPES, base_types.dehydrate_float),
+                **dict.fromkeys(INT_TYPES, base_types.dehydrate_integer),
                 str: base_types.dehydrate_string,
-                **{v: base_types.dehydrate_byte_array for v in BYTES_TYPES},
-                **{v: self._dehydrate_sequence for v in SEQUENCE_TYPES},
-                **{v: self._dehydrate_mapping for v in MAPPING_TYPES},
+                **dict.fromkeys(BYTES_TYPES, base_types.dehydrate_byte_array),
+                **dict.fromkeys(BYTES_TYPES, base_types.dehydrate_byte_array),
+                **dict.fromkeys(SEQUENCE_TYPES, self._dehydrate_sequence),
+                **dict.fromkeys(MAPPING_TYPES, self._dehydrate_mapping),
                 Point: spatial.dehydrate_point,
                 CartesianPoint: spatial.dehydrate_point,
                 WGS84Point: spatial.dehydrate_point,
@@ -280,12 +281,12 @@ class HydrationHandler(HydrationHandlerHttpBase):
                 LiteralJsonRecursive: self._dehydrate_literal_json_recursive,
             },
             subtypes={
-                **{float: base_types.dehydrate_float},
-                **{int: base_types.dehydrate_integer},
+                float: base_types.dehydrate_float,
+                int: base_types.dehydrate_integer,
                 str: base_types.dehydrate_string,
-                **{v: base_types.dehydrate_byte_array for v in BYTES_TYPES},
-                **{v: self._dehydrate_sequence for v in SEQUENCE_TYPES},
-                **{v: self._dehydrate_mapping for v in MAPPING_TYPES},
+                **dict.fromkeys(BYTES_TYPES, base_types.dehydrate_byte_array),
+                **dict.fromkeys(SEQUENCE_TYPES, self._dehydrate_sequence),
+                **dict.fromkeys(MAPPING_TYPES, self._dehydrate_mapping),
             },
         )
         if np is not None:

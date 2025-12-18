@@ -22,7 +22,7 @@ from neo4j._codec.packstream.v1 import Unpacker
 from neo4j._exceptions import SocketDeadlineExceededError
 from neo4j._sync.io._bolt._common import Inbox
 
-from ....._async_compat import mark_sync_test
+from ......_async_compat import mark_sync_test
 
 
 class InboxMockHolder:

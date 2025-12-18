@@ -37,7 +37,7 @@ from neo4j.exceptions import (
     UnsupportedServerProduct,
 )
 
-from ...._async_compat import (
+from ....._async_compat import (
     AsyncTestDecorators,
     mark_async_test,
 )

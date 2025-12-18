@@ -89,7 +89,7 @@ def value_as_str(value: object) -> str:
         value.raw_data, str
     ):
         return value.raw_data
-    raise_protocol_error("string", value)
+    raise protocol_error("string", value)
 
 
 def value_as_list(value: object) -> list:
@@ -100,13 +100,13 @@ def value_as_list(value: object) -> list:
         value.raw_data, list
     ):
         return value.raw_data
-    raise_protocol_error("list", value)
+    raise protocol_error("list", value)
 
 
 def value_as_bool(value: object) -> bool:
     if isinstance(value, bool):
         return value
-    raise_protocol_error("bool", value)
+    raise protocol_error("bool", value)
 
 
 def value_as_int(value: object) -> int:
@@ -114,7 +114,7 @@ def value_as_int(value: object) -> int:
         return value
     if isinstance(value, float) and value.is_integer():
         return int(value)
-    raise_protocol_error("int", value)
+    raise protocol_error("int", value)
 
 
 def value_as_list_dict(value: object) -> list[dict]:
@@ -132,25 +132,25 @@ def value_as_list_str(value: object) -> list[str]:
     return list(map(value_as_str, value))
 
 
-def value_as_dict(value: object) -> dict:
+def value_as_dict(value: object) -> dict:  # false positive
     if isinstance(value, dict):
         return value
     if isinstance(value, BrokenHydrationObject) and isinstance(
         value.raw_data, dict
     ):
         return value.raw_data
-    raise_protocol_error("dict", value)
+    raise protocol_error("dict", value)
 
 
 def value_dict_key(value: dict, key: str) -> t.Any:
     try:
         return value[key]
     except KeyError:
-        raise_protocol_error(f"dict with key {key!r}", value)
+        raise protocol_error(f"dict with key {key!r}", value) from None
 
 
-def raise_protocol_error(expected_type: str, value: object) -> t.Never:
-    raise QueryApiHttpError(f"expected {expected_type}, got: {value!r}")
+def protocol_error(expected_type: str, value: object) -> Exception:
+    return QueryApiHttpError(f"expected {expected_type}, got: {value!r}")
 
 
 @dataclass

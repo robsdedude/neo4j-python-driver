@@ -20,7 +20,7 @@ import pytest
 
 from neo4j._async.io._bolt._common import ResetResponse
 
-from ....._async_compat import mark_async_test
+from ......_async_compat import mark_async_test
 
 
 def get_handler_arg(response):

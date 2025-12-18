@@ -23,15 +23,15 @@ from ._common import (
 
 
 if t.TYPE_CHECKING:
-    from ._common import T_TYPE_MAP_DICT
+    from ._common import T_TYPE_MAP_DICT  # noqa: F401  # false positive
 
 
 __all__ = [
-    "T_TYPE_MAP_DICT",
     "BrokenHydrationObject",
     "DehydrationHooks",
     "HydrationScope",
 ]
+
 
 if t.TYPE_CHECKING:
     __all__.extend(("T_TYPE_MAP_DICT",))

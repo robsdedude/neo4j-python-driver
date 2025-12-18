@@ -29,7 +29,7 @@ from neo4j._conf import WorkspaceConfig
 from neo4j.auth_management import AsyncAuthManagers
 from neo4j.exceptions import ConnectionAcquisitionTimeoutError
 
-from ...._async_compat import mark_async_test
+from ....._async_compat import mark_async_test
 
 
 SERVER1_ADDRESS = ResolvedAddress(("1.2.3.1", 9000), host_name="host")

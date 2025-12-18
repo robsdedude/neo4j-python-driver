@@ -29,8 +29,8 @@ from neo4j._meta import (
 )
 from neo4j.exceptions import Neo4jError
 
-from ...._async_compat import mark_async_test
-from ....iter_util import powerset
+from ....._async_compat import mark_async_test
+from .....iter_util import powerset
 
 
 @pytest.mark.parametrize("set_stale", (True, False))

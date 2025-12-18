@@ -25,8 +25,8 @@ from neo4j._meta import USER_AGENT
 from neo4j._sync.config import PoolConfig
 from neo4j._sync.io._bolt._bolt5 import Bolt5x2
 
-from ...._async_compat import mark_sync_test
-from ....iter_util import powerset
+from ....._async_compat import mark_sync_test
+from .....iter_util import powerset
 
 
 @pytest.mark.parametrize("set_stale", (True, False))

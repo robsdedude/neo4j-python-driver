@@ -23,8 +23,14 @@ import pytest
 import pytz
 
 from neo4j import Record
-from neo4j._codec.hydration import BrokenHydrationObject
-from neo4j._codec.hydration.v1 import HydrationHandler
+from neo4j._codec.hydration import (
+    BrokenHydrationObject,
+    HydrationScope,
+)
+from neo4j._codec.hydration.bolt.v1.hydration_handler import (
+    _GraphHydrator,
+    HydrationHandler,
+)
 from neo4j.exceptions import BrokenRecordError
 from neo4j.graph import (
     Graph,
@@ -528,8 +534,7 @@ def test_data(raw, keys, serialized) -> None:
 
 
 def test_data_relationship() -> None:
-    hydration_scope = HydrationHandler().new_hydration_scope()
-    gh = hydration_scope._graph_hydrator
+    _, gh = get_graph_hydrator()
     alice = gh.hydrate_node(1, {"Person"}, {"name": "Alice", "age": 33})
     bob = gh.hydrate_node(2, {"Person"}, {"name": "Bob", "age": 44})
     alice_knows_bob = gh.hydrate_relationship(
@@ -550,8 +555,7 @@ def test_data_relationship() -> None:
 
 
 def test_data_unbound_relationship() -> None:
-    hydration_scope = HydrationHandler().new_hydration_scope()
-    gh = hydration_scope._graph_hydrator
+    _, gh = get_graph_hydrator()
     some_one_knows_some_one = gh.hydrate_relationship(
         1, 42, 43, "KNOWS", {"since": 1999}
     )
@@ -561,8 +565,7 @@ def test_data_unbound_relationship() -> None:
 
 @pytest.mark.parametrize("cyclic", (True, False))
 def test_data_path(cyclic) -> None:
-    hydration_scope = HydrationHandler().new_hydration_scope()
-    gh = hydration_scope._graph_hydrator
+    _, gh = get_graph_hydrator()
     alice = gh.hydrate_node(1, {"Person"}, {"name": "Alice", "age": 33})
     bob = gh.hydrate_node(2, {"Person"}, {"name": "Bob", "age": 44})
     if cyclic:
@@ -656,3 +659,10 @@ def test_record_with_error(accessor, should_raise) -> None:
     assert exc_value.__cause__ is not None
     assert exc_value.__cause__ is exc
     assert list(traceback.walk_tb(exc_value.__cause__.__traceback__)) == frames
+
+
+def get_graph_hydrator() -> tuple[HydrationScope, _GraphHydrator]:
+    hydration_scope = HydrationHandler().new_hydration_scope()
+    gh = hydration_scope._graph_hydrator
+    assert isinstance(gh, _GraphHydrator)
+    return hydration_scope, gh

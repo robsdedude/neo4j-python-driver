@@ -289,9 +289,8 @@ class AsyncGraphDatabase:
                 # TODO: preview warning on HTTP
                 preview_warn(
                     (
-                        "The Query API/HTTP support in the Neo4j Python driver "
-                        "is currently in preview. It may change or be removed "
-                        "in future releases."
+                        "The Query API/HTTP support in the Neo4j Python "
+                        "driver is currently in preview."
                     ),
                     stack_level=2,
                 )
@@ -1413,6 +1412,8 @@ class AsyncNeo4jDriver(_Routing, AsyncDriver):
 # TODO: flesh out docs
 class AsyncHttpDriver(_Http, AsyncDriver):
     """
+    TODO: docs.
+
     :class:`.AsyncHttpDriver` is instantiated for ``http`` URIs.
     """
 

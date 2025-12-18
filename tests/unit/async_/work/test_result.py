@@ -40,7 +40,7 @@ from neo4j import (
     time as neo4j_time,
 )
 from neo4j._async_compat.util import AsyncUtil
-from neo4j._codec.hydration.v1 import HydrationHandler
+from neo4j._codec.hydration.bolt.v1 import HydrationHandler
 from neo4j._codec.packstream import Structure
 from neo4j._data import (
     Node,

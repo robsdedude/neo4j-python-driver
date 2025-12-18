@@ -603,15 +603,14 @@ class Bolt(Connection):
                 f"{self.unresolved_address!r} ({self.server_info.address!r})"
             )
         if not self.responses:
-            return 0, 0
+            return
 
         # Receive exactly one message
         tag, fields = self.inbox.pop(
             hydration_hooks=self.responses[0].hydration_hooks
         )
-        res = self._process_message(tag, fields)
+        self._process_message(tag, fields)
         self.idle_since = monotonic()
-        return res
 
     def fetch_all(self):
         """
@@ -620,14 +619,10 @@ class Bolt(Connection):
         :returns: 2-tuple of number of detail messages and number of summary
                  messages fetched
         """
-        detail_count = summary_count = 0
         while not self._closed and self.responses:
             response = self.responses[0]
             while not response.complete:
-                detail_delta, summary_delta = self.fetch_message()
-                detail_count += detail_delta
-                summary_count += summary_delta
-        return detail_count, summary_count
+                self.fetch_message()
 
     def _set_defunct_read(self, error=None, silent=False):
         message = (
