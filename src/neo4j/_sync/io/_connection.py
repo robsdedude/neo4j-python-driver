@@ -22,28 +22,12 @@ from ... import _typing as t
 
 
 if t.TYPE_CHECKING:
-    from ..._addressing import Address
     from ..._api import TelemetryAPI
     from ..._auth_management import AuthManager
     from ..._codec.hydration import HydrationScope
-    from ..._deadline import Deadline
-    from ..config import PoolConfig
 
 
 class Connection(abc.ABC):
-    @classmethod
-    @abc.abstractmethod
-    def open(
-        cls,
-        address: Address,
-        *,
-        auth_manager: AuthManager | AuthManager,
-        deadline: Deadline,
-        routing_context: dict[str, str] | None,
-        pool_config: PoolConfig | None,
-    ) -> t.Self:
-        raise NotImplementedError
-
     @property
     @abc.abstractmethod
     def auth_manager(self) -> AuthManager | AuthManager | None:

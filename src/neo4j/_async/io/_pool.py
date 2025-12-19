@@ -34,11 +34,16 @@ from random import choice
 from ... import _typing as t
 from ..._api import check_access_mode
 from ..._async_compat.concurrency import (
+    async_acquire_bounded_semaphore,
+    AsyncBoundedSemaphore,
     AsyncCondition,
     AsyncCooperativeRLock,
     AsyncRLock,
 )
-from ..._async_compat.network import AsyncNetworkUtil
+from ..._async_compat.network import (
+    AsyncHTTPQueryAPIFactory,
+    AsyncNetworkUtil,
+)
 from ..._async_compat.util import AsyncUtil
 from ..._conf import WorkspaceConfig
 from ..._deadline import (
@@ -1370,6 +1375,23 @@ class AsyncRoutedBoltPool(AsyncBoltPool):
 
 
 class AsyncHttpV2Pool(AsyncIOPool[AsyncHttpConnection]):
+    _async_http_query_api_factory: AsyncHTTPQueryAPIFactory
+    _semaphore: AsyncBoundedSemaphore
+
+    def __init__(
+        self,
+        opener: _TOpener[AsyncHttpConnection],
+        pool_config: AsyncPoolConfig,
+        workspace_config: WorkspaceConfig,
+        address: Address,
+        async_http_query_api_factory: AsyncHTTPQueryAPIFactory,
+    ) -> None:
+        super().__init__(opener, pool_config, workspace_config, address)
+        self._async_http_query_api_factory = async_http_query_api_factory
+        self._semaphore = AsyncBoundedSemaphore(
+            pool_config.max_connection_pool_size
+        )
+
     @property
     def is_direct_pool(self) -> bool:
         return True
@@ -1385,17 +1407,18 @@ class AsyncHttpV2Pool(AsyncIOPool[AsyncHttpConnection]):
         async def opener(
             addr: Address,
             auth_manager: AsyncAuthManager | AuthManager,
-            deadline,
+            deadline_,
         ) -> AsyncHttpConnection:
             return await AsyncHttpConnection.open(
+                pool._async_http_query_api_factory,
                 addr,
                 auth_manager=auth_manager,
-                deadline=deadline,
                 routing_context=None,
                 pool_config=pool_config,
             )
 
-        pool = cls(opener, pool_config, workspace_config, address)
+        api_factory = AsyncHTTPQueryAPIFactory()
+        pool = cls(opener, pool_config, workspace_config, address, api_factory)
         log.debug(
             "[#0000]  _: <POOL> created, Query API/HTTP address %r", address
         )
@@ -1418,14 +1441,23 @@ class AsyncHttpV2Pool(AsyncIOPool[AsyncHttpConnection]):
     ) -> AsyncHttpConnection:
         check_access_mode(access_mode)
         deadline = acquisition_timeout_to_deadline(timeout)
+        timeout = deadline.to_timeout()
         if auth is None:
             auth = AcquisitionAuth(None)
         force_auth = auth.force_auth
         auth_manager = auth.auth or self.pool_config.auth
-        connection = await self.opener(self.address, auth_manager, deadline)
-        if unprepared and (liveness_check_timeout == 0 or force_auth):
-            await self._ping(connection)
-        return connection
+
+        await async_acquire_bounded_semaphore(self._semaphore, timeout)
+        try:
+            connection = await self.opener(
+                self.address, auth_manager, deadline
+            )
+            if unprepared and (liveness_check_timeout == 0 or force_auth):
+                await self._ping(connection)
+            return connection
+        except BaseException:
+            self._semaphore.release()
+            raise
 
     @staticmethod
     async def _ping(connection: AsyncHttpConnection):
@@ -1436,6 +1468,7 @@ class AsyncHttpV2Pool(AsyncIOPool[AsyncHttpConnection]):
             db=SYSTEM_DATABASE,
             dehydration_hooks=hydration_scope.dehydration_hooks,
             hydration_hooks=hydration_scope.hydration_hooks,
+            no_metadata=True,
         )
         connection.discard(
             dehydration_hooks=hydration_scope.dehydration_hooks,
@@ -1454,9 +1487,10 @@ class AsyncHttpV2Pool(AsyncIOPool[AsyncHttpConnection]):
                 connection.connection_id,
             )
             await connection.close()
+            self._semaphore.release()
 
     async def close(self) -> None:
-        await AsyncHttpConnection.shutdown()
+        await self._async_http_query_api_factory.shutdown()
 
 
 def acquisition_timeout_to_deadline(timeout: object) -> Deadline:

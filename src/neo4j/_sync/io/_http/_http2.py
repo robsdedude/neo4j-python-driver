@@ -291,6 +291,7 @@ class HttpV2(HttpConnection):
         notifications_disabled_classifications=None,
         dehydration_hooks=None,
         hydration_hooks=None,
+        no_metadata=False,
         **handlers,
     ) -> None:
         self._validate_notification_filters(
@@ -323,11 +324,10 @@ class HttpV2(HttpConnection):
         ) -> None:
             self._validate_db(db)
             req_data: LiteralJson[dict[str, t.Any]] = LiteralJson(
-                {
-                    "statement": LiteralJson(str(query)),
-                    "includeCounters": LiteralJson(True),
-                }
+                {"statement": LiteralJson(str(query))}
             )
+            if not no_metadata:
+                req_data.value["includeCounters"] = LiteralJson(True)
             if mode in {READ_ACCESS, "r"}:
                 req_data.value["accessMode"] = LiteralJson("Read")
             if bookmarks:
@@ -342,7 +342,7 @@ class HttpV2(HttpConnection):
                 )
             res = self._query_api.request(
                 HTTPVerb.POST,
-                f"db/{db}/query/v2",
+                f"/db/{db}/query/v2",
                 data=req_data,
                 headers=self._auth_header,
                 dehydration_hooks=dehydration_hooks,
@@ -385,11 +385,10 @@ class HttpV2(HttpConnection):
                         f"Driver must not set {name} on tx run requests"
                     )
             req_data: LiteralJson[dict[str, t.Any]] = LiteralJson(
-                {
-                    "statement": LiteralJson(str(query)),
-                    "includeCounters": LiteralJson(True),
-                }
+                {"statement": LiteralJson(str(query))}
             )
+            if not no_metadata:
+                req_data.value["includeCounters"] = LiteralJson(True)
             if parameters:
                 req_data.value["parameters"] = LiteralJson(parameters)
             headers = self._auth_header
@@ -397,7 +396,7 @@ class HttpV2(HttpConnection):
                 headers |= {"neo4j-cluster-affinity": state_.affinity}
             res = self._query_api.request(
                 HTTPVerb.POST,
-                f"db/{state_.db}/query/v2/tx/{state_.tx_id}",
+                f"/db/{state_.db}/query/v2/tx/{state_.tx_id}",
                 data=req_data,
                 headers=headers,
                 dehydration_hooks=dehydration_hooks,
@@ -739,7 +738,7 @@ class HttpV2(HttpConnection):
                 )
             res = self._query_api.request(
                 HTTPVerb.POST,
-                f"db/{db}/query/v2/tx",
+                f"/db/{db}/query/v2/tx",
                 data=req_data,
                 headers=self._auth_header,
                 dehydration_hooks=dehydration_hooks,
@@ -784,7 +783,7 @@ class HttpV2(HttpConnection):
                 headers |= {"neo4j-cluster-affinity": state.affinity}
             res = self._query_api.request(
                 HTTPVerb.POST,
-                f"db/{state.db}/query/v2/tx/{state.tx_id}/commit",
+                f"/db/{state.db}/query/v2/tx/{state.tx_id}/commit",
                 headers=self._auth_header,
                 dehydration_hooks=dehydration_hooks,
                 hydration_hooks=hydration_hooks,
@@ -831,7 +830,7 @@ class HttpV2(HttpConnection):
                 headers |= {"neo4j-cluster-affinity": state.affinity}
             res = self._query_api.request(
                 HTTPVerb.POST,
-                f"db/{state.db}/query/v2/tx/{state.tx_id}/rollback",
+                f"/db/{state.db}/query/v2/tx/{state.tx_id}/rollback",
                 headers=self._auth_header,
                 dehydration_hooks=dehydration_hooks,
                 hydration_hooks=hydration_hooks,

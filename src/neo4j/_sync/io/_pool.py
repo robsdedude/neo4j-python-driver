@@ -34,11 +34,16 @@ from random import choice
 from ... import _typing as t
 from ..._api import check_access_mode
 from ..._async_compat.concurrency import (
+    acquire_bounded_semaphore,
+    BoundedSemaphore,
     Condition,
     CooperativeRLock,
     RLock,
 )
-from ..._async_compat.network import NetworkUtil
+from ..._async_compat.network import (
+    HTTPQueryAPIFactory,
+    NetworkUtil,
+)
 from ..._async_compat.util import Util
 from ..._conf import WorkspaceConfig
 from ..._deadline import (
@@ -1367,6 +1372,23 @@ class RoutedBoltPool(BoltPool):
 
 
 class HttpV2Pool(IOPool[HttpConnection]):
+    _async_http_query_api_factory: HTTPQueryAPIFactory
+    _semaphore: BoundedSemaphore
+
+    def __init__(
+        self,
+        opener: _TOpener[HttpConnection],
+        pool_config: PoolConfig,
+        workspace_config: WorkspaceConfig,
+        address: Address,
+        http_query_api_factory: HTTPQueryAPIFactory,
+    ) -> None:
+        super().__init__(opener, pool_config, workspace_config, address)
+        self._async_http_query_api_factory = http_query_api_factory
+        self._semaphore = BoundedSemaphore(
+            pool_config.max_connection_pool_size
+        )
+
     @property
     def is_direct_pool(self) -> bool:
         return True
@@ -1382,17 +1404,18 @@ class HttpV2Pool(IOPool[HttpConnection]):
         def opener(
             addr: Address,
             auth_manager: AuthManager | AuthManager,
-            deadline,
+            deadline_,
         ) -> HttpConnection:
             return HttpConnection.open(
+                pool._async_http_query_api_factory,
                 addr,
                 auth_manager=auth_manager,
-                deadline=deadline,
                 routing_context=None,
                 pool_config=pool_config,
             )
 
-        pool = cls(opener, pool_config, workspace_config, address)
+        api_factory = HTTPQueryAPIFactory()
+        pool = cls(opener, pool_config, workspace_config, address, api_factory)
         log.debug(
             "[#0000]  _: <POOL> created, Query API/HTTP address %r", address
         )
@@ -1415,14 +1438,23 @@ class HttpV2Pool(IOPool[HttpConnection]):
     ) -> HttpConnection:
         check_access_mode(access_mode)
         deadline = acquisition_timeout_to_deadline(timeout)
+        timeout = deadline.to_timeout()
         if auth is None:
             auth = AcquisitionAuth(None)
         force_auth = auth.force_auth
         auth_manager = auth.auth or self.pool_config.auth
-        connection = self.opener(self.address, auth_manager, deadline)
-        if unprepared and (liveness_check_timeout == 0 or force_auth):
-            self._ping(connection)
-        return connection
+
+        acquire_bounded_semaphore(self._semaphore, timeout)
+        try:
+            connection = self.opener(
+                self.address, auth_manager, deadline
+            )
+            if unprepared and (liveness_check_timeout == 0 or force_auth):
+                self._ping(connection)
+            return connection
+        except BaseException:
+            self._semaphore.release()
+            raise
 
     @staticmethod
     def _ping(connection: HttpConnection):
@@ -1433,6 +1465,7 @@ class HttpV2Pool(IOPool[HttpConnection]):
             db=SYSTEM_DATABASE,
             dehydration_hooks=hydration_scope.dehydration_hooks,
             hydration_hooks=hydration_scope.hydration_hooks,
+            no_metadata=True,
         )
         connection.discard(
             dehydration_hooks=hydration_scope.dehydration_hooks,
@@ -1451,9 +1484,10 @@ class HttpV2Pool(IOPool[HttpConnection]):
                 connection.connection_id,
             )
             connection.close()
+            self._semaphore.release()
 
     def close(self) -> None:
-        HttpConnection.shutdown()
+        self._async_http_query_api_factory.shutdown()
 
 
 def acquisition_timeout_to_deadline(timeout: object) -> Deadline:

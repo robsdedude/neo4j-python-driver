@@ -19,9 +19,7 @@ from __future__ import annotations
 import abc
 
 from .... import _typing as t
-from ...._addressing import Address
 from ...._async_compat.concurrency import AsyncCooperativeLock
-from ...._async_compat.network import AsyncHTTPQueryAPI
 from ...._async_compat.util import AsyncUtil
 from ...config import AsyncPoolConfig
 from .._connection import AsyncConnection
@@ -29,11 +27,11 @@ from .._connection import AsyncConnection
 
 if t.TYPE_CHECKING:
     from ...._addressing import Address
+    from ...._async_compat.network import AsyncHTTPQueryAPIFactory
     from ...._auth_management import (
         AsyncAuthManager,
         AuthManager,
     )
-    from ...._deadline import Deadline
 
 
 class IdGenerator:
@@ -57,10 +55,10 @@ class AsyncHttpConnection(AsyncConnection, abc.ABC):
     @classmethod
     async def open(
         cls,
+        factory: AsyncHTTPQueryAPIFactory,
         address: Address,
         *,
         auth_manager: AsyncAuthManager | AuthManager,
-        deadline: Deadline,
         routing_context: dict[str, str] | None,
         pool_config: AsyncPoolConfig | None,
     ) -> AsyncHttpConnection:
@@ -68,10 +66,9 @@ class AsyncHttpConnection(AsyncConnection, abc.ABC):
         if pool_config is None:
             pool_config = AsyncPoolConfig()
         auth = await AsyncUtil.callback(auth_manager.get_auth)
-        query_api = await AsyncHTTPQueryAPI.open(
+        query_api = await factory.new_http_query_api(
             address,
             pool_config=pool_config,
-            deadline=deadline,
         )
         id_ = await cls._id_generator.next_id()
 
@@ -105,7 +102,3 @@ class AsyncHttpConnection(AsyncConnection, abc.ABC):
     @abc.abstractmethod
     def connection_id(self) -> int:
         raise NotImplementedError
-
-    @classmethod
-    async def shutdown(cls) -> None:
-        await AsyncHTTPQueryAPI.shutdown()

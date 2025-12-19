@@ -19,9 +19,7 @@ from __future__ import annotations
 import abc
 
 from .... import _typing as t
-from ...._addressing import Address
 from ...._async_compat.concurrency import CooperativeLock
-from ...._async_compat.network import HTTPQueryAPI
 from ...._async_compat.util import Util
 from ...config import PoolConfig
 from .._connection import Connection
@@ -29,8 +27,8 @@ from .._connection import Connection
 
 if t.TYPE_CHECKING:
     from ...._addressing import Address
+    from ...._async_compat.network import HTTPQueryAPIFactory
     from ...._auth_management import AuthManager
-    from ...._deadline import Deadline
 
 
 class IdGenerator:
@@ -54,10 +52,10 @@ class HttpConnection(Connection, abc.ABC):
     @classmethod
     def open(
         cls,
+        factory: HTTPQueryAPIFactory,
         address: Address,
         *,
         auth_manager: AuthManager | AuthManager,
-        deadline: Deadline,
         routing_context: dict[str, str] | None,
         pool_config: PoolConfig | None,
     ) -> HttpConnection:
@@ -65,10 +63,9 @@ class HttpConnection(Connection, abc.ABC):
         if pool_config is None:
             pool_config = PoolConfig()
         auth = Util.callback(auth_manager.get_auth)
-        query_api = HTTPQueryAPI.open(
+        query_api = factory.new_http_query_api(
             address,
             pool_config=pool_config,
-            deadline=deadline,
         )
         id_ = cls._id_generator.next_id()
 
@@ -102,7 +99,3 @@ class HttpConnection(Connection, abc.ABC):
     @abc.abstractmethod
     def connection_id(self) -> int:
         raise NotImplementedError
-
-    @classmethod
-    def shutdown(cls) -> None:
-        HTTPQueryAPI.shutdown()

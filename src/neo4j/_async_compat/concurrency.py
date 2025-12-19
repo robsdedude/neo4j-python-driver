@@ -26,11 +26,13 @@ from .shims import wait_for
 
 
 __all__ = [
+    "AsyncBoundedSemaphore",
     "AsyncCondition",
     "AsyncCooperativeLock",
     "AsyncCooperativeRLock",
     "AsyncLock",
     "AsyncRLock",
+    "BoundedSemaphore",
     "Condition",
     "CooperativeLock",
     "CooperativeRLock",
@@ -475,8 +477,24 @@ class AsyncCondition:
         self.notify(len(self._waiters))
 
 
+AsyncBoundedSemaphore: t.TypeAlias = asyncio.BoundedSemaphore
+
+
+async def async_acquire_bounded_semaphore(
+    semaphore: AsyncBoundedSemaphore, timeout: float | None = None
+) -> None:
+    await wait_for(semaphore.acquire(), timeout=timeout)
+
+
 Condition: t.TypeAlias = threading.Condition
 CooperativeLock: t.TypeAlias = threading.Lock
 Lock: t.TypeAlias = threading.Lock
 CooperativeRLock: t.TypeAlias = threading.RLock
 RLock: t.TypeAlias = threading.RLock
+BoundedSemaphore: t.TypeAlias = threading.BoundedSemaphore
+
+
+def acquire_bounded_semaphore(
+    semaphore: BoundedSemaphore, timeout: float | None = None
+) -> None:
+    semaphore.acquire(timeout=timeout)

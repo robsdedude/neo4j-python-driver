@@ -22,31 +22,15 @@ from ... import _typing as t
 
 
 if t.TYPE_CHECKING:
-    from ..._addressing import Address
     from ..._api import TelemetryAPI
     from ..._auth_management import (
         AsyncAuthManager,
         AuthManager,
     )
     from ..._codec.hydration import HydrationScope
-    from ..._deadline import Deadline
-    from ..config import AsyncPoolConfig
 
 
 class AsyncConnection(abc.ABC):
-    @classmethod
-    @abc.abstractmethod
-    async def open(
-        cls,
-        address: Address,
-        *,
-        auth_manager: AsyncAuthManager | AuthManager,
-        deadline: Deadline,
-        routing_context: dict[str, str] | None,
-        pool_config: AsyncPoolConfig | None,
-    ) -> t.Self:
-        raise NotImplementedError
-
     @property
     @abc.abstractmethod
     def auth_manager(self) -> AsyncAuthManager | AuthManager | None:
