@@ -207,6 +207,7 @@ def dehydrate_datetime(value):
 if np is not None:
     _NP_YEAR_MAX = np.datetime64(MAX_YEAR + 1 - 1970, "Y")
     _NP_YEAR_MIN = np.datetime64(MIN_YEAR - 1970, "Y")
+    _NP_YEAR_DTYPE = np.dtype("datetime64[Y]")
 
     def dehydrate_np_datetime(value):
         """
@@ -218,7 +219,7 @@ if np is not None:
         """
         if np.isnat(value):
             return None
-        if not _NP_YEAR_MIN <= value < _NP_YEAR_MAX:
+        if not _NP_YEAR_MIN <= value.astype(_NP_YEAR_DTYPE) < _NP_YEAR_MAX:
             # while we could encode years outside the range, they would fail
             # when retrieved from the database.
             raise ValueError(

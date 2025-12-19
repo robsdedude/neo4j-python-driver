@@ -29,6 +29,7 @@ from neo4j._async.io._bolt._common import (
     ResetResponse,
     Response,
 )
+from neo4j._deadline import Deadline
 from neo4j._exceptions import SocketDeadlineExceededError
 from neo4j.exceptions import (
     IncompleteCommit,
@@ -114,12 +115,12 @@ async def test_cancel_hello_in_open(mocker, none_auth):
     socket_mock = mocker.AsyncMock(spec=AsyncBoltSocket)
 
     socket_cls_mock = mocker.patch(
-        "neo4j._async.io._bolt.AsyncBoltSocket", autospec=True
+        "neo4j._async.io._bolt._base.AsyncBoltSocket", autospec=True
     )
     socket_cls_mock.connect.return_value = (socket_mock, (5, 0))
     socket_mock.getpeername.return_value = address
     bolt_cls_mock = mocker.patch(
-        "neo4j._async.io._bolt5.AsyncBolt5x0", autospec=True
+        "neo4j._async.io._bolt._bolt5.AsyncBolt5x0", autospec=True
     )
     bolt_mock = bolt_cls_mock.return_value
     bolt_mock.socket = socket_mock
@@ -131,7 +132,13 @@ async def test_cancel_hello_in_open(mocker, none_auth):
     )
 
     with pytest.raises(asyncio.CancelledError):
-        await AsyncBolt.open(address, auth_manager=none_auth)
+        await AsyncBolt.open(
+            neo4j.Address(address),
+            auth_manager=none_auth,
+            deadline=Deadline(None),
+            routing_context=None,
+            pool_config=None,
+        )
 
     bolt_mock.kill.assert_called_once_with()
 
@@ -172,22 +179,22 @@ async def test_set_write_timeout(mocker, none_auth):
 @pytest.mark.parametrize(
     ("bolt_version", "bolt_cls_path"),
     (
-        ((3, 0), "neo4j._async.io._bolt3.AsyncBolt3"),
-        ((4, 0), "neo4j._async.io._bolt4.AsyncBolt4x0"),
-        ((4, 1), "neo4j._async.io._bolt4.AsyncBolt4x1"),
-        ((4, 2), "neo4j._async.io._bolt4.AsyncBolt4x2"),
-        ((4, 3), "neo4j._async.io._bolt4.AsyncBolt4x3"),
-        ((4, 4), "neo4j._async.io._bolt4.AsyncBolt4x4"),
-        ((5, 0), "neo4j._async.io._bolt5.AsyncBolt5x0"),
-        ((5, 1), "neo4j._async.io._bolt5.AsyncBolt5x1"),
-        ((5, 2), "neo4j._async.io._bolt5.AsyncBolt5x2"),
-        ((5, 3), "neo4j._async.io._bolt5.AsyncBolt5x3"),
-        ((5, 4), "neo4j._async.io._bolt5.AsyncBolt5x4"),
-        ((5, 5), "neo4j._async.io._bolt5.AsyncBolt5x5"),
-        ((5, 6), "neo4j._async.io._bolt5.AsyncBolt5x6"),
-        ((5, 7), "neo4j._async.io._bolt5.AsyncBolt5x7"),
-        ((5, 8), "neo4j._async.io._bolt5.AsyncBolt5x8"),
-        ((6, 0), "neo4j._async.io._bolt6.AsyncBolt6x0"),
+        ((3, 0), "neo4j._async.io._bolt._bolt3.AsyncBolt3"),
+        ((4, 0), "neo4j._async.io._bolt._bolt4.AsyncBolt4x0"),
+        ((4, 1), "neo4j._async.io._bolt._bolt4.AsyncBolt4x1"),
+        ((4, 2), "neo4j._async.io._bolt._bolt4.AsyncBolt4x2"),
+        ((4, 3), "neo4j._async.io._bolt._bolt4.AsyncBolt4x3"),
+        ((4, 4), "neo4j._async.io._bolt._bolt4.AsyncBolt4x4"),
+        ((5, 0), "neo4j._async.io._bolt._bolt5.AsyncBolt5x0"),
+        ((5, 1), "neo4j._async.io._bolt._bolt5.AsyncBolt5x1"),
+        ((5, 2), "neo4j._async.io._bolt._bolt5.AsyncBolt5x2"),
+        ((5, 3), "neo4j._async.io._bolt._bolt5.AsyncBolt5x3"),
+        ((5, 4), "neo4j._async.io._bolt._bolt5.AsyncBolt5x4"),
+        ((5, 5), "neo4j._async.io._bolt._bolt5.AsyncBolt5x5"),
+        ((5, 6), "neo4j._async.io._bolt._bolt5.AsyncBolt5x6"),
+        ((5, 7), "neo4j._async.io._bolt._bolt5.AsyncBolt5x7"),
+        ((5, 8), "neo4j._async.io._bolt._bolt5.AsyncBolt5x8"),
+        ((6, 0), "neo4j._async.io._bolt._bolt6.AsyncBolt6x0"),
     ),
 )
 @mark_async_test
@@ -198,7 +205,7 @@ async def test_version_negotiation(
     socket_mock = mocker.AsyncMock(spec=AsyncBoltSocket)
 
     socket_cls_mock = mocker.patch(
-        "neo4j._async.io._bolt.AsyncBoltSocket", autospec=True
+        "neo4j._async.io._bolt._base.AsyncBoltSocket", autospec=True
     )
     socket_cls_mock.connect.return_value = (socket_mock, bolt_version)
     socket_mock.getpeername.return_value = address
@@ -211,7 +218,13 @@ async def test_version_negotiation(
         {bolt_version: bolt_cls_mock},
     )
 
-    connection = await AsyncBolt.open(address, auth_manager=none_auth)
+    connection = await AsyncBolt.open(
+        neo4j.Address(address),
+        auth_manager=none_auth,
+        deadline=Deadline(None),
+        routing_context=None,
+        pool_config=None,
+    )
 
     bolt_cls_mock.assert_called_once()
     assert connection is bolt_mock
@@ -243,13 +256,19 @@ async def test_failing_version_negotiation(mocker, bolt_version, none_auth):
     socket_mock = mocker.AsyncMock(spec=AsyncBoltSocket)
 
     socket_cls_mock = mocker.patch(
-        "neo4j._async.io._bolt.AsyncBoltSocket", autospec=True
+        "neo4j._async.io._bolt._base.AsyncBoltSocket", autospec=True
     )
     socket_cls_mock.connect.return_value = (socket_mock, bolt_version)
     socket_mock.getpeername.return_value = address
 
     with pytest.raises(UnsupportedServerProduct) as exc:
-        await AsyncBolt.open(address, auth_manager=none_auth)
+        await AsyncBolt.open(
+            neo4j.Address(address),
+            auth_manager=none_auth,
+            deadline=Deadline(None),
+            routing_context=None,
+            pool_config=None,
+        )
 
     assert exc.match(supported_protocols)
 
@@ -260,7 +279,7 @@ async def test_cancel_auth_manager_in_open(mocker):
     socket_mock = mocker.AsyncMock(spec=AsyncBoltSocket)
 
     socket_cls_mock = mocker.patch(
-        "neo4j._async.io._bolt.AsyncBoltSocket", autospec=True
+        "neo4j._async.io._bolt._base.AsyncBoltSocket", autospec=True
     )
     socket_cls_mock.connect.return_value = (socket_mock, (5, 0))
     socket_mock.getpeername.return_value = address
@@ -271,7 +290,13 @@ async def test_cancel_auth_manager_in_open(mocker):
     auth_manager.get_auth.side_effect = asyncio.CancelledError()
 
     with pytest.raises(asyncio.CancelledError):
-        await AsyncBolt.open(address, auth_manager=auth_manager)
+        await AsyncBolt.open(
+            neo4j.Address(address),
+            auth_manager=auth_manager,
+            deadline=Deadline(None),
+            routing_context=None,
+            pool_config=None,
+        )
 
     socket_mock.kill.assert_called_once_with()
 
@@ -282,7 +307,7 @@ async def test_fail_auth_manager_in_open(mocker):
     socket_mock = mocker.AsyncMock(spec=AsyncBoltSocket)
 
     socket_cls_mock = mocker.patch(
-        "neo4j._async.io._bolt.AsyncBoltSocket", autospec=True
+        "neo4j._async.io._bolt._base.AsyncBoltSocket", autospec=True
     )
     socket_cls_mock.connect.return_value = (socket_mock, (5, 0))
     socket_mock.getpeername.return_value = address
@@ -293,7 +318,13 @@ async def test_fail_auth_manager_in_open(mocker):
     auth_manager.get_auth.side_effect = RuntimeError("token fetching failed")
 
     with pytest.raises(RuntimeError) as exc:
-        await AsyncBolt.open(address, auth_manager=auth_manager)
+        await AsyncBolt.open(
+            neo4j.Address(address),
+            auth_manager=auth_manager,
+            deadline=Deadline(None),
+            routing_context=None,
+            pool_config=None,
+        )
     assert exc.value is auth_manager.get_auth.side_effect
 
     socket_mock.close.assert_called_once_with()
@@ -413,7 +444,7 @@ class ErrorHandlerTestMockHolder:
 
 def test_configures_inbox_error_handler(mocker):
     inbox_cls_mock = mocker.patch(
-        "neo4j._async.io._bolt.AsyncInbox", autospec=True
+        "neo4j._async.io._bolt._base.AsyncInbox", autospec=True
     )
     mocks = ErrorHandlerTestMockHolder(mocker)
     inbox_cls_mock.assert_called_once()
@@ -423,7 +454,7 @@ def test_configures_inbox_error_handler(mocker):
 
 def test_configures_outbox_error_handler(mocker):
     inbox_cls_mock = mocker.patch(
-        "neo4j._async.io._bolt.AsyncOutbox", autospec=True
+        "neo4j._async.io._bolt._base.AsyncOutbox", autospec=True
     )
     mocks = ErrorHandlerTestMockHolder(mocker)
     inbox_cls_mock.assert_called_once()

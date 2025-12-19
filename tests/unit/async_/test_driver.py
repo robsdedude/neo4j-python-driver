@@ -186,7 +186,7 @@ async def test_driver_config_error_uri_conflict(
 @pytest.mark.parametrize(
     "test_uri",
     (
-        "http://localhost:9001",
+        "smtp://localhost:9001",
         "ftp://localhost:9001",
         "x://localhost:9001",
     ),

@@ -59,8 +59,9 @@ class AsyncFakeBoltPool(AsyncBoltPool):
                 mock.address = addr
             return mock
 
-        super().__init__(opener, self.pool_config, self.workspace_config)
-        self.address = address
+        super().__init__(
+            opener, self.pool_config, self.workspace_config, address
+        )
 
     async def acquire(
         self,
@@ -90,16 +91,24 @@ def auth_manager():
 @mark_async_test
 async def test_bolt_connection_open(auth_manager):
     with pytest.raises(ServiceUnavailable):
-        await AsyncBolt.open(("localhost", 9999), auth_manager=auth_manager)
+        await AsyncBolt.open(
+            neo4j.Address(("localhost", 9999)),
+            auth_manager=auth_manager,
+            deadline=Deadline(None),
+            routing_context=None,
+            pool_config=None,
+        )
 
 
 @mark_async_test
 async def test_bolt_connection_open_timeout(auth_manager):
     with pytest.raises(ServiceUnavailable):
         await AsyncBolt.open(
-            ("localhost", 9999),
+            neo4j.Address(("localhost", 999)),
             auth_manager=auth_manager,
             deadline=Deadline(1),
+            routing_context=None,
+            pool_config=None,
         )
 
 
