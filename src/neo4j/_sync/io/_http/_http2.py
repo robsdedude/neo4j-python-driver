@@ -20,6 +20,7 @@ import asyncio
 import base64
 import dataclasses
 import time
+import traceback
 from collections import deque
 from dataclasses import dataclass
 from logging import getLogger
@@ -30,6 +31,7 @@ from ...._async_compat.network import (
     HTTPQueryAPI,
     HTTPQueryAPIResponse,
     HTTPVerb,
+    NO_DATA,
 )
 from ...._async_compat.util import Util
 from ...._auth_management import to_auth_dict
@@ -340,7 +342,7 @@ class HttpV2(HttpConnection):
                 req_data.value["impersonatedUser"] = LiteralJsonRecursive(
                     imp_user
                 )
-            res = self._query_api.request(
+            res = self._request(
                 HTTPVerb.POST,
                 f"/db/{db}/query/v2",
                 data=req_data,
@@ -394,7 +396,7 @@ class HttpV2(HttpConnection):
             headers = self._auth_header
             if state_.affinity is not None:
                 headers |= {"neo4j-cluster-affinity": state_.affinity}
-            res = self._query_api.request(
+            res = self._request(
                 HTTPVerb.POST,
                 f"/db/{state_.db}/query/v2/tx/{state_.tx_id}",
                 data=req_data,
@@ -736,7 +738,7 @@ class HttpV2(HttpConnection):
                 req_data.value["bookmarks"] = LiteralJsonRecursive(
                     list(bookmarks)
                 )
-            res = self._query_api.request(
+            res = self._request(
                 HTTPVerb.POST,
                 f"/db/{db}/query/v2/tx",
                 data=req_data,
@@ -781,7 +783,7 @@ class HttpV2(HttpConnection):
             headers = self._auth_header
             if state.affinity is not None:
                 headers |= {"neo4j-cluster-affinity": state.affinity}
-            res = self._query_api.request(
+            res = self._request(
                 HTTPVerb.POST,
                 f"/db/{state.db}/query/v2/tx/{state.tx_id}/commit",
                 headers=self._auth_header,
@@ -828,7 +830,7 @@ class HttpV2(HttpConnection):
             headers = self._auth_header
             if state.affinity is not None:
                 headers |= {"neo4j-cluster-affinity": state.affinity}
-            res = self._query_api.request(
+            res = self._request(
                 HTTPVerb.POST,
                 f"/db/{state.db}/query/v2/tx/{state.tx_id}/rollback",
                 headers=self._auth_header,
@@ -1087,6 +1089,47 @@ class HttpV2(HttpConnection):
             msg += f" - ({res.reason})"
         return RuntimeError(msg)
 
+    def _request(
+        self,
+        method: HTTPVerb,
+        path: str,
+        data: t.Any = NO_DATA,
+        headers: dict[str, str] | None = None,
+        *,
+        dehydration_hooks: DehydrationHooks,
+        hydration_hooks: T_TYPE_MAP_DICT,
+        log_id: int,
+    ):
+        if headers is None:
+            headers = {
+                "Accept": "application/vnd.neo4j.query",
+                "Content-Type": "application/vnd.neo4j.query",
+            }
+        else:
+            headers |= {
+                "Accept": "application/vnd.neo4j.query",
+                "Content-Type": "application/vnd.neo4j.query",
+            }
+        if data is not NO_DATA and dehydration_hooks is not None:
+            transformer = dehydration_hooks.get_transformer(data)
+            if transformer is not None:
+                data = transformer(data)
+
+        res = self._query_api.request(
+            method,
+            path,
+            data,
+            headers,
+            log_id=log_id,
+        )
+
+        if hydration_hooks is not None:
+            transformer = hydration_hooks.get(type(res.body), None)
+            if transformer is not None:
+                res.body = transformer(res.body)
+
+        return res
+
     class _ServerAgentCache:
         _value: str | None = None
         _last_fetch: float = float("-inf")
@@ -1106,7 +1149,12 @@ class HttpV2(HttpConnection):
 
         def _update(self, http: HttpV2) -> None:
             try:
-                res = http._query_api.discovery(log_id=http._id)
+                res = http._query_api.request(
+                    HTTPVerb.GET,
+                    "/",
+                    headers={"Accept": "application/json"},
+                    log_id=http._id,
+                )
                 if res.status >= 400:
                     raise HttpV2._generic_http_error(res)
                 version = res.body["neo4j_version"]
@@ -1121,6 +1169,11 @@ class HttpV2(HttpConnection):
                     "[#%04X]  _: Could not fetch server agent: %r",
                     http._id,
                     e,
+                )
+                log.debug(
+                    "[#%04X]  _: %s",
+                    http._id,
+                    traceback.format_exc(),
                 )
             finally:
                 self._last_fetch = time.monotonic()

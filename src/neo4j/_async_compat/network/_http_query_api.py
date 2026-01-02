@@ -43,10 +43,6 @@ if t.TYPE_CHECKING:
 
     from ..._addressing import Address
     from ..._async.config import AsyncPoolConfig
-    from ..._codec.hydration import (
-        DehydrationHooks,
-        T_TYPE_MAP_DICT,
-    )
     from ..._sync.config import PoolConfig
 
 
@@ -54,6 +50,7 @@ log = getLogger("neo4j.io")
 
 
 __all__ = [
+    "NO_DATA",
     "AsyncHTTPQueryAPI",
     "AsyncHTTPQueryAPIFactory",
     "HTTPQueryAPI",
@@ -63,7 +60,7 @@ __all__ = [
 ]
 
 
-_default = object()
+NO_DATA = object()
 
 
 class AiohttpSessionRequestKwargs(t.TypedDict, total=False):
@@ -214,66 +211,13 @@ class AsyncHTTPQueryAPI:
         self,
         method: HTTPVerb,
         path: str,
-        data: t.Any = _default,
-        headers: dict[str, str] | None = None,
-        *,
-        dehydration_hooks: DehydrationHooks,
-        hydration_hooks: T_TYPE_MAP_DICT,
-        log_id: int,
-    ) -> HTTPQueryAPIResponse:
-        if headers is None:
-            headers = {
-                "Accept": "application/vnd.neo4j.query",
-                "Content-Type": "application/vnd.neo4j.query",
-            }
-        else:
-            headers |= {
-                "Accept": "application/vnd.neo4j.query",
-                "Content-Type": "application/vnd.neo4j.query",
-            }
-        if data is not _default and dehydration_hooks is not None:
-            transformer = dehydration_hooks.get_transformer(data)
-            if transformer is not None:
-                data = transformer(data)
-
-        res = await self._request(
-            method,
-            path,
-            data,
-            headers,
-            log_id=log_id,
-        )
-
-        if hydration_hooks is not None:
-            transformer = hydration_hooks.get(type(res.body), None)
-            if transformer is not None:
-                res.body = transformer(res.body)
-
-        return res
-
-    async def discovery(
-        self,
-        *,
-        log_id: int,
-    ) -> HTTPQueryAPIResponse:
-        return await self._request(
-            HTTPVerb.GET,
-            "/",
-            headers={"Accept": "application/json"},
-            log_id=log_id,
-        )
-
-    async def _request(
-        self,
-        method: HTTPVerb,
-        path: str,
-        data: t.Any = _default,
+        data: t.Any = NO_DATA,
         headers: dict[str, str] | None = None,
         *,
         log_id: int,
     ) -> HTTPQueryAPIResponse:
         kwargs: AiohttpSessionRequestKwargs = {}
-        if data is not _default:
+        if data is not NO_DATA:
             kwargs["data"] = json.dumps(data, separators=(",", ":"))
             log.debug(
                 "[#%04X]  C: %s %s %s",
@@ -426,66 +370,13 @@ class HTTPQueryAPI:
         self,
         method: HTTPVerb,
         path: str,
-        data: t.Any = _default,
-        headers: dict[str, str] | None = None,
-        *,
-        dehydration_hooks: DehydrationHooks,
-        hydration_hooks: T_TYPE_MAP_DICT,
-        log_id: int,
-    ) -> HTTPQueryAPIResponse:
-        if headers is None:
-            headers = {
-                "Accept": "application/vnd.neo4j.query",
-                "Content-Type": "application/vnd.neo4j.query",
-            }
-        else:
-            headers |= {
-                "Accept": "application/vnd.neo4j.query",
-                "Content-Type": "application/vnd.neo4j.query",
-            }
-        if data is not _default and dehydration_hooks is not None:
-            transformer = dehydration_hooks.get_transformer(data)
-            if transformer is not None:
-                data = transformer(data)
-
-        res = self._request(
-            method,
-            path,
-            data,
-            headers,
-            log_id=log_id,
-        )
-
-        if hydration_hooks is not None:
-            transformer = hydration_hooks.get(type(res.body), None)
-            if transformer is not None:
-                res.body = transformer(res.body)
-
-        return res
-
-    def discovery(
-        self,
-        *,
-        log_id: int,
-    ) -> HTTPQueryAPIResponse:
-        return self._request(
-            HTTPVerb.GET,
-            "/",
-            headers={"Accept": "application/json"},
-            log_id=log_id,
-        )
-
-    def _request(
-        self,
-        method: HTTPVerb,
-        path: str,
-        data: t.Any = _default,
+        data: t.Any = NO_DATA,
         headers: dict[str, str] | None = None,
         *,
         log_id: int,
     ) -> HTTPQueryAPIResponse:
         kwargs: Urllib3RequestKwargs = {}
-        if data is not _default:
+        if data is not NO_DATA:
             kwargs["body"] = json.dumps(data, separators=(",", ":"))
             log.debug(
                 "[#%04X]  C: %s %s %s",
