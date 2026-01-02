@@ -18,15 +18,6 @@ from ._bolt_socket import (
     AsyncBoltSocketBase,
     BoltSocketBase,
 )
-from ._http_query_api import (
-    AsyncHTTPQueryAPI,
-    AsyncHTTPQueryAPIFactory,
-    HTTPQueryAPI,
-    HTTPQueryAPIFactory,
-    HTTPQueryAPIResponse,
-    HTTPVerb,
-    NO_DATA,
-)
 from ._util import (
     AsyncNetworkUtil,
     NetworkUtil,
@@ -34,15 +25,29 @@ from ._util import (
 
 
 __all__ = [
-    "NO_DATA",
     "AsyncBoltSocketBase",
-    "AsyncHTTPQueryAPI",
-    "AsyncHTTPQueryAPIFactory",
     "AsyncNetworkUtil",
     "BoltSocketBase",
+    "NetworkUtil",
+]
+
+_http_query_api_exports = {
+    "AsyncHTTPQueryAPI",
+    "AsyncHTTPQueryAPIFactory",
     "HTTPQueryAPI",
     "HTTPQueryAPIFactory",
     "HTTPQueryAPIResponse",
     "HTTPVerb",
-    "NetworkUtil",
-]
+    "NO_DATA",
+}
+__all__.extend(_http_query_api_exports)
+
+
+def __getattr__(name):
+    if name in _http_query_api_exports:
+        from . import _http_query_api
+
+        for export in _http_query_api_exports:
+            globals()[export] = getattr(_http_query_api, export)
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

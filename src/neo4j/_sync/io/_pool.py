@@ -40,10 +40,7 @@ from ..._async_compat.concurrency import (
     CooperativeRLock,
     RLock,
 )
-from ..._async_compat.network import (
-    HTTPQueryAPIFactory,
-    NetworkUtil,
-)
+from ..._async_compat.network import NetworkUtil
 from ..._async_compat.util import Util
 from ..._conf import WorkspaceConfig
 from ..._deadline import (
@@ -71,7 +68,6 @@ from ..config import PoolConfig
 from ..home_db_cache import HomeDbCache
 from ._bolt import Bolt
 from ._connection import Connection
-from ._http import HttpConnection
 
 
 _TCon = t.TypeVar("_TCon", bound=Connection)
@@ -80,8 +76,10 @@ if t.TYPE_CHECKING:
     from types import TracebackType
 
     from ..._addressing import Address
+    from ..._async_compat.network import HTTPQueryAPIFactory
     from ...api import _TAuth
     from ...auth_management import AuthManager
+    from ._http import HttpConnection
 
     _TOpener: t.TypeAlias = t.Callable[
         [Address, AuthManager | AuthManager, Deadline],
@@ -1371,7 +1369,7 @@ class RoutedBoltPool(BoltPool):
         log.debug("[#0000]  _: <POOL> table=%r", self.routing_tables)
 
 
-class HttpV2Pool(IOPool[HttpConnection]):
+class HttpV2Pool(IOPool["HttpConnection"]):
     _async_http_query_api_factory: HTTPQueryAPIFactory
     _semaphore: BoundedSemaphore
 
@@ -1401,6 +1399,9 @@ class HttpV2Pool(IOPool[HttpConnection]):
         pool_config: PoolConfig,
         workspace_config: WorkspaceConfig,
     ) -> t.Self:
+        from ..._async_compat.network import HTTPQueryAPIFactory
+        from ._http import HttpConnection
+
         def opener(
             addr: Address,
             auth_manager: AuthManager | AuthManager,

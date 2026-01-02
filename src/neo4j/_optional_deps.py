@@ -21,20 +21,26 @@ from contextlib import suppress
 from . import _typing as t  # noqa: TC001
 
 
-np: t.Any = None
+if t.TYPE_CHECKING:
+    import numpy as np
+    import pandas as pd
+    import pyarrow as pa
 
-with suppress(ImportError):
-    import numpy as np  # type: ignore[no-redef]
+else:
+    np: t.Any = None
 
-pd: t.Any = None
+    with suppress(ImportError):
+        import numpy as np  # type: ignore[no-redef]
 
-with suppress(ImportError):
-    import pandas as pd  # type: ignore[no-redef]
+    pd: t.Any = None
 
-pa: t.Any = None
+    with suppress(ImportError):
+        import pandas as pd  # type: ignore[no-redef]
 
-with suppress(ImportError):
-    import pyarrow as pa  # type: ignore[no-redef]
+    pa: t.Any = None
+
+    with suppress(ImportError):
+        import pyarrow as pa  # type: ignore[no-redef]
 
 
 __all__ = [

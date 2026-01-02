@@ -25,15 +25,18 @@ import typing as t
 
 import pytest
 
-from neo4j._optional_deps import (
-    np,
-    pa,
-)
 from neo4j.vector import (
     _swap_endian,
     Vector,
     VectorDType,
     VectorEndian,
+)
+
+from ...._optional_deps import (
+    mark_skip_without_optional_dependency,
+    np,
+    pa,
+    skip_if_mocked_dependency,
 )
 
 
@@ -229,8 +232,7 @@ def _mock_mask_extensions(
 
     match used_ext:
         case "numpy":
-            if _swap_endian_unchecked_np is None:
-                pytest.skip("numpy not installed")
+            skip_if_mocked_dependency(np)
             mocker.patch(
                 "neo4j.vector._swap_endian_unchecked",
                 new=_swap_endian_unchecked_np,
@@ -866,7 +868,7 @@ def _get_numpy_array(
     return np.frombuffer(data_in, dtype=np_type)
 
 
-@pytest.mark.skipif(np is None, reason="numpy not installed")
+@mark_skip_without_optional_dependency("np")
 @pytest.mark.parametrize("dtype", ("i8", "i16", "i32", "i64", "f32", "f64"))
 @pytest.mark.parametrize("endian", ("big", "little", "native"))
 @pytest.mark.parametrize(("repeat", "size"), ((10_000, 1), (1, 10_000)))
@@ -888,7 +890,7 @@ def test_from_numpy_random(
         assert nan_equals(array.tolist(), v.to_native())
 
 
-@pytest.mark.skipif(np is None, reason="numpy not installed")
+@mark_skip_without_optional_dependency("np")
 @pytest.mark.parametrize(("dtype", "value", "data_be_raw"), SPECIAL_VALUES)
 @pytest.mark.parametrize("endian", ("big", "little", "native"))
 def test_from_numpy_special_values(
@@ -905,7 +907,7 @@ def test_from_numpy_special_values(
     assert nan_equals(array.tolist(), v.to_native())
 
 
-@pytest.mark.skipif(np is None, reason="numpy not installed")
+@mark_skip_without_optional_dependency("np")
 @pytest.mark.parametrize("dtype", ("i8", "i16", "i32", "i64", "f32", "f64"))
 @pytest.mark.parametrize(
     "endian",
@@ -933,7 +935,7 @@ def test_to_numpy_random(
         assert nan_equals(array.tolist(), v.to_native())
 
 
-@pytest.mark.skipif(np is None, reason="numpy not installed")
+@mark_skip_without_optional_dependency("np")
 @pytest.mark.parametrize(("dtype", "value", "data_be_raw"), SPECIAL_VALUES)
 @pytest.mark.parametrize(
     "endian",
@@ -980,7 +982,7 @@ def _get_pyarrow_array(data_be: bytes, dtype: str) -> pyarrow.Array:
     return pa.Array.from_buffers(pa_type, length, buffers, 0)
 
 
-@pytest.mark.skipif(pa is None, reason="pyarrow not installed")
+@mark_skip_without_optional_dependency("pa")
 @pytest.mark.parametrize("dtype", ("i8", "i16", "i32", "i64", "f32", "f64"))
 @pytest.mark.parametrize("endian", ("big", "little", "native"))
 @pytest.mark.parametrize(("repeat", "size"), ((10_000, 1), (1, 10_000)))
@@ -1003,7 +1005,7 @@ def test_from_pyarrow_random(
         assert nan_equals(array.to_pylist(), v.to_native())
 
 
-@pytest.mark.skipif(pa is None, reason="pyarrow not installed")
+@mark_skip_without_optional_dependency("pa")
 @pytest.mark.parametrize(("dtype", "value", "data_be_raw"), SPECIAL_VALUES)
 def test_from_pyarrow_special_values(
     dtype: t.Literal["i8", "i16", "i32", "i64", "f32", "f64"],
@@ -1018,7 +1020,7 @@ def test_from_pyarrow_special_values(
     assert nan_equals(array.to_pylist(), v.to_native())
 
 
-@pytest.mark.skipif(pa is None, reason="pyarrow not installed")
+@mark_skip_without_optional_dependency("pa")
 @pytest.mark.parametrize("dtype", ("i8", "i16", "i32", "i64", "f32", "f64"))
 @pytest.mark.parametrize(
     "endian",
@@ -1052,7 +1054,7 @@ def test_to_pyarrow_random(
         assert nan_equals(array.tolist(), v.to_native())
 
 
-@pytest.mark.skipif(pa is None, reason="pyarrow not installed")
+@mark_skip_without_optional_dependency("pa")
 @pytest.mark.parametrize(("dtype", "value", "data_be_raw"), SPECIAL_VALUES)
 @pytest.mark.parametrize(
     "endian",

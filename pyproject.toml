@@ -120,6 +120,7 @@ typing = [
     "mypy >= 1.18.2",
     "types-pytz >= 2025.2.0.20250809",
     "pandas-stubs >= 1.0.0, < 4.0.0",
+    "types-mock >= 5.2.0.20250924",
     {include-group = "dep-typing-extensions"},
     {include-group = "dep-project-dependencies"},
     # tests are also type-checked
@@ -161,7 +162,7 @@ dep-project-dependencies = [
     "pandas[timezone] >= 1.1.0, < 4.0.0",
     "pyarrow >= 6.0.0, < 23.0.0",
     "aiohttp[speedups] >= 3.12.15, < 4.0.0",
-    "requests >= 2.32.5, < 3.0.0",
+    "urllib3 >= 2.0.0, < 3.0.0",
 ]
 
 [tool.setuptools.dynamic]
@@ -295,6 +296,9 @@ extend-ignore = [
     # needs fixing in ruff to work with typing.Protocol
     # https://github.com/astral-sh/ruff/issues/13307
     "FURB180",
+
+    # using mock package directly to get access to backported features
+    "UP026",
 ]
 select = [
     # ruff

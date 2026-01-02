@@ -23,9 +23,7 @@ from math import (
 )
 from uuid import uuid4
 
-import numpy as np
-import pandas as pd
-import pyarrow as pa
+import mock
 import pytest
 
 from neo4j._codec.packstream import Structure
@@ -34,6 +32,14 @@ from neo4j._codec.packstream.v1 import (
     Packer,
     UnpackableBuffer,
     Unpacker,
+)
+
+from ......_optional_deps import (
+    mark_skip_without_optional_dependency,
+    np,
+    pd,
+    pa,
+    skip_if_mocked_dependency,
 )
 
 
@@ -144,7 +150,9 @@ def np_float_overflow_as_error(request):
     )
 )
 def int_type(request):
-    if issubclass(request.param, np.number):
+    skip_if_mocked_dependency(request.param)
+
+    if not isinstance(np, mock.Mock) and issubclass(request.param, np.number):
 
         def _int_type(value):
             # this avoids deprecation warning from NEP50 and forces
@@ -160,21 +168,25 @@ def int_type(request):
     params=(float, np.float16, np.float32, np.float64, np.longdouble)
 )
 def float_type(request, np_float_overflow_as_error):
+    skip_if_mocked_dependency(request.param)
     return request.param
 
 
 @pytest.fixture(params=(bool, np.bool_))
 def bool_type(request):
+    skip_if_mocked_dependency(request.param)
     return request.param
 
 
 @pytest.fixture(params=(bytes, bytearray, np.bytes_))
 def bytes_type(request):
+    skip_if_mocked_dependency(request.param)
     return request.param
 
 
 @pytest.fixture(params=(str, np.str_))
 def str_type(request):
+    skip_if_mocked_dependency(request.param)
     return request.param
 
 
@@ -201,7 +213,9 @@ def str_type(request):
     ),
 )
 def sequence_type(request):
-    if request.param is pd.Series:
+    skip_if_mocked_dependency(request.param)
+
+    if not isinstance(pd, mock.Mock) and request.param is pd.Series:
 
         def constructor(value):
             if not value:
@@ -242,6 +256,7 @@ def sequence_type(request):
 class TestPackStream:
     @pytest.mark.parametrize("value", (None, pd.NA))
     def test_none(self, value, assert_packable):
+        skip_if_mocked_dependency(value)
         assert_packable(value, b"\xc0", None)
 
     def test_boolean(self, bool_type, assert_packable):
@@ -249,6 +264,7 @@ class TestPackStream:
         assert_packable(bool_type(False), b"\xc2")
 
     @pytest.mark.parametrize("dtype", (bool, pd.BooleanDtype()))
+    @mark_skip_without_optional_dependency("pd")
     def test_boolean_pandas_series(self, dtype, assert_packable):
         value = [True, False]
         value_series = pd.Series(value, dtype=dtype)
@@ -276,7 +292,9 @@ class TestPackStream:
             np.longlong,
         ),
     )
+    @mark_skip_without_optional_dependency("pd")
     def test_negative_tiny_int_pandas_series(self, dtype, assert_packable):
+        skip_if_mocked_dependency(dtype)
         for z in range(-16, 0):
             z_typed = pd.Series(z, dtype=dtype)
             assert_packable(z_typed, bytes(bytearray([0x91, z + 0x100])), [z])
@@ -350,7 +368,9 @@ class TestPackStream:
             np.ulonglong,
         ),
     )
+    @mark_skip_without_optional_dependency("pd")
     def test_positive_int64_pandas_series(self, dtype, assert_packable):
+        skip_if_mocked_dependency(dtype)
         for e in range(31, 63):
             z = 2**e
             z_typed = pd.Series(z, dtype=dtype)
@@ -375,7 +395,9 @@ class TestPackStream:
             np.longlong,
         ),
     )
+    @mark_skip_without_optional_dependency("pd")
     def test_negative_int64_pandas_series(self, dtype, assert_packable):
+        skip_if_mocked_dependency(dtype)
         for e in range(31, 63):
             z = -(2**e + 1)
             z_typed = pd.Series(z, dtype=dtype)
@@ -429,9 +451,11 @@ class TestPackStream:
             np.longdouble,
         ),
     )
+    @mark_skip_without_optional_dependency("pd")
     def test_float_pandas_series(
         self, dtype, np_float_overflow_as_error, assert_packable
     ):
+        skip_if_mocked_dependency(dtype)
         for z in (
             0.0,
             -0.0,
@@ -475,6 +499,7 @@ class TestPackStream:
         b_typed = bytes_type(b)
         assert_packable(b_typed, b"\xce\x00\x01\x38\x80" + b)
 
+    @mark_skip_without_optional_dependency("pd")
     def test_bytes_pandas_series(self, assert_packable):
         for b, header in (
             (b"", b"\xcc\x00"),
@@ -532,7 +557,9 @@ class TestPackStream:
             pd.StringDtype("pyarrow"),
         ),
     )
+    @mark_skip_without_optional_dependency("pd")
     def test_string_pandas_series(self, dtype, assert_packable):
+        skip_if_mocked_dependency(dtype)
         values = (
             ("", b"\x80"),
             ("A" * 40, b"\xd0\x28"),
@@ -594,6 +621,7 @@ class TestPackStream:
         assert_packable(l_typed, b"\x91\x91\x90", list_)
 
     @pytest.mark.parametrize("as_series", (True, False))
+    @mark_skip_without_optional_dependency("pd")
     def test_list_pandas_categorical(self, as_series, pack, assert_packable):
         animals = ["cat", "dog", "cat", "cat", "dog", "horse"]
         animals_typed = pd.Categorical(animals)
@@ -675,11 +703,13 @@ class TestPackStream:
         data_out = b"\xa1\xd2\x00\x01\x38\x80" + key.encode("utf-8") + b"\x01"
         assert_packable(d, data_out)
 
+    @mark_skip_without_optional_dependency("pd")
     def test_empty_dataframe_maps(self, assert_packable):
         df = pd.DataFrame()
         assert_packable(df, b"\xa0", {})
 
     @pytest.mark.parametrize("size", range(0x10))
+    @mark_skip_without_optional_dependency("pd")
     def test_tiny_dataframes_maps(self, assert_packable, size):
         data_in = {}
         data_out = bytearray([0xA0 + size])
@@ -706,6 +736,7 @@ class TestPackStream:
         ),
     )
     def test_map_key_type(self, packer_with_buffer, map_, exc_type):
+        skip_if_mocked_dependency(map_)
         # maps must have string keys
         packer, _packable_buffer = packer_with_buffer
         with pytest.raises(exc_type, match="strings"):
