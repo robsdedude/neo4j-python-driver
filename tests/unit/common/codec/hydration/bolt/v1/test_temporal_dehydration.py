@@ -240,9 +240,30 @@ class TestTimeDehydration(HydrationHandlerTestBase):
         duration = Duration(months=1, days=2, seconds=3, nanoseconds=4)
         assert_transforms(duration, Structure(b"E", 1, 2, 3, 4))
 
-    def test_native_duration(self, assert_transforms):
-        duration = datetime.timedelta(days=1, seconds=2, microseconds=3)
-        assert_transforms(duration, Structure(b"E", 0, 1, 2, 3000))
+    @pytest.mark.parametrize(
+        ("dsm_in", "dsm_out"),
+        (
+            ((0, 0, 0), (0, 0, 0)),
+            ((1, 2, 3), (1, 2, 3)),
+            ((0, -2, -3), (-1, 86397, 999997)),
+            ((-1, 2, 300_000), (-1, 2, 300000)),
+            ((123456, -2, -345_000), (123455, 86397, 655000)),
+            ((-2, -3, -4000), (-3, 86396, 996000)),
+            ((-2, 3, 4000), (-2, 3, 4000)),
+            ((2, -3, -4000), (1, 86396, 996000)),
+            ((-123456, -3, 0), (-123457, 86397, 0)),
+        ),
+    )
+    def test_native_duration(self, dsm_in, dsm_out, assert_transforms):
+        days, seconds, microseconds = dsm_in
+        duration = datetime.timedelta(
+            days=days,
+            seconds=seconds,
+            microseconds=microseconds,
+        )
+        days, seconds, microseconds = dsm_out
+        expected = Structure(b"E", 0, days, seconds, microseconds * 1000)
+        assert_transforms(duration, expected)
 
     def test_duration_mixed_sign(self, assert_transforms):
         duration = Duration(months=1, days=-2, seconds=3, nanoseconds=4)

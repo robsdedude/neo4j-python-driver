@@ -79,6 +79,10 @@ def hydrate_point(value: object) -> Point:
 
 
 def dehydrate_point(value: Point) -> ValueDict[str]:
+    if len(value) not in {2, 3}:
+        raise ValueError(
+            f"Cannot dehydrate Point with {len(value)} dimensions"
+        )
     coordinates_str = " ".join(_dehydrate_coordinate(c) for c in value)
     value_str = f"SRID={value.srid};POINT ({coordinates_str})"
     return make_value_dict("Point", value_str)

@@ -88,7 +88,7 @@ class DehydrationHooks:
 
     @staticmethod
     def _wrap_exact_values(exact_values: T_VALUE_MAP_DICT) -> T_VALUE_MAP_DICT:
-        return {ExactValueKey(k): v for k, v in exact_values.items()}
+        return {ExactValueKey.wrap(k): v for k, v in exact_values.items()}
 
 
 class ExactValueKey:
@@ -100,6 +100,15 @@ class ExactValueKey:
 
     def __hash__(self) -> int:
         return hash(self._value)
+
+    def __repr__(self) -> str:
+        return f"ExactValueKey({self._value!r})"
+
+    @classmethod
+    def wrap(cls, value: t.Any) -> t.Self:
+        if isinstance(value, cls):
+            return value
+        return cls(value)
 
 
 class BrokenHydrationObject:

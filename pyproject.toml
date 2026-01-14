@@ -242,6 +242,7 @@ preview = true  # to get CPY lints
 typing-modules = ["neo4j._typing"]
 extend-ignore = [
     "RUF002",  # allow ’ (RIGHT SINGLE QUOTATION MARK) to be used as an apostrophe (e.g. "it’s")
+    "RUF067",  # worth fixing, but too much noise for now
 
     # pydocstyle
     "D1",   # disable check for undocumented items (way too noisy)

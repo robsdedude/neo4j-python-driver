@@ -29,7 +29,7 @@ if t.TYPE_CHECKING:
     )
 
 INT64_MIN: t.Final[int] = -(2**63)
-INT64_MAX: t.Final[int] = 2**63
+INT64_MAX: t.Final[int] = (2**63) - 1
 
 
 def hydrate_null(value: object) -> None:
@@ -52,7 +52,7 @@ def dehydrate_true(_) -> ValueDict[bool]:
 
 
 def dehydrate_false(_) -> ValueDict[bool]:
-    return make_value_dict("Boolean", True)
+    return make_value_dict("Boolean", False)
 
 
 def hydrate_integer(value: object) -> int:
@@ -67,8 +67,7 @@ def hydrate_integer(value: object) -> int:
 
 
 def dehydrate_integer(value: t.Any) -> ValueDict[str]:
-    value = int(value)
-    if not (INT64_MIN <= value <= INT64_MAX):
+    if not (INT64_MIN <= int(value) <= INT64_MAX):
         raise OverflowError(f"Integer {value} out of range")
     return make_value_dict("Integer", str(value))
 
@@ -85,8 +84,8 @@ def hydrate_float(value: object) -> float:
 
 
 def dehydrate_float(value: t.Any) -> ValueDict[str]:
-    assert isinstance(value, float)
-    return make_value_dict("Float", str(value))
+    value_str = str(value).replace("nan", "NaN").replace("inf", "Infinity")
+    return make_value_dict("Float", value_str)
 
 
 def hydrate_string(value: object) -> str:
@@ -111,8 +110,7 @@ def hydrate_byte_array(value: object) -> bytes:
         ) from e
 
 
-def dehydrate_byte_array(value: bytes | bytearray) -> ValueDict[str]:
-    assert isinstance(value, bytes)
+def dehydrate_byte_array(value: t.Any) -> ValueDict[str]:
     encoded = base64.b64encode(value).decode("ascii")
     return make_value_dict("Base64", encoded)
 
@@ -142,6 +140,25 @@ def dehydrate_list(
     return make_value_dict("List", dehydrated_list)
 
 
+def dehydrate_raw_pd_list(
+    value: t.Any, hydration_handler: HydrationHandlerHttpBase
+) -> list:
+    def transform(item: t.Any) -> t.Any:
+        transformer = hydration_handler.dehydration_hooks.get_transformer(item)
+        if transformer is not None:
+            return transformer(item)
+        return item
+
+    return [transform(value[i]) for i in range(len(value))]
+
+
+def dehydrate_pd_list(
+    value: list, hydration_handler: HydrationHandlerHttpBase
+) -> ValueDict[list]:
+    dehydrated_list = dehydrate_raw_pd_list(value, hydration_handler)
+    return make_value_dict("List", dehydrated_list)
+
+
 def hydrate_map(value: object) -> dict:
     if not isinstance(value, dict):
         raise QueryApiHttpError(f"expected dict value, got: {value!r}")
@@ -157,11 +174,16 @@ def dehydrate_raw_map(
             return transformer(item)
         return item
 
-    return {k: transform(v) for k, v in value.items()}
+    def checked_key(key: t.Any) -> str:
+        if not isinstance(key, str):
+            raise TypeError(f"Map keys must be strings, not {type(key)}")
+        return key
+
+    return {checked_key(k): transform(v) for k, v in value.items()}
 
 
 def dehydrate_map(
-    value: dict, hydration_handler: HydrationHandlerHttpBase
+    value: t.Any, hydration_handler: HydrationHandlerHttpBase
 ) -> ValueDict[dict]:
     dehydrated_map = dehydrate_raw_map(value, hydration_handler)
     return make_value_dict("Map", dehydrated_map)

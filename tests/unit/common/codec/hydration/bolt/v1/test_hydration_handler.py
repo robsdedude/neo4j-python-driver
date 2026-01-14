@@ -71,6 +71,9 @@ class TestHydrationHandler(HydrationHandlerTestBase):
     def test_scope_dehydration_keys(self, hydration_scope):
         hooks = hydration_scope.dehydration_hooks
         assert isinstance(hooks, DehydrationHooks)
+
+        assert not hooks.exact_values
+
         expected_keys = {
             date,
             datetime,
@@ -101,6 +104,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
                 }
             )
         assert set(hooks.exact_types.keys()) == expected_keys
+
         assert not hooks.subtypes
 
     def test_scope_get_graph(self, hydration_scope):

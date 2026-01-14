@@ -85,21 +85,23 @@ def hydrate_zoned_time(value: object) -> Time:
 
 
 def hydrate_local_time(value: object) -> Time:
-    time_ = _hydrate_time(value)
+    time_ = _hydrate_raw_time(value)
     if time_.tzinfo is not None:
         raise QueryApiHttpError(f"expected local time string, got: {value!r}")
     return time_
 
 
 def _hydrate_time(value: object) -> Time:
+    time_ = _hydrate_raw_time(value)
+    if time_.tzinfo is None:
+        raise QueryApiHttpError(f"expected zoned time string, got: {value!r}")
+    return time_
+
+
+def _hydrate_raw_time(value: object) -> Time:
     value = value_as_str(value)
     try:
-        time_ = Time.from_iso_format(value)
-        if time_.tzinfo is None:
-            raise QueryApiHttpError(
-                f"expected zoned time string, got: {value!r}"
-            )
-        return time_
+        return Time.from_iso_format(value)
     except Exception as e:
         raise QueryApiHttpError(f"expected time string, got: {value!r}") from e
 
@@ -121,6 +123,7 @@ def hydrate_zoned_datetime(value: object) -> DateTime:
     from pytz import (
         FixedOffset,
         timezone,
+        UTC,
     )
 
     value = value_as_str(value)
@@ -140,8 +143,8 @@ def hydrate_zoned_datetime(value: object) -> DateTime:
     nanosecond = 0
     if match.group(7):
         nanosecond = int(match.group(7)[:9].ljust(9, "0"))
-    time_ = Time(hour, minute, second, nanosecond)
-    dt = DateTime.combine(date, time_)
+    time_utc = Time(hour, minute, second, nanosecond)
+    dt_utc = t.cast(DateTime, UTC.localize(DateTime.combine(date, time_utc)))
 
     if match.group(8) == "Z":
         offset_min = offset_sec = 0
@@ -155,12 +158,12 @@ def hydrate_zoned_datetime(value: object) -> DateTime:
         if match.group(9) == "-":
             offset_min *= -1
             offset_sec *= -1
-        dt -= Duration(minutes=offset_min, seconds=offset_sec)
+        dt_utc -= Duration(minutes=offset_min, seconds=offset_sec)
     tz_name = match.group(13)
     zone: datetime.tzinfo = (
         timezone(tz_name) if tz_name else FixedOffset(offset_min)
     )
-    zoned_dt = zone.fromutc(dt)
+    zoned_dt = dt_utc.as_timezone(zone)
     assert isinstance(zoned_dt, DateTime)
     return zoned_dt
 
@@ -325,24 +328,30 @@ def dehydrate_duration(value: Duration) -> ValueDict[str]:
 
 
 def dehydrate_timedelta(value: datetime.timedelta) -> ValueDict[str]:
-    seconds = value.days * 86400 + value.seconds
+    days = value.days
+    seconds = value.seconds
     microseconds = value.microseconds
-    sign = ""
+    sec_sign = ""
     if microseconds:
         if seconds < 0:
             if seconds <= -MAX_INT64:
                 raise OverflowError(
                     "Timedelta cannot be encoded: out of range"
                 )
-            sign = "-"
+            sec_sign = "-"
             seconds = abs(seconds + 1)
             microseconds = 1_000_000 - value.microseconds
-        sub_seconds = f".{microseconds:06d}"
+        sub_seconds = f".{microseconds:06d}".rstrip("0")
     else:
         sub_seconds = ""
     if not MIN_INT64 <= seconds <= MAX_INT64:
         raise OverflowError("Timedelta cannot be encoded: out of range")
-    value_str = f"PT{sign}{seconds}{sub_seconds}S"
+    if not days:
+        value_str = f"PT{sec_sign}{seconds}{sub_seconds}S"
+    elif seconds or microseconds:
+        value_str = f"P{days}DT{sec_sign}{seconds}{sub_seconds}S"
+    else:
+        value_str = f"P{days}D"
     return make_value_dict("Duration", value_str)
 
 
@@ -366,7 +375,7 @@ if np is not None:
 
     def dehydrate_np_timedelta(value):
         if np.isnat(value):
-            return None
+            return make_value_dict("Null", None)
         unit, step_size = np.datetime_data(value)
         numer = int(value.astype(np.int64))
         try:

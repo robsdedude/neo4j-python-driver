@@ -80,3 +80,10 @@ class TestSpatialDehydration(HydrationHandlerTestBase):
         struct = transformer(point)
         assert struct == Structure(b"Y", 12345, 1.0, -2.0, 3.1)
         assert all(isinstance(f, float) for f in struct.fields[1:])
+
+    @pytest.mark.parametrize("dim", (1, 4, 5, 10))
+    def test_custom_point_invalid_dim(self, dim, transformer):
+        point = Point(tuple(float(i + 1) for i in range(dim)))
+        point.srid = 12345
+        with pytest.raises(ValueError, match=f"Point with {dim} dimensions"):
+            transformer(point)

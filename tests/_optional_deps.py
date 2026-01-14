@@ -16,11 +16,10 @@
 
 from __future__ import annotations
 
-import typing as t
-
 import mock
 import pytest
 
+from neo4j import _typing as t
 from neo4j._optional_deps import (
     np,
     pa,
@@ -42,7 +41,7 @@ class _OptionalDepsMock(mock.MagicMock):
             self.__optional_dep_name = name
 
     def _get_child_mock(self, **kwargs) -> t.Self:
-        child = _OptionalDepsMock(**kwargs)
+        child = type(self)(**kwargs)
         child.__optional_dep_name = self.__optional_dep_name
         return child
 
@@ -59,6 +58,7 @@ __all__ = [
     "np",
     "pa",
     "pd",
+    "skip_if_mocked_dependency",
 ]
 
 _DEP_NAME = {

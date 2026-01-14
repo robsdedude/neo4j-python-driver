@@ -52,12 +52,16 @@ from ...._types import (
     BYTES_TYPES,
     FALSE_VALUES,
     FLOAT_TYPES,
+    FLOAT_TYPES_EXACT,
     INT_TYPES,
+    INT_TYPES_EXACT,
     MAPPING_TYPES,
+    NON_PD_SEQUENCE_TYPES,
     NONE_VALUES,
-    SEQUENCE_TYPES,
+    PD_SEQUENCE_TYPES,
     TRUE_VALUES,
 )
+from ..._common import ExactValueKey
 from .._common import (
     GraphHydratorHttp,
     HydrationHandlerHttpBase,
@@ -215,6 +219,7 @@ class _GraphHydrator(GraphHydratorHttp):
                 )
         relationships = value[1::2]
         for i, v in enumerate(relationships):
+            i = i * 2 + 1  # map back to original index
             if not isinstance(v, Relationship):
                 raise QueryApiHttpError(
                     f"expected path relationship at odd index, got: {v!r}"
@@ -246,24 +251,36 @@ class HydrationHandler(HydrationHandlerHttpBase):
             "Date": temporal.hydrate_date,
             "Time": temporal.hydrate_zoned_time,
             "LocalTime": temporal.hydrate_local_time,
-            "OffsetDatetime": temporal.hydrate_zoned_datetime,
-            "LocalDatetime": temporal.hydrate_local_datetime,
+            "OffsetDateTime": temporal.hydrate_zoned_datetime,
+            "LocalDateTime": temporal.hydrate_local_datetime,
             "Duration": temporal.hydrate_duration,
             "Point": spatial.hydrate_point,
         }
         self.dehydration_hooks.update(
             exact_values={
-                **dict.fromkeys(NONE_VALUES, base_types.dehydrate_null),
-                **dict.fromkeys(TRUE_VALUES, base_types.dehydrate_true),
-                **dict.fromkeys(FALSE_VALUES, base_types.dehydrate_false),
+                **dict.fromkeys(
+                    map(ExactValueKey, NONE_VALUES), base_types.dehydrate_null
+                ),
+                **dict.fromkeys(
+                    map(ExactValueKey, TRUE_VALUES), base_types.dehydrate_true
+                ),
+                **dict.fromkeys(
+                    map(ExactValueKey, FALSE_VALUES),
+                    base_types.dehydrate_false,
+                ),
             },
             exact_types={
-                **dict.fromkeys(FLOAT_TYPES, base_types.dehydrate_float),
-                **dict.fromkeys(INT_TYPES, base_types.dehydrate_integer),
+                **dict.fromkeys(FLOAT_TYPES_EXACT, base_types.dehydrate_float),
+                **dict.fromkeys(INT_TYPES_EXACT, base_types.dehydrate_integer),
                 str: base_types.dehydrate_string,
                 **dict.fromkeys(BYTES_TYPES, base_types.dehydrate_byte_array),
-                **dict.fromkeys(BYTES_TYPES, base_types.dehydrate_byte_array),
-                **dict.fromkeys(SEQUENCE_TYPES, self._dehydrate_sequence),
+                **dict.fromkeys(
+                    PD_SEQUENCE_TYPES, self._dehydrate_pd_sequence
+                ),
+                **dict.fromkeys(
+                    NON_PD_SEQUENCE_TYPES, self._dehydrate_sequence
+                ),
+                tuple: self._dehydrate_sequence,
                 **dict.fromkeys(MAPPING_TYPES, self._dehydrate_mapping),
                 Point: spatial.dehydrate_point,
                 CartesianPoint: spatial.dehydrate_point,
@@ -281,12 +298,19 @@ class HydrationHandler(HydrationHandlerHttpBase):
                 LiteralJsonRecursive: self._dehydrate_literal_json_recursive,
             },
             subtypes={
-                float: base_types.dehydrate_float,
-                int: base_types.dehydrate_integer,
+                **dict.fromkeys(FLOAT_TYPES, base_types.dehydrate_float),
+                **dict.fromkeys(INT_TYPES, base_types.dehydrate_integer),
                 str: base_types.dehydrate_string,
                 **dict.fromkeys(BYTES_TYPES, base_types.dehydrate_byte_array),
-                **dict.fromkeys(SEQUENCE_TYPES, self._dehydrate_sequence),
+                **dict.fromkeys(
+                    PD_SEQUENCE_TYPES, self._dehydrate_pd_sequence
+                ),
+                **dict.fromkeys(
+                    NON_PD_SEQUENCE_TYPES, self._dehydrate_sequence
+                ),
+                tuple: self._dehydrate_sequence,
                 **dict.fromkeys(MAPPING_TYPES, self._dehydrate_mapping),
+                object: self._dehydrate_unsupported,
             },
         )
         if np is not None:
@@ -311,14 +335,19 @@ class HydrationHandler(HydrationHandlerHttpBase):
     def _dehydrate_sequence(self, value: t.Any) -> ValueDict[list]:
         return base_types.dehydrate_list(value, self)
 
+    def _dehydrate_pd_sequence(self, value: t.Any) -> ValueDict[list]:
+        return base_types.dehydrate_pd_list(value, self)
+
     def _dehydrate_literal_json(
         self, value: LiteralJson[T_JSON_BOUND]
     ) -> T_JSON_BOUND | list | dict:
         inner_value = value.value
-        if isinstance(inner_value, SEQUENCE_TYPES):
+        if isinstance(inner_value, NON_PD_SEQUENCE_TYPES):
             return base_types.dehydrate_raw_list(inner_value, self)
         if isinstance(inner_value, MAPPING_TYPES):
             return base_types.dehydrate_raw_map(inner_value, self)
+        if isinstance(inner_value, PD_SEQUENCE_TYPES):
+            return base_types.dehydrate_raw_pd_list(inner_value, self)
         return inner_value
 
     @staticmethod
@@ -326,6 +355,10 @@ class HydrationHandler(HydrationHandlerHttpBase):
         value: LiteralJsonRecursive[T_JSON_BOUND],
     ) -> T_JSON_BOUND:
         return value.value
+
+    @staticmethod
+    def _dehydrate_unsupported(value: object) -> t.Never:
+        raise ValueError(f"Values of type {type(value)} are not supported")
 
     def new_hydration_scope(self) -> HydrationScopeHttp:
         return HydrationScopeHttp(self, _GraphHydrator())

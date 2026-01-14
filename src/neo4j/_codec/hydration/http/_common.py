@@ -29,9 +29,17 @@ from .._common import (
 )
 
 
-T_JSON: t.TypeAlias = (
-    dict[str, "T_JSON"] | list["T_JSON"] | str | int | float | bool | None
-)
+T_JSON: t.TypeAlias = t.Union[
+    dict[str, "T_JSON_BOUND"],
+    list["T_JSON_BOUND"],
+    str,
+    int,
+    float,
+    bool,
+    "LiteralJson[T_JSON_BOUND]",
+    "LiteralJsonRecursive[T_JSON_BOUND]",
+    None,
+]
 T_JSON_BOUND = t.TypeVar("T_JSON_BOUND", bound=T_JSON)
 
 _default = object()
@@ -132,7 +140,7 @@ def value_as_list_str(value: object) -> list[str]:
     return list(map(value_as_str, value))
 
 
-def value_as_dict(value: object) -> dict:  # false positive
+def value_as_dict(value: object) -> dict:
     if isinstance(value, dict):
         return value
     if isinstance(value, BrokenHydrationObject) and isinstance(
@@ -175,7 +183,7 @@ class HydrationHandlerHttpBase(abc.ABC):
         )
 
     @abc.abstractmethod
-    def new_hydration_scope(self): ...
+    def new_hydration_scope(self) -> HydrationScopeHttp: ...
 
 
 class GraphHydratorHttp(GraphHydrator):

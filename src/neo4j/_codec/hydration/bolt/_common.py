@@ -51,7 +51,7 @@ class HydrationHandlerBoltBase(abc.ABC):
         )
 
     @abc.abstractmethod
-    def new_hydration_scope(self): ...
+    def new_hydration_scope(self) -> HydrationScopeBolt: ...
 
 
 class GraphHydratorBolt(GraphHydrator):

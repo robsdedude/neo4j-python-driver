@@ -33,7 +33,11 @@ from pytz import (
     utc,
 )
 
-from neo4j.time import Time
+from neo4j.time import (
+    MAX_INT64,
+    MIN_INT64,
+    Time,
+)
 from neo4j.time._arithmetic import (
     nano_add,
     nano_div,
@@ -645,3 +649,11 @@ def test_format() -> None:
     assert (
         f"{t:%Y-%m-%d %H:%M:%S.%f}" == f"{time():%Y-%m-%d} 12:34:56.789123001"
     )
+
+
+def test_min_int():
+    assert MIN_INT64 == -9223372036854775808
+
+
+def test_max_int():
+    assert MAX_INT64 == 9223372036854775807

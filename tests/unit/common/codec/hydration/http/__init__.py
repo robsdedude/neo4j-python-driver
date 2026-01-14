@@ -12,27 +12,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-from __future__ import annotations
-
-import typing as t
-
-import pytest
-
-
-if t.TYPE_CHECKING:
-    from neo4j._codec.hydration.bolt._common import (
-        HydrationHandlerBoltBase,
-        HydrationScopeBolt,
-    )
-
-
-class HydrationHandlerTestBase:
-    @pytest.fixture
-    def hydration_handler(self) -> HydrationHandlerBoltBase:
-        raise NotImplementedError
-
-    @pytest.fixture
-    def hydration_scope(self, hydration_handler) -> HydrationScopeBolt:
-        return hydration_handler.new_hydration_scope()

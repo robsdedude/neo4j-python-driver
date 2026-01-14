@@ -20,7 +20,6 @@ from pathlib import Path
 
 # fmt: off
 # ruff: noqa: E303 (too many blank lines, test must match README)
-
 def test_should_run_readme(uri, auth):
     names = set()
     print = names.add
@@ -66,7 +65,6 @@ def test_should_run_readme(uri, auth):
         driver.execute_query("MATCH (a) DETACH DELETE a")
 
     assert names == {"Guinevere", "Lancelot", "Merlin"}
-
 # fmt: on
 
 

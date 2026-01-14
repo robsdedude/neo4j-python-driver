@@ -22,17 +22,30 @@ import pytest
 
 
 if t.TYPE_CHECKING:
-    from neo4j._codec.hydration.bolt._common import (
-        HydrationHandlerBoltBase,
-        HydrationScopeBolt,
+    from neo4j._codec.hydration.http._common import (
+        HydrationHandlerHttpBase,
+        HydrationScopeHttp,
     )
+
+    T_Transformer: t.TypeAlias = t.Callable[[t.Any], t.Any]
 
 
 class HydrationHandlerTestBase:
     @pytest.fixture
-    def hydration_handler(self) -> HydrationHandlerBoltBase:
+    def hydration_handler(self) -> HydrationHandlerHttpBase:
         raise NotImplementedError
 
     @pytest.fixture
-    def hydration_scope(self, hydration_handler) -> HydrationScopeBolt:
+    def hydration_scope(self, hydration_handler) -> HydrationScopeHttp:
         return hydration_handler.new_hydration_scope()
+
+    @pytest.fixture
+    def transformer(self, hydration_scope) -> T_Transformer:
+        def transformer(value):
+            transformer_ = hydration_scope.dehydration_hooks.get_transformer(
+                value
+            )
+            assert callable(transformer_)
+            return transformer_(value)
+
+        return transformer
