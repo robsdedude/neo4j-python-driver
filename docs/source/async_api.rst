@@ -10,8 +10,8 @@ Async API Documentation
 AsyncGraphDatabase
 ******************
 
-Async Driver Construction
-=========================
+AsyncDriver Construction
+========================
 
 The :class:`neo4j.AsyncDriver` construction is done via a ``classmethod`` on the :class:`neo4j.AsyncGraphDatabase` class.
 
@@ -251,7 +251,7 @@ Closing a driver will immediately shut down all connections in the pool.
             :data:`None` (default) uses the database configured on the server
             side.
 
-            .. Note::
+            .. note::
                 It is recommended to always specify the database explicitly
                 when possible. This allows the driver to work more efficiently,
                 as it will not have to resolve the default database first.
@@ -380,8 +380,8 @@ Closing a driver will immediately shut down all connections in the pool.
 
 .. _async-driver-configuration-ref:
 
-Async Driver Configuration
-==========================
+AsyncDriver Configuration
+=========================
 
 :class:`neo4j.AsyncDriver` is configured exactly like :class:`neo4j.Driver`
 (see :ref:`driver-configuration-ref`). The only differences are that the async
@@ -472,8 +472,8 @@ This setting does not have any effect if ``encrypted`` is set to ``False``
 
 
 
-Driver Object Lifetime
-======================
+AsyncDriver Object Lifetime
+===========================
 
 For general applications, it is recommended to create one top-level :class:`neo4j.AsyncDriver` object that lives for the lifetime of the application.
 
@@ -654,8 +654,8 @@ AsyncSession
 
 .. _async-session-configuration-ref:
 
-Session Configuration
-=====================
+AsyncSession Configuration
+==========================
 
 :class:`neo4j.AsyncSession` is configured exactly like :class:`neo4j.Session`
 (see :ref:`session-configuration-ref`). The only difference is the async session

@@ -285,7 +285,6 @@ class GraphDatabase:
                     )
                 return cls._bolt_driver(parsed.netloc, **config)
             else:  # driver_type == DRIVER_HTTP
-                # TODO: preview warning on HTTP
                 preview_warn(
                     (
                         "The Query API/HTTP support in the Neo4j Python "
@@ -293,6 +292,12 @@ class GraphDatabase:
                     ),
                     stack_level=2,
                 )
+                if parse_routing_context(parsed.query):
+                    raise ConfigurationError(
+                        "Routing context (URI query parameters) are not "
+                        "supported by HTTP drivers "
+                        f'("http[s]://" scheme). Given URI: {uri!r}.'
+                    )
                 return cls._http_driver(parsed.netloc, **config)
 
     @classmethod
@@ -811,7 +816,7 @@ class Driver:
             :data:`None` (default) uses the database configured on the server
             side.
 
-            .. Note::
+            .. note::
                 It is recommended to always specify the database explicitly
                 when possible. This allows the driver to work more efficiently,
                 as it will not have to resolve the default database first.
@@ -1407,13 +1412,74 @@ class Neo4jDriver(_Routing, Driver):
         Driver.__init__(self, pool, default_workspace_config)
 
 
-# TODO: mark preview
-# TODO: flesh out docs
 class HttpDriver(_Http, Driver):
     """
-    TODO: docs.
-
     :class:`.HttpDriver` is instantiated for ``http`` URIs.
+
+    This driver connects to a Neo4j server through the server's HTTP API v2
+    also called Query API.
+
+    Unavailable Features
+    ---------------------
+    .. note::
+        Some features of the driver API are not available when connected via
+        ``http`` or ``https``.
+
+    Configuration settings that behave differently:
+
+    * :ref:`driver-configuration-ref`:
+        * :ref:`max-connection-lifetime-ref`:
+          Has no effect *for the sync driver*.
+        * :ref:`liveness-check-timeout-ref`:
+          Has no effect.
+        * :ref:`resolver-ref`:
+          Has no effect.
+        * :ref:`driver-notifications-min-severity-ref`:
+          Has no effect. *(The server always sends all notifications.)*
+        * :ref:`driver-notifications-disabled-categories-ref`:
+          Has no effect. *(The server always sends all notifications.)*
+        * :ref:`driver-notifications-disabled-classifications-ref`:
+          Has no effect. *(The server always sends all notifications.)*
+        * :ref:`telemetry-disabled-ref`:
+          Has no effect. *(Telemetry is always disabled.)*
+    * :ref:`session-configuration-ref`:
+        * :ref:`database-ref`:
+          The database name must *always* be specified.
+          *(The HTTP API does not support home/default database resolution.)*
+        * :ref:`fetch-size-ref`:
+          Has no effect.
+          *(The server always sends all records at once.
+          This is equivalent to a* ``fetch_size=-1`` *.)*
+        * :ref:`session-notifications-min-severity-ref`:
+          Has no effect. *(The server always sends all notifications.)*
+        * :ref:`session-notifications-disabled-categories-ref`:
+          Has no effect. *(The server always sends all notifications.)*
+        * :ref:`session-notifications-disabled-classifications-ref`:
+          Has no effect. *(The server always sends all notifications.)*
+
+    Other differences:
+
+    * Transaction metadata and timeouts are not supported.
+      If provided, they'll be ignored. E.g.
+
+        * ``metadata`` and ``timeout`` arguments to
+          :meth:`.Session.begin_transaction`
+        * ``metadata`` and ``timeout`` arguments to
+          :class:`.Query`
+        * ``metadata`` and ``timeout`` arguments to
+          :func:`.unit_of_work`
+
+    * Transmitting and receiving :class:`Vector` values is currently not
+      supported.
+
+    Preview
+    -------
+    **This is a preview**.
+    It might be changed without following the deprecation policy.
+    See also
+    https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
+
+    .. versionadded:: 6.2.0
     """
 
     @classmethod

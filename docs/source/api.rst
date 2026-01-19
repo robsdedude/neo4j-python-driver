@@ -68,6 +68,8 @@ Available valid URIs:
 + ``neo4j://host[:port][?routing_context]``
 + ``neo4j+ssc://host[:port][?routing_context]``
 + ``neo4j+s://host[:port][?routing_context]``
++ ``http://host[:port]/db-name``
++ ``https://host[:port]/db-name``
 
 .. code-block:: python
 
@@ -76,6 +78,10 @@ Available valid URIs:
 .. code-block:: python
 
     uri = "neo4j://example.com:7687?policy=europe"
+
+.. code-block:: python
+
+    uri = "https://example.com/neo4j"
 
 Each supported scheme maps to a particular :class:`neo4j.Driver` subclass that implements a specific behaviour.
 
@@ -94,6 +100,10 @@ Each supported scheme maps to a particular :class:`neo4j.Driver` subclass that i
 +------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | neo4j+s                | :ref:`neo4j-driver-ref` with encryption (accepts only certificates signed by a certificate authority), full certificate checks.       |
 +------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| http                   | :ref:`http-driver-ref` with no encryption. (**preview**)                                                                              |
++------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| https                  | :ref:`http-driver-ref` with encryption. (**preview**)                                                                                 |
++------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 
 
 .. note::
@@ -104,6 +114,11 @@ Each supported scheme maps to a particular :class:`neo4j.Driver` subclass that i
 .. note::
 
     See https://neo4j.com/docs/operations-manual/current/configuration/ports/ for Neo4j ports.
+
+
+
+.. versionchanged:: 6.2.0
+    Added support for ``http`` and ``https`` schemes.
 
 
 .. _auth-ref:
@@ -269,7 +284,7 @@ Closing a driver will immediately shut down all connections in the pool.
             :data:`None` (default) uses the database configured on the server
             side.
 
-            .. Note::
+            .. note::
                 It is recommended to always specify the database explicitly
                 when possible. This allows the driver to work more efficiently,
                 as it will not have to resolve the default database first.
@@ -476,9 +491,11 @@ The maximum amount of time in seconds to wait for TCP write operations to comple
 -------------
 Specify whether to use an encrypted connection between the driver and server.
 
-This setting is only available for URI schemes ``bolt://`` and ``neo4j://`` (:ref:`uri-ref`).
+.. note::
+    This setting is only available for URI schemes ``bolt://`` and ``neo4j://`` (:ref:`uri-ref`).
 
-This setting does not have any effect if a custom ``ssl_context`` is configured.
+.. note::
+    This setting does not have any effect if a custom ``ssl_context`` is configured.
 
 :Type: ``bool``
 :Default: ``False``
@@ -499,6 +516,10 @@ Specify whether TCP keep-alive should be enabled.
 ``max_connection_lifetime``
 ---------------------------
 The maximum duration in seconds that the driver will keep a connection for before being removed from the pool.
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme and using the synchronous API.
 
 :Type: ``float``
 :Default: ``3600``
@@ -524,6 +545,10 @@ You normally should not need to tune this parameter.
 No connection liveliness check is done by default (:data:`None`).
 A value of ``0`` means connections will always be tested for validity.
 Negative values are not allowed.
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 :Type: :class:`float` or :data:`None`
 :Default: :data:`None`
@@ -591,6 +616,11 @@ For example:
    driver = neo4j.GraphDatabase.driver("neo4j://example.com:9999",
                                        auth=("neo4j", "password"),
                                        resolver=custom_resolver)
+
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 
 :Type: ``Callable`` or  :data:`None`
@@ -698,10 +728,14 @@ See also :attr:`.GqlStatusObject.is_notification`.
 
 :data:`None` will apply the server's default setting.
 
-.. Note::
+.. note::
     If configured, the server or all servers of the cluster need to support notifications filtering
     (server version 5.7 and newer).
     Otherwise, the driver will raise a :exc:`.ConfigurationError` as soon as it encounters a server that does not.
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 :Type: :data:`None`, :class:`.NotificationMinimumSeverity`, or :class:`str`
 :Default: :data:`None`
@@ -718,6 +752,10 @@ See also :attr:`.GqlStatusObject.is_notification`.
 Identical to :ref:`driver-notifications-disabled-classifications-ref`.
 
 This alias is provided for a consistent naming with :attr:`.SummaryNotification.category`.
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 :Type: :data:`None`, :term:`iterable` of :class:`.NotificationDisabledCategory` and/or :class:`str`
 :Default: :data:`None`
@@ -746,10 +784,14 @@ See also :attr:`.GqlStatusObject.is_notification`.
 
 If specified together with :ref:`driver-notifications-disabled-categories-ref`, the settings will be merged.
 
-.. Note::
+.. note::
     If configured, the server or all servers of the cluster need to support notifications filtering
     (server version 5.7 and newer).
     Otherwise, the driver will raise a :exc:`.ConfigurationError` as soon as it encounters a server that does not.
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 :Type: :data:`None`, :term:`iterable` of :class:`.NotificationDisabledClassification` and/or :class:`str`
 :Default: :data:`None`
@@ -799,6 +841,10 @@ The driver transmits the following information:
   * :meth:`.Session.execute_read`, :meth:`.Session.execute_write`
   * :meth:`.Session.run`
   * the async counterparts of the above methods
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 :Type: :class:`bool`
 :Default: :data:`False`
@@ -876,6 +922,19 @@ URI schemes:
 Will result in:
 
 .. autoclass:: neo4j.Neo4jDriver
+
+
+.. _http-driver-ref:
+
+HttpDriver
+===========
+
+URI schemes:
+    ``http``, ``https``
+
+Will result in:
+
+.. autoclass:: neo4j.HttpDriver
 
 
 ***********************
@@ -983,6 +1042,7 @@ To construct a :class:`neo4j.Session` use the :meth:`neo4j.Driver.session` metho
 + :ref:`session-auth-ref`
 + :ref:`session-notifications-min-severity-ref`
 + :ref:`session-notifications-disabled-categories-ref`
++ :ref:`session-notifications-disabled-classifications-ref`
 
 
 .. _bookmarks-ref:
@@ -1013,11 +1073,11 @@ more information.
 ------------
 Name of the database to query.
 
-.. Note::
+.. note::
 
     The default database can be set on the Neo4j instance settings.
 
-.. Note::
+.. note::
 
     This option has no explicit value by default, but it is recommended to set
     one if the target database is known in advance. This has the benefit of
@@ -1072,8 +1132,11 @@ Specifically, the following applies:
 
     This will use the default database on the Neo4j instance.
 
-:Type: ``str``, ``neo4j.DEFAULT_DATABASE``
+.. note::
+    A string value must be provided connected via
+    ``http://`` or ``https://`` scheme.
 
+:Type: ``str``, ``neo4j.DEFAULT_DATABASE``
 :Default: ``neo4j.DEFAULT_DATABASE``
 
 
@@ -1086,7 +1149,7 @@ This means that all actions in the session will be executed in the security
 context of the impersonated user. For this, the user for which the
 :class:`.Driver` has been created needs to have the appropriate permissions.
 
-.. Note::
+.. note::
 
     If configured, the server or all servers of the cluster need to support impersonation.
     Otherwise, the driver will raise :exc:`.ConfigurationError`
@@ -1107,7 +1170,6 @@ context of the impersonated user. For this, the user for which the
    Will not perform impersonation.
 
 :Type: ``str``, None
-
 :Default: :data:`None`
 
 
@@ -1141,7 +1203,6 @@ access mode passed to that session on construction.
     :noindex:
 
 :Type: ``neo4j.WRITE_ACCESS``, ``neo4j.READ_ACCESS``
-
 :Default: ``neo4j.WRITE_ACCESS``
 
 
@@ -1150,6 +1211,10 @@ access mode passed to that session on construction.
 ``fetch_size``
 --------------
 The fetch size used for requesting records from Neo4j.
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 :Type: ``int``
 :Default: ``1000``
@@ -1215,10 +1280,14 @@ See also :attr:`.GqlStatusObject.is_notification`.
 
 :data:`None` will apply the driver's configuration setting (:ref:`driver-notifications-min-severity-ref`).
 
-.. Note::
+.. note::
     If configured, the server or all servers of the cluster need to support notifications filtering
     (server version 5.7 and newer).
     Otherwise, the driver will raise a :exc:`.ConfigurationError` as soon as it encounters a server that does not.
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 :Type: :data:`None`, :class:`.NotificationMinimumSeverity`, or :class:`str`
 :Default: :data:`None`
@@ -1235,6 +1304,10 @@ See also :attr:`.GqlStatusObject.is_notification`.
 Identical to :ref:`session-notifications-disabled-classifications-ref`.
 
 This alias is provided for a consistent naming with :attr:`.SummaryNotification.category`.
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 :Type: :data:`None`, :term:`iterable` of :class:`.NotificationDisabledCategory` and/or :class:`str`
 :Default: :data:`None`
@@ -1263,10 +1336,14 @@ See also :attr:`.GqlStatusObject.is_notification`.
 
 If specified together with :ref:`session-notifications-disabled-categories-ref`, the settings will be merged.
 
-.. Note::
+.. note::
     If configured, the server or all servers of the cluster need to support notifications filtering
     (server version 5.7 and newer).
     Otherwise, the driver will raise a :exc:`.ConfigurationError` as soon as it encounters a server that does not.
+
+.. note::
+    This setting does not have any effect when connected
+    via ``http://`` or ``https://`` scheme.
 
 :Type: :data:`None`, :term:`iterable` of :class:`.NotificationDisabledClassification` and/or :class:`str`
 :Default: :data:`None`
@@ -1721,7 +1798,7 @@ The core types with their general mappings are listed below:
 | Map                    | :class:`dict`                                                                                                             |
 +------------------------+---------------------------------------------------------------------------------------------------------------------------+
 
-.. Note::
+.. note::
 
    1. ``Bytes`` is not an actual Cypher type but is transparently passed through when used in parameters or query results.
 
@@ -1775,7 +1852,7 @@ Which in this case would yield::
 | pandas ``Array``                  | List                            | :class:`list`                         |
 +-----------------------------------+---------------------------------+---------------------------------------+
 
-.. Note::
+.. note::
 
    2. ``void`` and ``complexfloating`` typed numpy ``ndarray``\s are not supported.
    3. ``Period``, ``Interval``, and ``pyarrow`` pandas types are not supported.

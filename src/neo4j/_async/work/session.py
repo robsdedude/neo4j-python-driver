@@ -441,6 +441,10 @@ class AsyncSession(AsyncWorkspace):
         Note: For auto-commit transactions (:meth:`.AsyncSession.run`), this
         will trigger a :meth:`.AsyncResult.consume` for the current result.
 
+        .. note::
+            ``metadata`` and ``timeout`` do not have any effect when connected
+            via ``http://`` or ``https://`` scheme.
+
         :param metadata:
             a dictionary with metadata.
             Specified metadata will be attached to the executing transaction

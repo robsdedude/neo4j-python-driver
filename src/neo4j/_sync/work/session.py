@@ -441,6 +441,10 @@ class Session(Workspace):
         Note: For auto-commit transactions (:meth:`.Session.run`), this
         will trigger a :meth:`.Result.consume` for the current result.
 
+        .. note::
+            ``metadata`` and ``timeout`` do not have any effect when connected
+            via ``http://`` or ``https://`` scheme.
+
         :param metadata:
             a dictionary with metadata.
             Specified metadata will be attached to the executing transaction

@@ -330,7 +330,7 @@ class HTTPQueryAPIFactory:
         keep_alive = 1 if pool_config.keep_alive else 0
         return urllib3.connectionpool.connection_from_url(
             _build_base_url(address, secure),
-            maxsize=pool_config.max_connection_pool_size,
+            maxsize=0,
             headers={
                 "User-Agent": user_agent,
             },
