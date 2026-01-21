@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import enum
 import json
+import sys
 from dataclasses import dataclass
 from logging import getLogger
 from socket import (
@@ -61,6 +62,11 @@ __all__ = [
 
 
 NO_DATA = object()
+ENABLE_CLEANUP_CLOSED = (
+    sys.version_info < (3, 12)
+    or (3, 12) <= sys.version_info < (3, 12, 8)
+    or (3, 13) <= sys.version_info < (3, 13, 1)
+)
 
 
 class AiohttpSessionRequestKwargs(t.TypedDict, total=False):
@@ -158,7 +164,7 @@ class AsyncHTTPQueryAPIFactory:
             # resolver: Optional[AbstractResolver] = None,
             keepalive_timeout=pool_config.max_connection_lifetime,
             limit=0,
-            enable_cleanup_closed=True,
+            enable_cleanup_closed=ENABLE_CLEANUP_CLOSED,
             socket_factory=socket_factory,
         )
         user_agent = pool_config.user_agent

@@ -79,7 +79,10 @@ if t.TYPE_CHECKING:
     from ..._async_compat.network import HTTPQueryAPIFactory
     from ...api import _TAuth
     from ...auth_management import AuthManager
-    from ._http import HttpConnection
+    from ._http import (
+        HttpConnection,
+        HttpConnectionFactory,
+    )
 
     _TOpener: t.TypeAlias = t.Callable[
         [Address, AuthManager | AuthManager, Deadline],
@@ -1371,6 +1374,7 @@ class RoutedBoltPool(BoltPool):
 
 class HttpV2Pool(IOPool["HttpConnection"]):
     _async_http_query_api_factory: HTTPQueryAPIFactory
+    _async_http_connection_factory: HttpConnectionFactory
     _semaphore: BoundedSemaphore
 
     def __init__(
@@ -1380,9 +1384,11 @@ class HttpV2Pool(IOPool["HttpConnection"]):
         workspace_config: WorkspaceConfig,
         address: Address,
         http_query_api_factory: HTTPQueryAPIFactory,
+        http_connection_factory: HttpConnectionFactory,
     ) -> None:
         super().__init__(opener, pool_config, workspace_config, address)
         self._async_http_query_api_factory = http_query_api_factory
+        self._async_http_connection_factory = http_connection_factory
         self._semaphore = BoundedSemaphore(
             pool_config.max_connection_pool_size
         )
@@ -1400,14 +1406,14 @@ class HttpV2Pool(IOPool["HttpConnection"]):
         workspace_config: WorkspaceConfig,
     ) -> t.Self:
         from ..._async_compat.network import HTTPQueryAPIFactory
-        from ._http import HttpConnection
+        from ._http import HttpConnectionFactory
 
         def opener(
             addr: Address,
             auth_manager: AuthManager | AuthManager,
             deadline_,
         ) -> HttpConnection:
-            return HttpConnection.open(
+            return pool._async_http_connection_factory.open(
                 pool._async_http_query_api_factory,
                 addr,
                 auth_manager=auth_manager,
@@ -1416,7 +1422,15 @@ class HttpV2Pool(IOPool["HttpConnection"]):
             )
 
         api_factory = HTTPQueryAPIFactory()
-        pool = cls(opener, pool_config, workspace_config, address, api_factory)
+        connection_factory = HttpConnectionFactory()
+        pool = cls(
+            opener,
+            pool_config,
+            workspace_config,
+            address,
+            api_factory,
+            connection_factory,
+        )
         log.debug(
             "[#0000]  _: <POOL> created, Query API/HTTP address %r", address
         )

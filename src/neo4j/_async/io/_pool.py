@@ -82,7 +82,10 @@ if t.TYPE_CHECKING:
         AsyncAuthManager,
         AuthManager,
     )
-    from ._http import AsyncHttpConnection
+    from ._http import (
+        AsyncHttpConnection,
+        AsyncHttpConnectionFactory,
+    )
 
     _TOpener: t.TypeAlias = t.Callable[
         [Address, AsyncAuthManager | AuthManager, Deadline],
@@ -1374,6 +1377,7 @@ class AsyncRoutedBoltPool(AsyncBoltPool):
 
 class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
     _async_http_query_api_factory: AsyncHTTPQueryAPIFactory
+    _async_http_connection_factory: AsyncHttpConnectionFactory
     _semaphore: AsyncBoundedSemaphore
 
     def __init__(
@@ -1383,9 +1387,11 @@ class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
         workspace_config: WorkspaceConfig,
         address: Address,
         async_http_query_api_factory: AsyncHTTPQueryAPIFactory,
+        async_http_connection_factory: AsyncHttpConnectionFactory,
     ) -> None:
         super().__init__(opener, pool_config, workspace_config, address)
         self._async_http_query_api_factory = async_http_query_api_factory
+        self._async_http_connection_factory = async_http_connection_factory
         self._semaphore = AsyncBoundedSemaphore(
             pool_config.max_connection_pool_size
         )
@@ -1403,14 +1409,14 @@ class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
         workspace_config: WorkspaceConfig,
     ) -> t.Self:
         from ..._async_compat.network import AsyncHTTPQueryAPIFactory
-        from ._http import AsyncHttpConnection
+        from ._http import AsyncHttpConnectionFactory
 
         async def opener(
             addr: Address,
             auth_manager: AsyncAuthManager | AuthManager,
             deadline_,
         ) -> AsyncHttpConnection:
-            return await AsyncHttpConnection.open(
+            return await pool._async_http_connection_factory.open(
                 pool._async_http_query_api_factory,
                 addr,
                 auth_manager=auth_manager,
@@ -1419,7 +1425,15 @@ class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
             )
 
         api_factory = AsyncHTTPQueryAPIFactory()
-        pool = cls(opener, pool_config, workspace_config, address, api_factory)
+        connection_factory = AsyncHttpConnectionFactory()
+        pool = cls(
+            opener,
+            pool_config,
+            workspace_config,
+            address,
+            api_factory,
+            connection_factory,
+        )
         log.debug(
             "[#0000]  _: <POOL> created, Query API/HTTP address %r", address
         )

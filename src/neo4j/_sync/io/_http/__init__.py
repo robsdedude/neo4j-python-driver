@@ -16,11 +16,15 @@
 
 from __future__ import annotations
 
-from ._base import HttpConnection
+from ._base import (
+    HttpConnection,
+    HttpConnectionFactory,
+)
 from ._http2 import HTTPQueryAPI
 
 
 __all__ = [
     "HTTPQueryAPI",
     "HttpConnection",
+    "HttpConnectionFactory",
 ]

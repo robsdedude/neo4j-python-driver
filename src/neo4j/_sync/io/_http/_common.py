@@ -18,8 +18,13 @@ from __future__ import annotations
 
 import logging
 
+from .... import _typing as t
 from ...._async_compat.util import Util
 from ....exceptions import Neo4jError
+
+
+if t.TYPE_CHECKING:
+    from ...._async_compat.network import HTTPQueryAPIResponse
 
 
 log = logging.getLogger("neo4j.io")
@@ -59,3 +64,10 @@ class ResponseHandler:
 
     def _hydrate_error(self, metadata):
         return Neo4jError._hydrate_neo4j(**metadata)
+
+
+def generic_http_error(res: HTTPQueryAPIResponse) -> RuntimeError:
+    msg = f"HTTP error {res.status}: {res.body}"
+    if res.reason is not None:
+        msg += f" - ({res.reason})"
+    return RuntimeError(msg)

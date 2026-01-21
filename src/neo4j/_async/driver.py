@@ -1469,6 +1469,9 @@ class AsyncHttpDriver(_Http, AsyncDriver):
           :class:`.Query`
         * ``metadata`` and ``timeout`` arguments to
           :func:`.unit_of_work`
+        * :attr:`.ServerInfo.agent` is being computed from the DBMS's
+          advertised version. Further, it is being cached to reduce
+          round-trips and overloading the DBMS's HTTP endpoints.
 
     * Transmitting and receiving :class:`Vector` values is currently not
       supported.

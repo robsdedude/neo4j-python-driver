@@ -59,7 +59,10 @@ from ....exceptions import (
     SessionExpired,
 )
 from ._base import HttpConnection
-from ._common import ResponseHandler
+from ._common import (
+    generic_http_error,
+    ResponseHandler,
+)
 
 
 if t.TYPE_CHECKING:
@@ -1031,17 +1034,17 @@ class HttpV2(HttpConnection):
         if res.status < 400:
             return True
         if not isinstance(res.body, dict):
-            raise HttpV2._generic_http_error(res)
+            raise generic_http_error(res)
         errors = res.body.get("errors")
         if not isinstance(errors, list) or not errors:
-            raise HttpV2._generic_http_error(res)
+            raise generic_http_error(res)
         error = errors[0]
         if not isinstance(error, dict):
-            raise HttpV2._generic_http_error(res)
+            raise generic_http_error(res)
         code = error.get("code")
         message = error.get("message")
         if not isinstance(code, str) or not isinstance(message, str):
-            raise HttpV2._generic_http_error(res)
+            raise generic_http_error(res)
 
         self._enqueue_failure(handler, code, message)
         return False
@@ -1081,13 +1084,6 @@ class HttpV2(HttpConnection):
             )
             return True
         return False
-
-    @staticmethod
-    def _generic_http_error(res: HTTPQueryAPIResponse) -> RuntimeError:
-        msg = f"HTTP error {res.status}: {res.body}"
-        if res.reason is not None:
-            msg += f" - ({res.reason})"
-        return RuntimeError(msg)
 
     def _request(
         self,
@@ -1156,7 +1152,7 @@ class HttpV2(HttpConnection):
                     log_id=http._id,
                 )
                 if res.status >= 400:
-                    raise HttpV2._generic_http_error(res)
+                    raise generic_http_error(res)
                 version = res.body["neo4j_version"]
                 if not isinstance(version, str):
                     raise TypeError(

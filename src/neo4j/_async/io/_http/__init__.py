@@ -16,11 +16,15 @@
 
 from __future__ import annotations
 
-from ._base import AsyncHttpConnection
+from ._base import (
+    AsyncHttpConnection,
+    AsyncHttpConnectionFactory,
+)
 from ._http2 import AsyncHTTPQueryAPI
 
 
 __all__ = [
     "AsyncHTTPQueryAPI",
     "AsyncHttpConnection",
+    "AsyncHttpConnectionFactory",
 ]

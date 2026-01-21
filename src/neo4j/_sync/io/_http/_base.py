@@ -17,12 +17,20 @@
 from __future__ import annotations
 
 import abc
+import time
+import traceback
+from logging import getLogger
 
 from .... import _typing as t
-from ...._async_compat.concurrency import CooperativeLock
+from ...._async_compat.concurrency import (
+    CooperativeLock,
+    Lock,
+)
+from ...._async_compat.network import HTTPVerb
 from ...._async_compat.util import Util
 from ...config import PoolConfig
 from .._connection import Connection
+from ._common import generic_http_error
 
 
 if t.TYPE_CHECKING:
@@ -30,10 +38,14 @@ if t.TYPE_CHECKING:
     from ...._async_compat.network import HTTPQueryAPIFactory
     from ...._auth_management import AuthManager
 
+log = getLogger("neo4j.io")
+
 
 class IdGenerator:
     _next_id: int
     _lock: CooperativeLock
+
+    _MAX = 2**16
 
     def __init__(self) -> None:
         self._next_id = 1
@@ -42,16 +54,21 @@ class IdGenerator:
     def next_id(self) -> int:
         with self._lock:
             current_id = self._next_id
-            self._next_id += 1
+            self._next_id = min((self._next_id + 1) % IdGenerator._MAX, 1)
         return current_id
 
 
-class HttpConnection(Connection, abc.ABC):
+class HttpConnectionFactory:
+    _server_agent_cache: _ServerAgentCache
     _id_generator: t.ClassVar[IdGenerator] = IdGenerator()
 
-    @classmethod
+    def __init__(self) -> None:
+        self._server_agent_cache = (
+            HttpConnectionFactory._ServerAgentCache(log_id=0)
+        )
+
     def open(
-        cls,
+        self,
         factory: HTTPQueryAPIFactory,
         address: Address,
         *,
@@ -67,7 +84,7 @@ class HttpConnection(Connection, abc.ABC):
             address,
             pool_config=pool_config,
         )
-        id_ = cls._id_generator.next_id()
+        id_ = self._id_generator.next_id()
 
         from ._http2 import HttpV2
 
@@ -91,6 +108,76 @@ class HttpConnection(Connection, abc.ABC):
 
         return connection
 
+    class _ServerAgentCache:
+        _value: str | None
+        _last_fetch: float
+        _lock: Lock
+        _log_id: int
+
+        def __init__(self, *, log_id: int) -> None:
+            self._value = None
+            self._last_fetch = float("-inf")
+            self._lock = Lock()
+
+        def get(
+            self,
+            factory: HTTPQueryAPIFactory,
+            address: Address,
+            pool_config: PoolConfig,
+        ) -> str | None:
+            age = time.monotonic() - self._last_fetch
+            if self._value is not None and age <= 60:
+                return self._value
+            with self._lock:
+                # check if value has been update while waiting for the lock
+                age = time.monotonic() - self._last_fetch
+                if self._value is not None and age <= 60:
+                    return self._value
+                self._update(factory, address, pool_config)
+                return self._value
+
+        def _update(
+            self,
+            factory: HTTPQueryAPIFactory,
+            address: Address,
+            pool_config: PoolConfig,
+        ) -> None:
+            query_api = factory.new_http_query_api(
+                address,
+                pool_config=pool_config,
+            )
+            try:
+                res = query_api.request(
+                    HTTPVerb.GET,
+                    "/",
+                    headers={"Accept": "application/json"},
+                    log_id=self._log_id,
+                )
+                if res.status >= 400:
+                    raise generic_http_error(res)
+                version = res.body["neo4j_version"]
+                if not isinstance(version, str):
+                    raise TypeError(
+                        "Expected 'neo4j_version' to be str, "
+                        f"got {type(version)}"
+                    )
+                self._value = f"Neo4j/{version}"
+            except Exception as e:
+                log.warning(
+                    "[#%04X]  _: Could not fetch server agent: %r",
+                    self._log_id,
+                    e,
+                )
+                log.debug(
+                    "[#%04X]  _: %s",
+                    self._log_id,
+                    traceback.format_exc(),
+                )
+            finally:
+                self._last_fetch = time.monotonic()
+
+
+class HttpConnection(Connection, abc.ABC):
     @abc.abstractmethod
     def close(self) -> None:
         raise NotImplementedError

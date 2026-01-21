@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+from ... import _typing as t
 from ._bolt_socket import (
     AsyncBoltSocketBase,
     BoltSocketBase,
@@ -22,6 +22,18 @@ from ._util import (
     AsyncNetworkUtil,
     NetworkUtil,
 )
+
+
+if t.TYPE_CHECKING:
+    from ._http_query_api import (  # noqa: F401
+        AsyncHTTPQueryAPI,
+        AsyncHTTPQueryAPIFactory,
+        HTTPQueryAPI,
+        HTTPQueryAPIFactory,
+        HTTPQueryAPIResponse,
+        HTTPVerb,
+        NO_DATA,
+    )
 
 
 __all__ = [

@@ -17,12 +17,20 @@
 from __future__ import annotations
 
 import abc
+import time
+import traceback
+from logging import getLogger
 
 from .... import _typing as t
-from ...._async_compat.concurrency import AsyncCooperativeLock
+from ...._async_compat.concurrency import (
+    AsyncCooperativeLock,
+    AsyncLock,
+)
+from ...._async_compat.network import HTTPVerb
 from ...._async_compat.util import AsyncUtil
 from ...config import AsyncPoolConfig
 from .._connection import AsyncConnection
+from ._common import generic_http_error
 
 
 if t.TYPE_CHECKING:
@@ -33,10 +41,14 @@ if t.TYPE_CHECKING:
         AuthManager,
     )
 
+log = getLogger("neo4j.io")
+
 
 class IdGenerator:
     _next_id: int
     _lock: AsyncCooperativeLock
+
+    _MAX = 2**16
 
     def __init__(self) -> None:
         self._next_id = 1
@@ -45,16 +57,21 @@ class IdGenerator:
     async def next_id(self) -> int:
         async with self._lock:
             current_id = self._next_id
-            self._next_id += 1
+            self._next_id = min((self._next_id + 1) % IdGenerator._MAX, 1)
         return current_id
 
 
-class AsyncHttpConnection(AsyncConnection, abc.ABC):
+class AsyncHttpConnectionFactory:
+    _server_agent_cache: _ServerAgentCache
     _id_generator: t.ClassVar[IdGenerator] = IdGenerator()
 
-    @classmethod
+    def __init__(self) -> None:
+        self._server_agent_cache = (
+            AsyncHttpConnectionFactory._ServerAgentCache(log_id=0)
+        )
+
     async def open(
-        cls,
+        self,
         factory: AsyncHTTPQueryAPIFactory,
         address: Address,
         *,
@@ -70,7 +87,7 @@ class AsyncHttpConnection(AsyncConnection, abc.ABC):
             address,
             pool_config=pool_config,
         )
-        id_ = await cls._id_generator.next_id()
+        id_ = await self._id_generator.next_id()
 
         from ._http2 import AsyncHttpV2
 
@@ -94,6 +111,76 @@ class AsyncHttpConnection(AsyncConnection, abc.ABC):
 
         return connection
 
+    class _ServerAgentCache:
+        _value: str | None
+        _last_fetch: float
+        _lock: AsyncLock
+        _log_id: int
+
+        def __init__(self, *, log_id: int) -> None:
+            self._value = None
+            self._last_fetch = float("-inf")
+            self._lock = AsyncLock()
+
+        async def get(
+            self,
+            factory: AsyncHTTPQueryAPIFactory,
+            address: Address,
+            pool_config: AsyncPoolConfig,
+        ) -> str | None:
+            age = time.monotonic() - self._last_fetch
+            if self._value is not None and age <= 60:
+                return self._value
+            async with self._lock:
+                # check if value has been update while waiting for the lock
+                age = time.monotonic() - self._last_fetch
+                if self._value is not None and age <= 60:
+                    return self._value
+                await self._update(factory, address, pool_config)
+                return self._value
+
+        async def _update(
+            self,
+            factory: AsyncHTTPQueryAPIFactory,
+            address: Address,
+            pool_config: AsyncPoolConfig,
+        ) -> None:
+            query_api = await factory.new_http_query_api(
+                address,
+                pool_config=pool_config,
+            )
+            try:
+                res = await query_api.request(
+                    HTTPVerb.GET,
+                    "/",
+                    headers={"Accept": "application/json"},
+                    log_id=self._log_id,
+                )
+                if res.status >= 400:
+                    raise generic_http_error(res)
+                version = res.body["neo4j_version"]
+                if not isinstance(version, str):
+                    raise TypeError(
+                        "Expected 'neo4j_version' to be str, "
+                        f"got {type(version)}"
+                    )
+                self._value = f"Neo4j/{version}"
+            except Exception as e:
+                log.warning(
+                    "[#%04X]  _: Could not fetch server agent: %r",
+                    self._log_id,
+                    e,
+                )
+                log.debug(
+                    "[#%04X]  _: %s",
+                    self._log_id,
+                    traceback.format_exc(),
+                )
+            finally:
+                self._last_fetch = time.monotonic()
+
+
+class AsyncHttpConnection(AsyncConnection, abc.ABC):
     @abc.abstractmethod
     async def close(self) -> None:
         raise NotImplementedError

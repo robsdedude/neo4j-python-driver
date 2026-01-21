@@ -309,7 +309,22 @@ class ServerInfo:
 
     @property
     def agent(self) -> str:
-        """Server agent string by which the remote server identifies itself."""
+        """
+        Server agent string by which the remote server identifies itself.
+
+        .. note::
+            When connected via ``http://`` or ``https://`` scheme,
+            the server does not expose a server agent string.
+            Instead, this value is computed from the server's advertised
+            version.
+            Further, the value is cached (at driver instance level) as HTTP(S)
+            has no persistent connections.
+            This reduces round-trips and load of the DBMS's HTTP endpoints.
+
+            This is an implementation detail and thus should not be relied on.
+            It might be changed in the future without being considered a
+            breaking change.
+        """
         return str(self._metadata.get("server"))
 
     def update(self, metadata: dict) -> None:
