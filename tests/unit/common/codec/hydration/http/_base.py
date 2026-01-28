@@ -15,10 +15,13 @@
 
 
 from __future__ import annotations
+import traceback
 
 import typing as t
 
 import pytest
+
+from neo4j._codec.hydration import BrokenHydrationObject
 
 
 if t.TYPE_CHECKING:
@@ -49,3 +52,15 @@ class HydrationHandlerTestBase:
             return transformer_(value)
 
         return transformer
+
+    @staticmethod
+    def assert_is_hydrated_type(value: object, type_: type | tuple[type, ...]) -> None:
+        __tracebackhide__ = True
+
+        if isinstance(value, BrokenHydrationObject):
+            traceback.print_exception(value.error)
+        if not isinstance(value, type_):
+            raise pytest.fail(
+                f"Expected value of type {type_}, "
+                f"but got {type(value)} instead."
+            )

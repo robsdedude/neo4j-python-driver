@@ -278,7 +278,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
         # dt = DateTime(2018, 10, 12, 11, 37, 41, 474716862, tz)
         encoded = transformer(dt)
         assert encoded == {
-            "$type": "OffsetDateTime",
+            "$type": "ZonedDateTime",
             "_value": "2018-10-12T11:37:41.474716862+02:00[Europe/Stockholm]",
         }
 
@@ -289,7 +289,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
         dt = tz.localize(datetime.datetime(2018, 10, 12, 11, 37, 41, 474716))
         encoded = transformer(dt)
         assert encoded == {
-            "$type": "OffsetDateTime",
+            "$type": "ZonedDateTime",
             "_value": "2018-10-12T11:37:41.474716+02:00[Europe/Stockholm]",
         }
 
@@ -302,7 +302,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
         )
         encoded = transformer(dt)
         assert encoded == {
-            "$type": "OffsetDateTime",
+            "$type": "ZonedDateTime",
             "_value": "2018-10-12T11:37:41.474716862+02:00[Europe/Stockholm]",
         }
 

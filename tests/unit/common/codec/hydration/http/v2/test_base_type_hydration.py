@@ -71,7 +71,7 @@ class TestHydrateBaseTypes(HydrationHandlerTestBase):
             "_value": str(value),
         }
         decoded = hydration_scope.hydration_hooks[type(encoded)](encoded)
-        assert isinstance(decoded, int)
+        self.assert_is_hydrated_type(decoded, int)
         assert decoded == value
 
     @pytest.mark.parametrize(
@@ -104,7 +104,7 @@ class TestHydrateBaseTypes(HydrationHandlerTestBase):
             "_value": value_str,
         }
         decoded = hydration_scope.hydration_hooks[type(encoded)](encoded)
-        assert isinstance(decoded, float)
+        self.assert_is_hydrated_type(decoded, float)
         if math.isnan(value):
             assert math.isnan(decoded)
         else:
@@ -128,7 +128,7 @@ class TestHydrateBaseTypes(HydrationHandlerTestBase):
             "_value": value,
         }
         decoded = hydration_scope.hydration_hooks[type(encoded)](encoded)
-        assert isinstance(decoded, str)
+        self.assert_is_hydrated_type(decoded, str)
         assert decoded == value
 
     @pytest.mark.parametrize(
@@ -148,7 +148,7 @@ class TestHydrateBaseTypes(HydrationHandlerTestBase):
             "_value": base64.b64encode(value).decode("ascii"),
         }
         decoded = hydration_scope.hydration_hooks[type(encoded)](encoded)
-        assert isinstance(decoded, bytes)
+        self.assert_is_hydrated_type(decoded, bytes)
         assert decoded == value
 
     @pytest.mark.parametrize(

@@ -93,7 +93,7 @@ class TestSpatialHydration(HydrationHandlerTestBase):
             "_value": f"SRID={srid};POINT {encoded_coords}",
         }
         decoded = hydration_scope.hydration_hooks[type(encoded)](encoded)
-        assert isinstance(decoded, point_cls)
+        self.assert_is_hydrated_type(decoded, point_cls)
         assert decoded.srid == srid
         assert all(isinstance(c, float) for c in decoded)
         assert len(decoded) == len(coords)

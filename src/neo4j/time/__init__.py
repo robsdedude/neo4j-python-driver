@@ -101,7 +101,7 @@ _DATE_ISO_PATTERN: _t.Final[_re.Pattern] = _re_compile(
 )
 _TIME_ISO_PATTERN: _t.Final[_re.Pattern] = _re_compile(
     r"^(\d{2})(:(\d{2})(:((\d{2})"
-    r"(\.\d*)?))?)?(([+-])(\d{2}):(\d{2})(:((\d{2})(\.\d*)?))?)?$"
+    r"(\.\d*)?))?)?(([+-])(\d{2}):(\d{2})(:((\d{2})(\.\d*)?))?|Z)?$"
 )
 _DURATION_ISO_PATTERN: _t.Final[_re.Pattern] = _re_compile(
     r"^P(?!$)"
@@ -121,6 +121,8 @@ _AVERAGE_SECONDS_IN_MONTH: _t.Final[int] = 2629746
 _AVERAGE_SECONDS_IN_DAY: _t.Final[int] = 86400
 
 _FORMAT_F_REPLACE: _t.Final[_re.Pattern] = _re.compile(r"(?<!%)%f")
+
+# .5M = 15DT5H14M33S
 
 
 def _is_leap_year(year):

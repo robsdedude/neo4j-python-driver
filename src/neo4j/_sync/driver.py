@@ -1468,12 +1468,21 @@ class HttpDriver(_Http, Driver):
           :class:`.Query`
         * ``metadata`` and ``timeout`` arguments to
           :func:`.unit_of_work`
+
+    * Summary information may differ:
+
+        * :attr:`.ResultSummary.result_available_after` and
+          :attr:`.ResultSummary.result_consumed_after` will always be
+          :data:`None` because this information is not provided by the server.
+          TODO: check whether None or 0!!
         * :attr:`.ServerInfo.agent` is being computed from the DBMS's
           advertised version. Further, it is being cached to reduce
           round-trips and overloading the DBMS's HTTP endpoints.
 
     * Transmitting and receiving :class:`Vector` values is currently not
       supported.
+
+    * The only supported auth scheme (see :ref:`auth-ref`) is ``"basic"``.
 
     Preview
     -------

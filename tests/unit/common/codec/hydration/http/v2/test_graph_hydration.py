@@ -56,7 +56,7 @@ class TestGraphHydration(HydrationHandlerTestBase):
             },
         }
         alice = hydration_scope.hydration_hooks[type(encoded)](encoded)
-        assert isinstance(alice, Node)
+        self.assert_is_hydrated_type(alice, Node)
         with pytest.warns(DeprecationWarning, match="element_id"):
             assert alice.id == 0
         assert alice.element_id == "123"
@@ -84,7 +84,7 @@ class TestGraphHydration(HydrationHandlerTestBase):
         }
         rel = hydration_scope.hydration_hooks[type(encoded)](encoded)
 
-        assert isinstance(rel, Relationship)
+        self.assert_is_hydrated_type(rel, Relationship)
         assert isinstance(rel.start_node, Node)
         assert isinstance(rel.end_node, Node)
         with pytest.warns(DeprecationWarning, match="element_id"):
@@ -166,7 +166,7 @@ class TestGraphHydration(HydrationHandlerTestBase):
         }
         path = hydration_scope.hydration_hooks[type(encoded)](encoded)
 
-        assert isinstance(path, Path)
+        self.assert_is_hydrated_type(path, Path)
         start_node = path.start_node
         assert isinstance(start_node, Node)
         with pytest.warns(DeprecationWarning, match="element_id"):

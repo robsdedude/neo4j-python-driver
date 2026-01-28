@@ -231,6 +231,18 @@ class TestTime:
         actual = Time.from_iso_format("12:34:56.123456789+02:00")
         assert expected == actual
 
+    @pytest.mark.parametrize(
+        "iso",
+        (
+            "12:34:56.123456789Z",
+            "12:34:56.123456789+00:00",
+        ),
+    )
+    def test_from_iso_format_with_zulu_tz(self, iso: str) -> None:
+        expected = Time(12, 34, 56, 123456789, tzinfo=FixedOffset(0))
+        actual = Time.from_iso_format(iso)
+        assert expected == actual
+
     def test_utc_offset_fixed(self) -> None:
         expected = Time(12, 34, 56, 123456789, tzinfo=FixedOffset(-754))
         actual = -754 * 60

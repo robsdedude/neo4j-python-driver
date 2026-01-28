@@ -41,7 +41,7 @@ FLOAT_RE = re.compile(
 )
 POINT_RE = re.compile(
     r"^SRID=(\d+);"
-    r"POINT\s*\("
+    r"\s*POINT\s*\("
     rf"\s*({FLOAT_RE.pattern})"
     rf"\s+({FLOAT_RE.pattern})"
     rf"(?:\s+({FLOAT_RE.pattern}))?"

@@ -51,20 +51,6 @@ if t.TYPE_CHECKING:
 ANY_BUILTIN_DATETIME = datetime.datetime(1970, 1, 1)
 
 
-# def get_date_unix_epoch():
-#     return Date(1970, 1, 1)
-#
-#
-# def get_date_unix_epoch_ordinal():
-#     return get_date_unix_epoch().to_ordinal()
-#
-#
-# def get_datetime_unix_epoch_utc():
-#     from pytz import utc
-#
-#     return DateTime(1970, 1, 1, 0, 0, 0, utc)
-
-
 def hydrate_date(value: object) -> Date:
     value = value_as_str(value)
     try:
@@ -77,33 +63,63 @@ def dehydrate_date(value: Date | datetime.date) -> ValueDict[str]:
     return make_value_dict("Date", value.isoformat())
 
 
+ZONED_TIME_RE = re.compile(
+    r"^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?"
+    r"(?:(Z)|([+-])(\d{2})(?::?(\d{2}))?(?::?(\d{2}))?)$"
+)
+
+
 def hydrate_zoned_time(value: object) -> Time:
-    time_ = _hydrate_time(value)
-    if time_.tzinfo is None:
-        raise QueryApiHttpError(f"expected zoned time string, got: {value!r}")
-    return time_
+    from pytz import FixedOffset
+
+    value = value_as_str(value)
+    match = ZONED_TIME_RE.match(value)
+    if not match:
+        raise QueryApiHttpError(
+            f"expected zoned datetime string, got: {value!r}"
+        )
+    hour = int(match.group(1))
+    minute = int(match.group(2))
+    second = int(match.group(3) or 0)
+    nanosecond = 0
+    if match.group(4):
+        nanosecond = int(match.group(4)[:9].ljust(9, "0"))
+
+    if match.group(5) == "Z":
+        offset_min = offset_sec = 0
+    else:
+        offset = (
+            int(match.group(7)) * 3600
+            + int(match.group(8) or 0) * 60
+            + int(match.group(9) or 0)
+        )
+        offset_min, offset_sec = divmod(offset, 60)
+        if match.group(6) == "-":
+            offset_min *= -1
+            offset_sec *= -1
+
+    tzinfo: datetime.tzinfo = FixedOffset(offset_min)
+    return Time(hour, minute, second, nanosecond, tzinfo)
+
+
+LOCAL_TIME_RE = re.compile(r"^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$")
 
 
 def hydrate_local_time(value: object) -> Time:
-    time_ = _hydrate_raw_time(value)
-    if time_.tzinfo is not None:
-        raise QueryApiHttpError(f"expected local time string, got: {value!r}")
-    return time_
-
-
-def _hydrate_time(value: object) -> Time:
-    time_ = _hydrate_raw_time(value)
-    if time_.tzinfo is None:
-        raise QueryApiHttpError(f"expected zoned time string, got: {value!r}")
-    return time_
-
-
-def _hydrate_raw_time(value: object) -> Time:
     value = value_as_str(value)
-    try:
-        return Time.from_iso_format(value)
-    except Exception as e:
-        raise QueryApiHttpError(f"expected time string, got: {value!r}") from e
+    match = LOCAL_TIME_RE.match(value)
+    if not match:
+        raise QueryApiHttpError(
+            f"expected local datetime string, got: {value!r}"
+        )
+    hour = int(match.group(1))
+    minute = int(match.group(2))
+    second = int(match.group(3) or 0)
+    nanosecond = 0
+    if match.group(4):
+        nanosecond = int(match.group(4)[:9].ljust(9, "0"))
+
+    return Time(hour, minute, second, nanosecond)
 
 
 def dehydrate_time(value: Time | datetime.time) -> ValueDict[str]:
@@ -111,9 +127,61 @@ def dehydrate_time(value: Time | datetime.time) -> ValueDict[str]:
     return make_value_dict(tag, value.isoformat())
 
 
+OFFSET_DATETIME_RE = re.compile(
+    r"^(\d{4}|[+-]\d+)-(\d{2})-(\d{2})T"
+    r"(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?"
+    r"(?:(Z)|([+-])(\d{2})(?::?(\d{2}))?(?::?(\d{2}))?)$"
+)
+
+
+def hydrate_offset_datetime(value: object) -> DateTime:
+    from pytz import (
+        FixedOffset,
+        UTC,
+    )
+
+    value = value_as_str(value)
+    match = OFFSET_DATETIME_RE.match(value)
+    if not match:
+        raise QueryApiHttpError(
+            f"expected offset datetime string, got: {value!r}"
+        )
+
+    year = int(match.group(1))
+    month = int(match.group(2))
+    day = int(match.group(3))
+    date = Date(year, month, day)
+    hour = int(match.group(4))
+    minute = int(match.group(5))
+    second = int(match.group(6) or 0)
+    nanosecond = 0
+    if match.group(7):
+        nanosecond = int(match.group(7)[:9].ljust(9, "0"))
+    time_utc = Time(hour, minute, second, nanosecond)
+    dt_utc = t.cast(DateTime, UTC.localize(DateTime.combine(date, time_utc)))
+
+    if match.group(8) == "Z":
+        offset_min = offset_sec = 0
+    else:
+        offset = (
+            int(match.group(10)) * 3600
+            + int(match.group(11) or 0) * 60
+            + int(match.group(12) or 0)
+        )
+        offset_min, offset_sec = divmod(offset, 60)
+        if match.group(9) == "-":
+            offset_min *= -1
+            offset_sec *= -1
+        dt_utc -= Duration(minutes=offset_min, seconds=offset_sec)
+    zone: datetime.tzinfo = FixedOffset(offset_min)
+    zoned_dt = dt_utc.as_timezone(zone)
+    assert isinstance(zoned_dt, DateTime)
+    return zoned_dt
+
+
 ZONED_DATETIME_RE = re.compile(
     r"^(\d{4}|[+-]\d+)-(\d{2})-(\d{2})T"
-    r"(\d{2}):(\d{2}):(\d{2})(?:\.(\d+)?)?"
+    r"(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?"
     r"(?:(Z)|([+-])(\d{2})(?::?(\d{2}))?(?::?(\d{2}))?)"
     r"(?:\[(.+)])?$"
 )
@@ -139,7 +207,7 @@ def hydrate_zoned_datetime(value: object) -> DateTime:
     date = Date(year, month, day)
     hour = int(match.group(4))
     minute = int(match.group(5))
-    second = int(match.group(6))
+    second = int(match.group(6) or 0)
     nanosecond = 0
     if match.group(7):
         nanosecond = int(match.group(7)[:9].ljust(9, "0"))
@@ -170,7 +238,7 @@ def hydrate_zoned_datetime(value: object) -> DateTime:
 
 LOCAL_DATETIME_RE = re.compile(
     r"^(\d{4}|[+-]\d+)-(\d{2})-(\d{2})T"
-    r"(\d{2}):(\d{2}):(\d{2})(?:\.(\d+)?)?$"
+    r"(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+)?)?)?$"
 )
 
 
@@ -188,7 +256,7 @@ def hydrate_local_datetime(value: object) -> DateTime:
     date = Date(year, month, day)
     hour = int(match.group(4))
     minute = int(match.group(5))
-    second = int(match.group(6))
+    second = int(match.group(6) or 0)
     nanosecond = 0
     if match.group(7):
         nanosecond = int(match.group(7)[:9].ljust(9, "0"))
@@ -235,14 +303,27 @@ def _dehydrate_zoned_datetime(
         raise TypeError(
             f"Unsupported: date time with unknown offset type: {type(offset)}"
         )
-    tz_str = _format_tzinfo(offset, zone_name)
     value_str = value.isoformat()
-    return make_value_dict("OffsetDateTime", f"{value_str}{tz_str}")
+    if zone_name is None:
+        tz_str = _format_tz_offset(offset)
+        return make_value_dict("OffsetDateTime", f"{value_str}{tz_str}")
+    else:
+        tz_str = _format_tzinfo(offset, zone_name)
+        return make_value_dict("ZonedDateTime", f"{value_str}{tz_str}")
 
 
 def _format_tzinfo(
     offset: datetime.timedelta,
-    zone_name: str | None,
+    zone_name: str,
+) -> str:
+    tz_str = _format_tz_offset(offset)
+    if zone_name is not None:
+        tz_str += f"[{zone_name}]"
+    return tz_str
+
+
+def _format_tz_offset(
+    offset: datetime.timedelta,
 ) -> str:
     total_seconds = int(offset.total_seconds())
     if not -64800 <= total_seconds <= 64800:
@@ -257,8 +338,6 @@ def _format_tzinfo(
     tz_str = f"{sign}{hours:02}:{minutes:02}"
     if seconds != 0:
         tz_str += f":{seconds:02}"
-    if zone_name is not None:
-        tz_str += f"[{zone_name}]"
     return tz_str
 
 
