@@ -839,8 +839,8 @@ class AsyncHttpV2(AsyncHttpConnection):
             if state.affinity is not None:
                 headers |= {"neo4j-cluster-affinity": state.affinity}
             res = await self._request(
-                HTTPVerb.POST,
-                f"/db/{state.db}/query/v2/tx/{state.tx_id}/rollback",
+                HTTPVerb.DELETE,
+                f"/db/{state.db}/query/v2/tx/{state.tx_id}",
                 headers=self._auth_header,
                 dehydration_hooks=dehydration_hooks,
                 hydration_hooks=hydration_hooks,
