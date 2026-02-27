@@ -43,7 +43,7 @@ __all__ = [
     "NetworkUtil",
 ]
 
-_http_query_api_exports = {
+_http_query_api_exports = {  # noqa: RUF067
     "AsyncHTTPQueryAPI",
     "AsyncHTTPQueryAPIFactory",
     "HTTPQueryAPI",
@@ -52,7 +52,7 @@ _http_query_api_exports = {
     "HTTPVerb",
     "NO_DATA",
 }
-__all__.extend(_http_query_api_exports)
+__all__.extend(_http_query_api_exports)  # noqa: RUF067
 
 
 def __getattr__(name):

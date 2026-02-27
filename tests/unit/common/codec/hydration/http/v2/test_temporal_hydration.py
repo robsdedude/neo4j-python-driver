@@ -368,7 +368,6 @@ class TestTemporalHydration(HydrationHandlerTestBase):
         }
         d = hydration_scope.hydration_hooks[type(encoded)](encoded)
         self.assert_is_hydrated_type(d, Duration)
-        print(d, d.iso_format())
         assert d.months == months
         assert d.days == days
         assert d.seconds == seconds

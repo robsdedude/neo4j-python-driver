@@ -23,8 +23,8 @@ import pytest
 
 from ...._optional_deps import (
     np,
-    pd,
     pa,
+    pd,
     skip_if_mocked_dependency,
 )
 

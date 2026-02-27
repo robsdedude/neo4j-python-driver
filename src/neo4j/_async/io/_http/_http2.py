@@ -228,7 +228,6 @@ class AsyncHttpV2(AsyncHttpConnection):
     server_info: ServerInfo
     _id: int
     _defunct: bool
-    _server_agent_cache: t.ClassVar[_ServerAgentCache]
 
     def __init__(
         self,
@@ -1179,7 +1178,7 @@ class AsyncHttpV2(AsyncHttpConnection):
             finally:
                 self._last_fetch = time.monotonic()
 
-    _server_agent_cache = _ServerAgentCache()
+    _server_agent_cache: t.ClassVar[_ServerAgentCache] = _ServerAgentCache()
 
 
 async def _get_auth_dict(

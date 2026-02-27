@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from contextlib import suppress
 
-from . import _typing as t  # noqa: TC001
+from . import _typing as t
 
 
 if t.TYPE_CHECKING:

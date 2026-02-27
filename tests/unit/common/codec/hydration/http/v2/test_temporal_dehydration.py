@@ -497,7 +497,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             days=days,
             seconds=seconds,
             microseconds=microseconds,
-            nanoseconds=nanoseconds,
+            nanoseconds=nanoseconds,  # type: ignore[call-arg]
         )
         encoded = transformer(value)
         assert encoded == {

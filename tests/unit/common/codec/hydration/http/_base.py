@@ -15,8 +15,8 @@
 
 
 from __future__ import annotations
-import traceback
 
+import traceback
 import typing as t
 
 import pytest
@@ -54,7 +54,9 @@ class HydrationHandlerTestBase:
         return transformer
 
     @staticmethod
-    def assert_is_hydrated_type(value: object, type_: type | tuple[type, ...]) -> None:
+    def assert_is_hydrated_type(
+        value: object, type_: type | tuple[type, ...]
+    ) -> None:
         __tracebackhide__ = True
 
         if isinstance(value, BrokenHydrationObject):
