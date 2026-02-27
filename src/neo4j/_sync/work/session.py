@@ -301,7 +301,7 @@ class Session(Workspace):
             )
 
         if self._auto_result:
-            # This will buffer upp all records for the previous auto-commit tx
+            # This will buffer up all records for the previous auto-commit tx
             self._auto_result._buffer_all()
 
         if not self._connection:

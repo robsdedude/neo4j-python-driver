@@ -1230,7 +1230,7 @@ def _auth_dict_to_header(
 
 
 _COUNTERS_MAPPING = {
-    "nodesCreated": "nodes_created",
+    "nodesCreated": "nodes-created",
     "nodesDeleted": "nodes-deleted",
     "relationshipsCreated": "relationships-created",
     "relationshipsDeleted": "relationships-deleted",
