@@ -744,6 +744,8 @@ class AsyncHttpV2(AsyncHttpConnection):
                 req_data.value["bookmarks"] = LiteralJsonRecursive(
                     list(bookmarks)
                 )
+            if imp_user:
+                req_data.value["impersonatedUser"] = LiteralJson(imp_user)
             res = await self._request(
                 HTTPVerb.POST,
                 f"/db/{db}/query/v2/tx",
