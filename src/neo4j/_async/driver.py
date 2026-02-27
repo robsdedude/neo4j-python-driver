@@ -1484,7 +1484,8 @@ class AsyncHttpDriver(_Http, AsyncDriver):
     * Transmitting and receiving :class:`Vector` values is currently not
       supported.
 
-    * The only supported auth scheme (see :ref:`auth-ref`) is ``"basic"``.
+    * The only supported auth scheme (see :ref:`auth-ref`) is ``"basic"`` and
+      ``"bearer"``.
 
     Preview
     -------

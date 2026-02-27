@@ -1189,6 +1189,7 @@ def _get_auth_dict(
 def _auth_dict_to_header(
     auth_dict: dict[str, str],
 ) -> dict[str, str]:
+    auth_dict = auth_dict.copy()
     scheme = auth_dict.pop("scheme", None)
     if scheme == "basic":
         user = str(auth_dict.pop("principal", ""))
@@ -1216,7 +1217,8 @@ def _auth_dict_to_header(
                 f"The parameter '{k}' is not supported for 'bearer' auth "
                 "over Query API/HTTP."
             )
-        return {"Authorization": f"Bearer {token}"}
+        token_base64 = base64.b64encode(token.encode()).decode("ascii")
+        return {"Authorization": f"Bearer {token_base64}"}
     raise ConfigurationError(
         f"The auth scheme '{scheme}' is not supported over Query API/HTTP."
     )
