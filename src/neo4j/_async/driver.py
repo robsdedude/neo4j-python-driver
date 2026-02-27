@@ -1479,6 +1479,7 @@ class AsyncHttpDriver(_Http, AsyncDriver):
         * :attr:`.ServerInfo.agent` is being computed from the DBMS's
           advertised version. Further, it is being cached to reduce
           round-trips and overloading the DBMS's HTTP endpoints.
+        * :attr:`.ResultSummary.query_type` will always be :data:`None`.
 
     * Transmitting and receiving :class:`Vector` values is currently not
       supported.
