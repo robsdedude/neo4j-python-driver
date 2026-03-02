@@ -181,6 +181,7 @@ class TransactionBase(NonConcurrentMethodChecker):
         if (
             self._results
             and self._connection.supports_multiple_results is False
+            and not self._results[-1].closed()
         ):
             # Bolt 3 Support
             # Buffer up all records for the previous Result because it does not
