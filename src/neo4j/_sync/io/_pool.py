@@ -1413,16 +1413,16 @@ class HttpV2Pool(IOPool["HttpConnection"]):
             auth_manager: AuthManager | AuthManager,
             deadline_,
         ) -> HttpConnection:
+            assert addr == address
             return pool._async_http_connection_factory.open(
                 pool._async_http_query_api_factory,
-                addr,
                 auth_manager=auth_manager,
                 routing_context=None,
                 pool_config=pool_config,
             )
 
         api_factory = HTTPQueryAPIFactory()
-        connection_factory = HttpConnectionFactory()
+        connection_factory = HttpConnectionFactory(address)
         pool = cls(
             opener,
             pool_config,

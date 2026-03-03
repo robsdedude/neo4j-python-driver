@@ -19,14 +19,11 @@ from __future__ import annotations
 import asyncio
 import base64
 import dataclasses
-import time
-import traceback
 from collections import deque
 from dataclasses import dataclass
 from logging import getLogger
 
 from .... import _typing as t
-from ...._async_compat.concurrency import Lock
 from ...._async_compat.network import (
     HTTPQueryAPI,
     HTTPQueryAPIResponse,
@@ -1126,56 +1123,6 @@ class HttpV2(HttpConnection):
                 res.body = transformer(res.body)
 
         return res
-
-    class _ServerAgentCache:
-        _value: str | None = None
-        _last_fetch: float = float("-inf")
-        _lock = Lock()
-
-        def get(self, http: HttpV2) -> str | None:
-            age = time.monotonic() - self._last_fetch
-            if self._value is not None and age <= 60:
-                return self._value
-            with self._lock:
-                # check if value has been update while waiting for the lock
-                age = time.monotonic() - self._last_fetch
-                if self._value is not None and age <= 60:
-                    return self._value
-                self._update(http)
-                return self._value
-
-        def _update(self, http: HttpV2) -> None:
-            try:
-                res = http._query_api.request(
-                    HTTPVerb.GET,
-                    "/",
-                    headers={"Accept": "application/json"},
-                    log_id=http._id,
-                )
-                if res.status >= 400:
-                    raise generic_http_error(res)
-                version = res.body["neo4j_version"]
-                if not isinstance(version, str):
-                    raise TypeError(
-                        "Expected 'neo4j_version' to be str, "
-                        f"got {type(version)}"
-                    )
-                self._value = f"Neo4j/{version}"
-            except Exception as e:
-                log.warning(
-                    "[#%04X]  _: Could not fetch server agent: %r",
-                    http._id,
-                    e,
-                )
-                log.debug(
-                    "[#%04X]  _: %s",
-                    http._id,
-                    traceback.format_exc(),
-                )
-            finally:
-                self._last_fetch = time.monotonic()
-
-    _server_agent_cache: t.ClassVar[_ServerAgentCache] = _ServerAgentCache()
 
 
 def _get_auth_dict(

@@ -1416,16 +1416,16 @@ class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
             auth_manager: AsyncAuthManager | AuthManager,
             deadline_,
         ) -> AsyncHttpConnection:
+            assert addr == address
             return await pool._async_http_connection_factory.open(
                 pool._async_http_query_api_factory,
-                addr,
                 auth_manager=auth_manager,
                 routing_context=None,
                 pool_config=pool_config,
             )
 
         api_factory = AsyncHTTPQueryAPIFactory()
-        connection_factory = AsyncHttpConnectionFactory()
+        connection_factory = AsyncHttpConnectionFactory(address)
         pool = cls(
             opener,
             pool_config,

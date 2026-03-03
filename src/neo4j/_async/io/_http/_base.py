@@ -64,16 +64,19 @@ class IdGenerator:
 class AsyncHttpConnectionFactory:
     _server_agent_cache: _ServerAgentCache
     _id_generator: t.ClassVar[IdGenerator] = IdGenerator()
+    _address: Address
 
-    def __init__(self) -> None:
+    def __init__(self, address: Address) -> None:
+        self._address = address
         self._server_agent_cache = (
-            AsyncHttpConnectionFactory._ServerAgentCache(log_id=0)
+            AsyncHttpConnectionFactory._ServerAgentCache(
+                address=address, log_id=0
+            )
         )
 
     async def open(
         self,
         factory: AsyncHTTPQueryAPIFactory,
-        address: Address,
         *,
         auth_manager: AsyncAuthManager | AuthManager,
         routing_context: dict[str, str] | None,
@@ -84,7 +87,7 @@ class AsyncHttpConnectionFactory:
             pool_config = AsyncPoolConfig()
         auth = await AsyncUtil.callback(auth_manager.get_auth)
         query_api = await factory.new_http_query_api(
-            address,
+            self._address,
             pool_config=pool_config,
         )
         id_ = await self._id_generator.next_id()
@@ -94,7 +97,7 @@ class AsyncHttpConnectionFactory:
         http_cls = AsyncHttpV2
 
         connection = http_cls(
-            address,
+            self._address,
             query_api=query_api,
             auth=auth,
             auth_manager=auth_manager,
@@ -105,7 +108,9 @@ class AsyncHttpConnectionFactory:
             {
                 "protocol_version": "0.0",
                 "connection_id": str(id_),
-                "server": await http_cls._server_agent_cache.get(connection),
+                "server": await self._server_agent_cache.get(
+                    factory, pool_config
+                ),
             }
         )
 
@@ -116,16 +121,18 @@ class AsyncHttpConnectionFactory:
         _last_fetch: float
         _lock: AsyncLock
         _log_id: int
+        _address: Address
 
-        def __init__(self, *, log_id: int) -> None:
+        def __init__(self, *, address: Address, log_id: int) -> None:
             self._value = None
             self._last_fetch = float("-inf")
             self._lock = AsyncLock()
+            self._address = address
+            self._log_id = log_id
 
         async def get(
             self,
             factory: AsyncHTTPQueryAPIFactory,
-            address: Address,
             pool_config: AsyncPoolConfig,
         ) -> str | None:
             age = time.monotonic() - self._last_fetch
@@ -136,17 +143,16 @@ class AsyncHttpConnectionFactory:
                 age = time.monotonic() - self._last_fetch
                 if self._value is not None and age <= 60:
                     return self._value
-                await self._update(factory, address, pool_config)
+                await self._update(factory, pool_config)
                 return self._value
 
         async def _update(
             self,
             factory: AsyncHTTPQueryAPIFactory,
-            address: Address,
             pool_config: AsyncPoolConfig,
         ) -> None:
             query_api = await factory.new_http_query_api(
-                address,
+                self._address,
                 pool_config=pool_config,
             )
             try:

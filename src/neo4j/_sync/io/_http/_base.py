@@ -61,16 +61,19 @@ class IdGenerator:
 class HttpConnectionFactory:
     _server_agent_cache: _ServerAgentCache
     _id_generator: t.ClassVar[IdGenerator] = IdGenerator()
+    _address: Address
 
-    def __init__(self) -> None:
+    def __init__(self, address: Address) -> None:
+        self._address = address
         self._server_agent_cache = (
-            HttpConnectionFactory._ServerAgentCache(log_id=0)
+            HttpConnectionFactory._ServerAgentCache(
+                address=address, log_id=0
+            )
         )
 
     def open(
         self,
         factory: HTTPQueryAPIFactory,
-        address: Address,
         *,
         auth_manager: AuthManager | AuthManager,
         routing_context: dict[str, str] | None,
@@ -81,7 +84,7 @@ class HttpConnectionFactory:
             pool_config = PoolConfig()
         auth = Util.callback(auth_manager.get_auth)
         query_api = factory.new_http_query_api(
-            address,
+            self._address,
             pool_config=pool_config,
         )
         id_ = self._id_generator.next_id()
@@ -91,7 +94,7 @@ class HttpConnectionFactory:
         http_cls = HttpV2
 
         connection = http_cls(
-            address,
+            self._address,
             query_api=query_api,
             auth=auth,
             auth_manager=auth_manager,
@@ -102,7 +105,9 @@ class HttpConnectionFactory:
             {
                 "protocol_version": "0.0",
                 "connection_id": str(id_),
-                "server": http_cls._server_agent_cache.get(connection),
+                "server": self._server_agent_cache.get(
+                    factory, pool_config
+                ),
             }
         )
 
@@ -113,16 +118,18 @@ class HttpConnectionFactory:
         _last_fetch: float
         _lock: Lock
         _log_id: int
+        _address: Address
 
-        def __init__(self, *, log_id: int) -> None:
+        def __init__(self, *, address: Address, log_id: int) -> None:
             self._value = None
             self._last_fetch = float("-inf")
             self._lock = Lock()
+            self._address = address
+            self._log_id = log_id
 
         def get(
             self,
             factory: HTTPQueryAPIFactory,
-            address: Address,
             pool_config: PoolConfig,
         ) -> str | None:
             age = time.monotonic() - self._last_fetch
@@ -133,17 +140,16 @@ class HttpConnectionFactory:
                 age = time.monotonic() - self._last_fetch
                 if self._value is not None and age <= 60:
                     return self._value
-                self._update(factory, address, pool_config)
+                self._update(factory, pool_config)
                 return self._value
 
         def _update(
             self,
             factory: HTTPQueryAPIFactory,
-            address: Address,
             pool_config: PoolConfig,
         ) -> None:
             query_api = factory.new_http_query_api(
-                address,
+                self._address,
                 pool_config=pool_config,
             )
             try:
