@@ -1222,13 +1222,19 @@ def _map_counters(counters_dict: dict) -> dict:
 def _map_profile(profile: dict) -> None:
     if "arguments" in profile:
         profile["args"] = profile.pop("arguments")
-    profile.pop("hasPageCacheStats", None)
     if "records" in profile:
         profile["rows"] = profile.pop("records")
+    if profile.pop("hasPageCacheStats", None) is False:
+        profile.pop("pageCacheHits", None)
+        profile.pop("pageCacheMisses", None)
+        profile.pop("pageCacheHitRatio", None)
     children = profile.get("children")
     if isinstance(children, list):
-        for child in children:
-            _map_profile(child)
+        if children:
+            for child in children:
+                _map_profile(child)
+        else:
+            profile.pop("children")
 
 
 def _map_plan(plan: dict) -> None:
@@ -1236,8 +1242,11 @@ def _map_plan(plan: dict) -> None:
         plan["args"] = plan.pop("arguments")
     children = plan.get("children")
     if isinstance(children, list):
-        for child in children:
-            _map_plan(child)
+        if children:
+            for child in children:
+                _map_plan(child)
+        else:
+            plan.pop("children")
 
 
 def _extract_bookmark(body: dict) -> str | None:
