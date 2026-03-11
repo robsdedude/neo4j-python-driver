@@ -164,6 +164,8 @@ class _QueryResult:
             notifications = None
         else:
             notifications = value_as_list_dict(notifications_raw)
+            for notification in notifications:
+                _map_notification(notification)
 
         return cls(
             records_buffer=records,
@@ -1247,6 +1249,11 @@ def _map_plan(plan: dict) -> None:
                 _map_plan(child)
         else:
             plan.pop("children")
+
+
+def _map_notification(notification: dict) -> None:
+    if notification.get("position", "") is None:
+        notification.pop("position")
 
 
 def _extract_bookmark(body: dict) -> str | None:
