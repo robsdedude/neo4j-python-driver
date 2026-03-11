@@ -1431,6 +1431,8 @@ class AsyncHttpDriver(_Http, AsyncDriver):
     * :ref:`driver-configuration-ref`:
         * :ref:`max-connection-lifetime-ref`:
           Has no effect *for the sync driver*.
+        * :ref:`user-agent-ref`:
+          Has no effect.
         * :ref:`liveness-check-timeout-ref`:
           Has no effect.
         * :ref:`resolver-ref`:

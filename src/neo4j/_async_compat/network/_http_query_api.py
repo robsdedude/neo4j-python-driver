@@ -91,7 +91,6 @@ class AsyncHTTPQueryAPIFactory:
         secure: bool
         pool_config: AsyncPoolConfig
         connector: aiohttp.TCPConnector
-        default_headers: dict[str, str]
 
     CONNECTION_ERRORS: t.ClassVar[tuple[type[BaseException], ...]] = (
         aiohttp.ClientError,
@@ -121,7 +120,6 @@ class AsyncHTTPQueryAPIFactory:
                 base_url=_build_base_url(address, config.secure),
                 connector=config.connector,
                 connector_owner=False,
-                headers=config.default_headers,
                 cookie_jar=aiohttp.DummyCookieJar(),
                 timeout=timeout,
             )
@@ -174,9 +172,6 @@ class AsyncHTTPQueryAPIFactory:
             secure=secure,
             pool_config=pool_config,
             connector=connector,
-            default_headers={
-                "User-Agent": user_agent,
-            },
         )
 
     async def shutdown(self) -> None:
@@ -330,16 +325,10 @@ class HTTPQueryAPIFactory:
         secure = ssl_context is not None
         if secure:
             extra_kwargs["ssl_context"] = ssl_context
-        user_agent = pool_config.user_agent
-        if not user_agent:
-            user_agent = USER_AGENT
         keep_alive = 1 if pool_config.keep_alive else 0
         return urllib3.connectionpool.connection_from_url(
             _build_base_url(address, secure),
             maxsize=0,
-            headers={
-                "User-Agent": user_agent,
-            },
             socket_options=[
                 (SOL_SOCKET, SO_KEEPALIVE, keep_alive),
             ],
