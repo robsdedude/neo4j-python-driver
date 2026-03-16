@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import dataclasses
+import re
 from collections import deque
 from dataclasses import dataclass
 from logging import getLogger
@@ -80,6 +81,8 @@ if t.TYPE_CHECKING:
 
 
 log = getLogger("neo4j.io")
+
+VALID_DB_NAMES = re.compile(r"^[a-zA-Z0-9.-]{3,}$")
 
 
 @dataclass
@@ -928,6 +931,13 @@ class HttpV2(HttpConnection):
                 "Home database resolution is not supported via the "
                 "Query API/HTTP. "
                 "An explicit database name must be specified."
+            )
+        if not VALID_DB_NAMES.fullmatch(db):
+            raise ConfigurationError(
+                f"The specified database name {db!r} is not supported via "
+                "Query API/HTTP. "
+                "It may only contain 'a..z', 'A..Z', '0..9', '.', '-' "
+                "and must be at least 3 characters long."
             )
 
     @staticmethod
