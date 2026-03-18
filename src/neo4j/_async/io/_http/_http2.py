@@ -23,6 +23,7 @@ import re
 from collections import deque
 from dataclasses import dataclass
 from logging import getLogger
+from urllib.parse import quote
 
 from .... import _typing as t
 from ...._async_compat.network import (
@@ -351,7 +352,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                 )
             res = await self._request(
                 HTTPVerb.POST,
-                f"/db/{db}/query/v2",
+                f"/db/{self._url_encode_db(db)}/query/v2",
                 data=req_data,
                 headers=self._auth_header,
                 dehydration_hooks=dehydration_hooks,
@@ -405,7 +406,10 @@ class AsyncHttpV2(AsyncHttpConnection):
                 headers |= {"neo4j-cluster-affinity": state_.affinity}
             res = await self._request(
                 HTTPVerb.POST,
-                f"/db/{state_.db}/query/v2/tx/{state_.tx_id}",
+                (
+                    f"/db/{self._url_encode_db(state_.db)}/query/v2/tx/"
+                    f"{self._url_encode_tx_id(state_.tx_id)}"
+                ),
                 data=req_data,
                 headers=headers,
                 dehydration_hooks=dehydration_hooks,
@@ -749,7 +753,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                 req_data.value["impersonatedUser"] = LiteralJson(imp_user)
             res = await self._request(
                 HTTPVerb.POST,
-                f"/db/{db}/query/v2/tx",
+                f"/db/{self._url_encode_db(db)}/query/v2/tx",
                 data=req_data,
                 headers=self._auth_header,
                 dehydration_hooks=dehydration_hooks,
@@ -794,7 +798,10 @@ class AsyncHttpV2(AsyncHttpConnection):
                 headers |= {"neo4j-cluster-affinity": state.affinity}
             res = await self._request(
                 HTTPVerb.POST,
-                f"/db/{state.db}/query/v2/tx/{state.tx_id}/commit",
+                (
+                    f"/db/{self._url_encode_db(state.db)}/query/v2/tx/"
+                    f"{self._url_encode_tx_id(state.tx_id)}/commit"
+                ),
                 headers=self._auth_header,
                 dehydration_hooks=dehydration_hooks,
                 hydration_hooks=hydration_hooks,
@@ -841,7 +848,10 @@ class AsyncHttpV2(AsyncHttpConnection):
                 headers |= {"neo4j-cluster-affinity": state.affinity}
             res = await self._request(
                 HTTPVerb.DELETE,
-                f"/db/{state.db}/query/v2/tx/{state.tx_id}",
+                (
+                    f"/db/{self._url_encode_db(state.db)}/query/v2/tx/"
+                    f"{self._url_encode_tx_id(state.tx_id)}"
+                ),
                 headers=self._auth_header,
                 dehydration_hooks=dehydration_hooks,
                 hydration_hooks=hydration_hooks,
@@ -942,6 +952,16 @@ class AsyncHttpV2(AsyncHttpConnection):
                 "It may only contain 'a..z', 'A..Z', '0..9', '.', '-' "
                 "and must be at least 3 characters long."
             )
+
+    @staticmethod
+    def _url_encode_db(s: str) -> str:
+        return AsyncHttpV2._url_encode(s)
+
+    @staticmethod
+    def _url_encode(s: str) -> str:
+        return quote(s, safe="")
+
+    _url_encode_tx_id = _url_encode
 
     @staticmethod
     def _validate_tx_metadata(metadata: t.Any) -> None:
