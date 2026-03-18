@@ -1488,6 +1488,10 @@ class HttpDriver(_Http, Driver):
     * The only supported auth scheme (see :ref:`auth-ref`) is ``"basic"`` and
       ``"bearer"``.
 
+    * Transactions, if not interacted with regularly, will time out.
+      How long the server keeps idle transactions around can be configured on
+      the server.
+
     Preview
     -------
     **This is a preview**.
