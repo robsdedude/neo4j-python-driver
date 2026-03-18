@@ -141,6 +141,7 @@ docs = [
 # running the testkit backend
 testkit = [
     {include-group = "dep-freezegun"},
+    {include-group = "dep-http"},
 ]
 # running the benchkit backend for benchmarking
 benchkit = ["sanic >= 25.3.0"]
@@ -161,6 +162,9 @@ dep-project-dependencies = [
     "numpy >= 1.7.0, < 3.0.0",
     "pandas[timezone] >= 1.1.0, < 4.0.0",
     "pyarrow >= 6.0.0, < 23.0.0",
+    {include-group = "dep-http"},
+]
+dep-http = [
     "aiohttp[speedups] >= 3.12.15, < 4.0.0",
     "urllib3 >= 2.0.0, < 3.0.0",
 ]
