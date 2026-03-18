@@ -149,6 +149,7 @@ class _QueryResult:
     notifications: list[dict] | None
     profile: dict | None
     plan: dict | None
+    error: AsyncHttpV2._DeferredFailure | None
     dehydration_hooks: DehydrationHooks
     hydration_hooks: T_TYPE_MAP_DICT
 
@@ -156,10 +157,11 @@ class _QueryResult:
     def from_body(
         cls,
         body: dict,
+        error: AsyncHttpV2._DeferredFailure | None,
         dehydration_hooks: DehydrationHooks,
         hydration_hooks: T_TYPE_MAP_DICT,
     ) -> t.Self:
-        data = value_as_dict(body.get("data"))
+        data = value_as_dict(body.get("data", {}))
         records = value_as_list_list(data.get("values", []))
         counters = _map_counters(value_as_dict(body.get("counters", {})))
         notifications_raw = body.get("notifications")
@@ -182,6 +184,7 @@ class _QueryResult:
             plan=plan,
             dehydration_hooks=dehydration_hooks,
             hydration_hooks=hydration_hooks,
+            error=error,
         )
 
     def validate_consistent_hooks(
@@ -359,15 +362,17 @@ class AsyncHttpV2(AsyncHttpConnection):
                 hydration_hooks=hydration_hooks,
                 log_id=self._id,
             )
-            if not await self._check_res_ok(res, handler):
-                return
+            failure = self._check_res_ok(res, handler)
             body = value_as_dict(res.body)
+            data = value_as_dict(body.get("data", {}))
+            fields = value_as_list_str(data.get("fields", []))
+            if not fields and failure is not None:
+                failure()
+                return
             query_result = _QueryResult.from_body(
-                body, dehydration_hooks, hydration_hooks
+                body, failure, dehydration_hooks, hydration_hooks
             )
             bookmark = _extract_bookmark(body)
-            data = value_as_dict(body.get("data"))
-            fields = value_as_list_str(data.get("fields", []))
 
             async def run_success_response() -> None:
                 await AsyncUtil.callback(
@@ -416,14 +421,16 @@ class AsyncHttpV2(AsyncHttpConnection):
                 hydration_hooks=hydration_hooks,
                 log_id=self._id,
             )
-            if not await self._check_res_ok(res, handler):
-                return
+            failure = self._check_res_ok(res, handler)
             body = value_as_dict(res.body)
-            query_result = _QueryResult.from_body(
-                body, dehydration_hooks, hydration_hooks
-            )
-            data = value_as_dict(body.get("data"))
+            data = value_as_dict(body.get("data", {}))
             fields = value_as_list_str(data.get("fields", []))
+            if not fields and failure is not None:
+                failure()
+                return
+            query_result = _QueryResult.from_body(
+                body, failure, dehydration_hooks, hydration_hooks
+            )
 
             state_.current_qid = (state_.current_qid or 0) + 1
             qid = state_.current_qid
@@ -618,6 +625,9 @@ class AsyncHttpV2(AsyncHttpConnection):
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
+            elif result.error is not None:
+                result.error()
+                return
             else:
 
                 async def success_response() -> None:
@@ -674,6 +684,9 @@ class AsyncHttpV2(AsyncHttpConnection):
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
+            elif result.error is not None:
+                result.error()
+                return
             else:
 
                 async def success_response() -> None:
@@ -760,7 +773,8 @@ class AsyncHttpV2(AsyncHttpConnection):
                 hydration_hooks=hydration_hooks,
                 log_id=self._id,
             )
-            if not await self._check_res_ok(res, handler):
+            if failure := self._check_res_ok(res, handler):
+                failure()
                 return
 
             body = value_as_dict(res.body)
@@ -807,7 +821,8 @@ class AsyncHttpV2(AsyncHttpConnection):
                 hydration_hooks=hydration_hooks,
                 log_id=self._id,
             )
-            if not await self._check_res_ok(res, handler):
+            if failure := self._check_res_ok(res, handler):
+                failure()
                 return
 
             body = value_as_dict(res.body)
@@ -857,7 +872,8 @@ class AsyncHttpV2(AsyncHttpConnection):
                 hydration_hooks=hydration_hooks,
                 log_id=self._id,
             )
-            if not await self._check_res_ok(res, handler):
+            if failure := self._check_res_ok(res, handler):
+                failure()
                 return
 
             self._state = state.rollback()
@@ -1059,19 +1075,19 @@ class AsyncHttpV2(AsyncHttpConnection):
 
         return inner
 
-    async def _check_res_ok(
+    def _check_res_ok(
         self,
         res: HTTPQueryAPIResponse,
         handler: ResponseHandler,
-    ) -> bool:
-        if res.status < 400:
-            return True
+    ) -> _DeferredFailure | None:
         if not isinstance(res.body, dict):
             raise generic_http_error(res)
         errors = res.body.get("errors")
+        if res.status < 400 and not errors:
+            return None
         if not isinstance(errors, list) or not errors:
             raise generic_http_error(res)
-        error = errors[0]
+        error = errors[-1]
         if not isinstance(error, dict):
             raise generic_http_error(res)
         code = error.get("code")
@@ -1079,8 +1095,30 @@ class AsyncHttpV2(AsyncHttpConnection):
         if not isinstance(code, str) or not isinstance(message, str):
             raise generic_http_error(res)
 
-        self._enqueue_failure(handler, code, message)
-        return False
+        return self._DeferredFailure(self, handler, code, message)
+
+    class _DeferredFailure:
+        _connection: AsyncHttpV2
+        _handler: ResponseHandler
+        _code: str
+        _message: str
+
+        def __init__(
+            self,
+            connection: AsyncHttpV2,
+            handler: ResponseHandler,
+            code: str,
+            message: str,
+        ) -> None:
+            self._connection = connection
+            self._handler = handler
+            self._code = code
+            self._message = message
+
+        def __call__(self) -> None:
+            self._connection._enqueue_failure(
+                self._handler, self._code, self._message
+            )
 
     def _enqueue_failure(
         self,
