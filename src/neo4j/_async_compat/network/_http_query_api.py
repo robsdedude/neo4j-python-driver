@@ -221,14 +221,21 @@ class AsyncHTTPQueryAPI:
         if data is not NO_DATA:
             kwargs["data"] = json.dumps(data, separators=(",", ":"))
             log.debug(
-                "[#%04X]  C: %s %s %s",
+                "[#%04X]  C: %s %s %s (%s)",
                 log_id,
                 method.value,
                 path,
                 kwargs["data"],
+                _HeaderLogFormatter(headers),
             )
         else:
-            log.debug("[#%04X]  C: %s %s", log_id, method.value, path)
+            log.debug(
+                "[#%04X]  C: %s %s (%s)",
+                log_id,
+                method.value,
+                path,
+                _HeaderLogFormatter(headers),
+            )
 
         response = await self._session.request(
             method.value,
@@ -239,7 +246,13 @@ class AsyncHTTPQueryAPI:
         )
 
         raw_body = await response.text()
-        log.debug("[#%04X]  S: %3d %r", log_id, response.status, raw_body)
+        log.debug(
+            "[#%04X]  S: %3d %r (%s)",
+            log_id,
+            response.status,
+            raw_body,
+            response.headers,
+        )
         try:
             body = json.loads(raw_body)
         except json.JSONDecodeError as e:
@@ -374,14 +387,21 @@ class HTTPQueryAPI:
         if data is not NO_DATA:
             kwargs["body"] = json.dumps(data, separators=(",", ":"))
             log.debug(
-                "[#%04X]  C: %s %s %s",
+                "[#%04X]  C: %s %s %s (%s)",
                 log_id,
                 method.value,
                 path,
                 kwargs["body"],
+                _HeaderLogFormatter(headers),
             )
         else:
-            log.debug("[#%04X]  C: %s %s", log_id, method.value, path)
+            log.debug(
+                "[#%04X]  C: %s %s (%s)",
+                log_id,
+                method.value,
+                path,
+                _HeaderLogFormatter(headers),
+            )
 
         response = self._pool.request(
             method.value,
@@ -392,7 +412,13 @@ class HTTPQueryAPI:
         )
 
         raw_body = response.data.decode("utf-8")
-        log.debug("[#%04X]  S: %3d %r", log_id, response.status, raw_body)
+        log.debug(
+            "[#%04X]  S: %3d %r (%s)",
+            log_id,
+            response.status,
+            raw_body,
+            response.headers,
+        )
         try:
             body = json.loads(raw_body)
         except json.JSONDecodeError as e:
@@ -426,3 +452,33 @@ def _build_base_url(
     host = address.host
     port = address.port
     return f"{scheme}://{host}:{port}/"
+
+
+class _HeaderLogFormatter:
+    _REDACTED_HEADERS = frozenset(("authorization", "cookie"))
+
+    _headers: dict[str, str] | None
+    _cleaned: bool = False
+
+    def __init__(self, headers: dict[str, str] | None) -> None:
+        self._headers = headers
+
+    def __repr__(self) -> str:
+        if self._headers is None:
+            return repr({})
+        if not self._cleaned:
+            self._clean_headers()
+        return repr(self._headers)
+
+    def _clean_headers(self) -> None:
+        self._cleaned = True
+        if self._headers is None:
+            return
+        if not any(
+            redacted_header in self._headers
+            for redacted_header in self._REDACTED_HEADERS
+        ):
+            return
+        self._headers = dict(self._headers)
+        for redacted_header in self._REDACTED_HEADERS:
+            self._headers[redacted_header] = "*******"
