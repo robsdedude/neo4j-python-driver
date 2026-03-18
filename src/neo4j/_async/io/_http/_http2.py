@@ -165,10 +165,12 @@ class _QueryResult:
         records = value_as_list_list(data.get("values", []))
         counters = _map_counters(value_as_dict(body.get("counters", {})))
         notifications_raw = body.get("notifications")
-        profile = value_as_dict(body.get("profiledQueryPlan", {}))
-        _map_profile(profile)
-        plan = value_as_dict(body.get("queryPlan", {}))
-        _map_plan(plan)
+        profile = body.get("profiledQueryPlan") or None
+        if profile is not None:
+            _map_profile(profile)
+        plan = body.get("queryPlan") or None
+        if plan:
+            _map_plan(plan)
         if notifications_raw is None:
             notifications = None
         else:
