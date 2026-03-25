@@ -83,7 +83,7 @@ class TestSpatialDehydration(HydrationHandlerTestBase):
     )
     def test_point(
         self,
-        coords: tuple[float, float],
+        coords: tuple[float, ...],
         encoded_coords: str,
         srid: int,
         point_cls: type[Point],
@@ -93,9 +93,10 @@ class TestSpatialDehydration(HydrationHandlerTestBase):
         if type(value) is Point:
             value.srid = srid
         encoded = transformer(value)
+        point_type = "POINT" if len(coords) == 2 else "POINT Z"
         assert encoded == {
             "$type": "Point",
-            "_value": f"SRID={srid};POINT {encoded_coords}",
+            "_value": f"SRID={srid};{point_type} {encoded_coords}",
         }
 
     @pytest.mark.parametrize("dim", (1, 4, 5, 10))

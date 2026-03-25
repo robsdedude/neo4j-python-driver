@@ -41,7 +41,7 @@ FLOAT_RE = re.compile(
 )
 POINT_RE = re.compile(
     r"^SRID=(\d+);"
-    r"\s*POINT\s*\("
+    r"\s*POINT(?:\s+Z)?\s*\("
     rf"\s*({FLOAT_RE.pattern})"
     rf"\s+({FLOAT_RE.pattern})"
     rf"(?:\s+({FLOAT_RE.pattern}))?"
@@ -84,7 +84,8 @@ def dehydrate_point(value: Point) -> ValueDict[str]:
             f"Cannot dehydrate Point with {len(value)} dimensions"
         )
     coordinates_str = " ".join(_dehydrate_coordinate(c) for c in value)
-    value_str = f"SRID={value.srid};POINT ({coordinates_str})"
+    point_type = "POINT" if len(value) == 2 else "POINT Z"
+    value_str = f"SRID={value.srid};{point_type} ({coordinates_str})"
     return make_value_dict("Point", value_str)
 
 

@@ -82,15 +82,16 @@ class TestSpatialHydration(HydrationHandlerTestBase):
     )
     def test_point(
         self,
-        coords: tuple[float, float],
+        coords: tuple[float, ...],
         encoded_coords: str,
         srid: int,
         point_cls: type[Point],
         hydration_scope: HydrationScopeHttp,
     ) -> None:
+        point_type = "POINT" if len(coords) == 2 else "POINT Z"
         encoded = {
             "$type": "Point",
-            "_value": f"SRID={srid};POINT {encoded_coords}",
+            "_value": f"SRID={srid};{point_type} {encoded_coords}",
         }
         decoded = hydration_scope.hydration_hooks[type(encoded)](encoded)
         self.assert_is_hydrated_type(decoded, point_cls)
