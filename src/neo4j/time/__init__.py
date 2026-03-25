@@ -728,8 +728,9 @@ class Duration(  # type: ignore[misc]
             ns = 0
             if match.group("sub_seconds"):
                 ns = int(match.group("sub_seconds")[1:10].ljust(9, "0"))
-            seconds = int(match.group("seconds") or 0)
-            if seconds < 0:
+            seconds_group = match.group("seconds")
+            seconds = int(seconds_group or 0)
+            if seconds_group and seconds_group.startswith("-"):
                 ns *= -1
             return cls(
                 years=int(match.group("years") or 0),
