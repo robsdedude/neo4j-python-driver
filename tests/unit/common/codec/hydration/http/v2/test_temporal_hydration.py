@@ -54,18 +54,41 @@ class TestTemporalHydration(HydrationHandlerTestBase):
         assert d.month == 8
         assert d.day == 24
 
-    def test_hydrate_time(self, hydration_scope: HydrationScopeHttp) -> None:
-        encoded = {
-            "$type": "Time",
-            "_value": "01:02:03.000000004+01:00",
-        }
+    @pytest.mark.parametrize(
+        ("encoded_value", "expected"),
+        (
+            (
+                "01:02:03.000000004+01:00",
+                Time(1, 2, 3, 4, pytz.FixedOffset(60)),
+            ),
+            (
+                "01:02:03.000000004-00:01",
+                Time(1, 2, 3, 4, pytz.FixedOffset(-1)),
+            ),
+            (
+                "01:02:03.000000004+00:00",
+                Time(1, 2, 3, 4, pytz.FixedOffset(0)),
+            ),
+            (
+                "01:02:03.000000004Z",
+                Time(1, 2, 3, 4, pytz.FixedOffset(0)),
+            ),
+        ),
+    )
+    def test_hydrate_time(
+        self,
+        encoded_value: str,
+        expected: Time,
+        hydration_scope: HydrationScopeHttp,
+    ) -> None:
+        encoded = {"$type": "Time", "_value": encoded_value}
         t = hydration_scope.hydration_hooks[type(encoded)](encoded)
         self.assert_is_hydrated_type(t, Time)
-        assert t.hour == 1
-        assert t.minute == 2
-        assert t.second == 3
-        assert t.nanosecond == 4
-        assert t.tzinfo == pytz.FixedOffset(60)
+        assert t.hour == expected.hour
+        assert t.minute == expected.minute
+        assert t.second == expected.second
+        assert t.nanosecond == expected.nanosecond
+        assert t.tzinfo == expected.tzinfo
 
     @pytest.mark.parametrize(
         ("value", "offset_h"),

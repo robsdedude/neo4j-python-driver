@@ -2146,10 +2146,12 @@ class Time(_time_base_class, metaclass=_TimeType):
         res = f"{h:02d}:{m:02d}:{s:02d}.{ns:09d}"
         offset = self.utc_offset()
         if offset is not None:
+            offset_total_seconds = offset.total_seconds()
+            sign = "-" if offset_total_seconds < 0 else "+"
             offset_hours, offset_minutes = divmod(
-                int(offset.total_seconds() // 60), 60
+                abs(int(offset_total_seconds // 60)), 60
             )
-            res += f"{offset_hours:+03d}:{offset_minutes:02d}"
+            res += f"{sign}{offset_hours:02d}:{offset_minutes:02d}"
         return res
 
     def __repr__(self) -> str:

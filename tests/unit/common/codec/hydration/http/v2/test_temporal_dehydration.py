@@ -66,21 +66,57 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             "_value": "1991-08-24",
         }
 
-    def test_time(self, transformer: T_Transformer) -> None:
-        time = Time(1, 2, 3, 4, pytz.FixedOffset(60))
+    @pytest.mark.parametrize(
+        ("time", "expected"),
+        (
+            (
+                Time(1, 2, 3, 4, pytz.FixedOffset(60)),
+                "01:02:03.000000004+01:00",
+            ),
+            (
+                Time(1, 2, 3, 4, pytz.FixedOffset(-1)),
+                "01:02:03.000000004-00:01",
+            ),
+            (
+                Time(1, 2, 3, 4, pytz.FixedOffset(0)),
+                "01:02:03.000000004+00:00",
+            ),
+        ),
+    )
+    def test_time(
+        self,
+        time: Time,
+        expected: str,
+        transformer: T_Transformer,
+    ) -> None:
         encoded = transformer(time)
-        assert encoded == {
-            "$type": "Time",
-            "_value": "01:02:03.000000004+01:00",
-        }
+        assert encoded == {"$type": "Time", "_value": expected}
 
-    def test_native_time(self, transformer: T_Transformer) -> None:
-        time = datetime.time(1, 2, 3, 4, pytz.FixedOffset(60))
+    @pytest.mark.parametrize(
+        ("time", "expected"),
+        (
+            (
+                datetime.time(1, 2, 3, 4, pytz.FixedOffset(60)),
+                "01:02:03.000004+01:00",
+            ),
+            (
+                datetime.time(1, 2, 3, 4, pytz.FixedOffset(-1)),
+                "01:02:03.000004-00:01",
+            ),
+            (
+                datetime.time(1, 2, 3, 4, pytz.FixedOffset(0)),
+                "01:02:03.000004+00:00",
+            ),
+        ),
+    )
+    def test_native_time(
+        self,
+        time: datetime.time,
+        expected: str,
+        transformer: T_Transformer,
+    ) -> None:
         encoded = transformer(time)
-        assert encoded == {
-            "$type": "Time",
-            "_value": "01:02:03.000004+01:00",
-        }
+        assert encoded == {"$type": "Time", "_value": expected}
 
     def test_local_time(self, transformer: T_Transformer) -> None:
         time = Time(1, 2, 3, 4)
