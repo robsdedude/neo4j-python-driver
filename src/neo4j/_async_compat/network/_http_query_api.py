@@ -37,6 +37,7 @@ from ..._async_compat.concurrency import (
 )
 from ..._exceptions import QueryApiHttpError
 from ..._meta import USER_AGENT
+from ...exceptions import ServiceUnavailable
 
 
 if t.TYPE_CHECKING:
@@ -237,13 +238,16 @@ class AsyncHTTPQueryAPI:
                 _HeaderLogFormatter(headers),
             )
 
-        response = await self._session.request(
-            method.value,
-            path,
-            headers=headers,
-            allow_redirects=False,
-            **kwargs,
-        )
+        try:
+            response = await self._session.request(
+                method.value,
+                path,
+                headers=headers,
+                allow_redirects=False,
+                **kwargs,
+            )
+        except aiohttp.ClientError as e:
+            raise ServiceUnavailable(str(e)) from e
 
         raw_body = await response.text()
         log.debug(
@@ -403,13 +407,16 @@ class HTTPQueryAPI:
                 _HeaderLogFormatter(headers),
             )
 
-        response = self._pool.request(
-            method.value,
-            path,
-            headers=headers,
-            redirect=False,
-            **kwargs,
-        )
+        try:
+            response = self._pool.request(
+                method.value,
+                path,
+                headers=headers,
+                redirect=False,
+                **kwargs,
+            )
+        except urllib3.exceptions.HTTPError as e:
+            raise ServiceUnavailable(str(e)) from e
 
         raw_body = response.data.decode("utf-8")
         log.debug(
