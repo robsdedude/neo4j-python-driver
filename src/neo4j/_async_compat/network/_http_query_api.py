@@ -227,7 +227,7 @@ class AsyncHTTPQueryAPI:
                 method.value,
                 path,
                 kwargs["data"],
-                _HeaderLogFormatter(headers),
+                _HeaderLogFormatter.from_request_headers(headers),
             )
         else:
             log.debug(
@@ -235,7 +235,7 @@ class AsyncHTTPQueryAPI:
                 log_id,
                 method.value,
                 path,
-                _HeaderLogFormatter(headers),
+                _HeaderLogFormatter.from_request_headers(headers),
             )
 
         try:
@@ -255,7 +255,9 @@ class AsyncHTTPQueryAPI:
             log_id,
             response.status,
             raw_body,
-            response.headers,
+            _HeaderLogFormatter(
+                (key, response.headers.getall(key)) for key in response.headers
+            ),
         )
         try:
             body = json.loads(raw_body)
@@ -396,7 +398,7 @@ class HTTPQueryAPI:
                 method.value,
                 path,
                 kwargs["body"],
-                _HeaderLogFormatter(headers),
+                _HeaderLogFormatter.from_request_headers(headers),
             )
         else:
             log.debug(
@@ -404,7 +406,7 @@ class HTTPQueryAPI:
                 log_id,
                 method.value,
                 path,
-                _HeaderLogFormatter(headers),
+                _HeaderLogFormatter.from_request_headers(headers),
             )
 
         try:
@@ -424,7 +426,10 @@ class HTTPQueryAPI:
             log_id,
             response.status,
             raw_body,
-            response.headers,
+            _HeaderLogFormatter(
+                (key, response.headers.getlist(key))
+                for key in response.headers
+            ),
         )
         try:
             body = json.loads(raw_body)
@@ -462,30 +467,40 @@ def _build_base_url(
 
 
 class _HeaderLogFormatter:
-    _REDACTED_HEADERS = frozenset(("authorization", "cookie"))
+    _REDACTED_HEADERS = frozenset(("authorization", "cookie", "set-cookie"))
 
-    _headers: dict[str, str] | None
-    _cleaned: bool = False
+    _headers: t.Iterable[tuple[str, t.Iterable[str]]] | None
+    _repr: str | None
 
-    def __init__(self, headers: dict[str, str] | None) -> None:
+    def __init__(
+        self,
+        headers: t.Iterable[tuple[str, t.Iterable[str]]] | None,
+    ) -> None:
         self._headers = headers
+        self._repr = None
+
+    @classmethod
+    def from_request_headers(cls, headers: dict[str, str] | None) -> t.Self:
+        if headers is None:
+            return cls(None)
+        return cls(((k, (v,)) for k, v in headers.items()))
 
     def __repr__(self) -> str:
-        if self._headers is None:
-            return repr({})
-        if not self._cleaned:
-            self._clean_headers()
-        return repr(self._headers)
+        if self._repr is None:
+            self._repr = self._compute_repr()
+        return self._repr
 
-    def _clean_headers(self) -> None:
-        self._cleaned = True
+    def _compute_repr(self) -> str:
+        fields_repr = (
+            f"{key!r}: {value!r}" for key, value in self._iter_sanintized()
+        )
+        return f"{{{', '.join(fields_repr)}}}"
+
+    def _iter_sanintized(self) -> t.Generator[tuple[str, str]]:
         if self._headers is None:
             return
-        if not any(
-            redacted_header in self._headers
-            for redacted_header in self._REDACTED_HEADERS
-        ):
-            return
-        self._headers = dict(self._headers)
-        for redacted_header in self._REDACTED_HEADERS:
-            self._headers[redacted_header] = "*******"
+        for key, values in self._headers:
+            if key.lower() in self._REDACTED_HEADERS:
+                yield from ((key, "*******") for _ in values)
+            else:
+                yield from ((key, value) for value in values)
