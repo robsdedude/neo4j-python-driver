@@ -181,6 +181,7 @@ class HttpConnectionFactory:
                 )
             finally:
                 self._last_fetch = time.monotonic()
+                query_api.close()
 
 
 class HttpConnection(Connection, abc.ABC):

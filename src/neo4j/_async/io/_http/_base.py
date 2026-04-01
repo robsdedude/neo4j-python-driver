@@ -184,6 +184,7 @@ class AsyncHttpConnectionFactory:
                 )
             finally:
                 self._last_fetch = time.monotonic()
+                await query_api.close()
 
 
 class AsyncHttpConnection(AsyncConnection, abc.ABC):
