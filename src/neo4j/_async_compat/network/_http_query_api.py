@@ -260,7 +260,7 @@ class AsyncHTTPQueryAPI:
             ),
         )
         try:
-            body = json.loads(raw_body)
+            body = json.loads(raw_body) if raw_body else {}
         except json.JSONDecodeError as e:
             raise QueryApiHttpError("Invalid JSON response") from e
 
@@ -432,7 +432,7 @@ class HTTPQueryAPI:
             ),
         )
         try:
-            body = json.loads(raw_body)
+            body = json.loads(raw_body) if raw_body else {}
         except json.JSONDecodeError as e:
             raise QueryApiHttpError("Invalid JSON response") from e
 

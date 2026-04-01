@@ -1165,7 +1165,7 @@ class HttpV2(HttpConnection):
         dehydration_hooks: DehydrationHooks,
         hydration_hooks: T_TYPE_MAP_DICT,
         log_id: int,
-    ):
+    ) -> HTTPQueryAPIResponse:
         if headers is None:
             headers = {
                 "Accept": "application/vnd.neo4j.query",
