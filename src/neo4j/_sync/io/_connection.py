@@ -25,6 +25,7 @@ if t.TYPE_CHECKING:
     from ..._api import TelemetryAPI
     from ..._auth_management import AuthManager
     from ..._codec.hydration import HydrationScope
+    from ...api import _TAuth
 
 
 class Connection(abc.ABC):
@@ -32,6 +33,12 @@ class Connection(abc.ABC):
     @abc.abstractmethod
     def auth_manager(self) -> AuthManager | AuthManager | None:
         """The current auth manager used for this connection, if any."""
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def auth(self) -> _TAuth:
+        """The current auth token in use."""
         raise NotImplementedError
 
     @property

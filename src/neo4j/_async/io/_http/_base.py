@@ -40,6 +40,7 @@ if t.TYPE_CHECKING:
         AsyncAuthManager,
         AuthManager,
     )
+    from .._pool import AsyncHttpV2Pool
 
 log = getLogger("neo4j.io")
 
@@ -188,8 +189,14 @@ class AsyncHttpConnectionFactory:
 
 
 class AsyncHttpConnection(AsyncConnection, abc.ABC):
+    pool: AsyncHttpV2Pool | None = None
+
     @abc.abstractmethod
     async def close(self) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def kill(self) -> None:
         raise NotImplementedError
 
     @property

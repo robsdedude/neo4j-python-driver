@@ -142,6 +142,7 @@ class Bolt(Connection):
     most_recent_qid = None
 
     auth_manager = None
+    auth = None
 
     SKIP_REGISTRATION = False
 

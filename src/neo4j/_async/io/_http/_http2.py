@@ -54,6 +54,7 @@ from ....api import (
 from ....exceptions import (
     ConfigurationError,
     IncompleteCommit,
+    Neo4jError,
     ServiceUnavailable,
     SessionExpired,
 )
@@ -232,6 +233,7 @@ class AsyncHttpV2(AsyncHttpConnection):
     _requests: deque[_Request]
     _responses: deque[_Response]
     auth_manager: AsyncAuthManager | AuthManager | None = None
+    auth: _TAuth = None
     unresolved_address: Address
     server_info: ServerInfo
     _id: int
@@ -251,6 +253,7 @@ class AsyncHttpV2(AsyncHttpConnection):
         self._query_api = query_api
         self._auth_header = _auth_dict_to_header(to_auth_dict(auth))
         self.auth_manager = auth_manager
+        self.auth = auth
         self._requests = deque()
         self._responses = deque()
         self._id = id_
@@ -937,6 +940,9 @@ class AsyncHttpV2(AsyncHttpConnection):
     async def close(self) -> None:
         await self._query_api.close()
 
+    def kill(self) -> None:
+        self._query_api.kill()
+
     @property
     def is_reset(self) -> bool:
         return isinstance(self._state, _InitState)
@@ -1130,10 +1136,15 @@ class AsyncHttpV2(AsyncHttpConnection):
     ) -> None:
         async def failure_response() -> None:
             self._state = _InitState()
-            await AsyncUtil.callback(
-                handler.on_failure,
-                {"code": code, "message": message},
-            )
+            try:
+                await AsyncUtil.callback(
+                    handler.on_failure,
+                    {"code": code, "message": message},
+                )
+            except Neo4jError as e:
+                if self.pool:
+                    await self.pool.on_neo4j_error(e, self)
+                raise
 
         self._state = _FailedState()
         self._responses.append(
@@ -1198,15 +1209,6 @@ class AsyncHttpV2(AsyncHttpConnection):
                 res.body = transformer(res.body)
 
         return res
-
-
-async def _get_auth_dict(
-    auth_manager: AsyncAuthManager | AuthManager | None,
-) -> dict[str, str]:
-    if auth_manager is None:
-        return {}
-    auth = await AsyncUtil.callback(auth_manager.get_auth)
-    return to_auth_dict(auth)
 
 
 def _auth_dict_to_header(

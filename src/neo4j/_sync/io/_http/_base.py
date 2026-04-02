@@ -37,6 +37,7 @@ if t.TYPE_CHECKING:
     from ...._addressing import Address
     from ...._async_compat.network import HTTPQueryAPIFactory
     from ...._auth_management import AuthManager
+    from .._pool import HttpV2Pool
 
 log = getLogger("neo4j.io")
 
@@ -185,8 +186,14 @@ class HttpConnectionFactory:
 
 
 class HttpConnection(Connection, abc.ABC):
+    pool: HttpV2Pool | None = None
+
     @abc.abstractmethod
     def close(self) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def kill(self) -> None:
         raise NotImplementedError
 
     @property

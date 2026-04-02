@@ -54,6 +54,7 @@ from ....api import (
 from ....exceptions import (
     ConfigurationError,
     IncompleteCommit,
+    Neo4jError,
     ServiceUnavailable,
     SessionExpired,
 )
@@ -229,6 +230,7 @@ class HttpV2(HttpConnection):
     _requests: deque[_Request]
     _responses: deque[_Response]
     auth_manager: AuthManager | AuthManager | None = None
+    auth: _TAuth = None
     unresolved_address: Address
     server_info: ServerInfo
     _id: int
@@ -248,6 +250,7 @@ class HttpV2(HttpConnection):
         self._query_api = query_api
         self._auth_header = _auth_dict_to_header(to_auth_dict(auth))
         self.auth_manager = auth_manager
+        self.auth = auth
         self._requests = deque()
         self._responses = deque()
         self._id = id_
@@ -934,6 +937,9 @@ class HttpV2(HttpConnection):
     def close(self) -> None:
         self._query_api.close()
 
+    def kill(self) -> None:
+        self._query_api.kill()
+
     @property
     def is_reset(self) -> bool:
         return isinstance(self._state, _InitState)
@@ -1127,10 +1133,15 @@ class HttpV2(HttpConnection):
     ) -> None:
         def failure_response() -> None:
             self._state = _InitState()
-            Util.callback(
-                handler.on_failure,
-                {"code": code, "message": message},
-            )
+            try:
+                Util.callback(
+                    handler.on_failure,
+                    {"code": code, "message": message},
+                )
+            except Neo4jError as e:
+                if self.pool:
+                    self.pool.on_neo4j_error(e, self)
+                raise
 
         self._state = _FailedState()
         self._responses.append(
@@ -1195,15 +1206,6 @@ class HttpV2(HttpConnection):
                 res.body = transformer(res.body)
 
         return res
-
-
-def _get_auth_dict(
-    auth_manager: AuthManager | AuthManager | None,
-) -> dict[str, str]:
-    if auth_manager is None:
-        return {}
-    auth = Util.callback(auth_manager.get_auth)
-    return to_auth_dict(auth)
 
 
 def _auth_dict_to_header(

@@ -206,6 +206,9 @@ class AsyncHTTPQueryAPI:
     async def close(self) -> None:
         await self._session.close()
 
+    def kill(self) -> None:
+        self._session.detach()
+
     def closed(self) -> bool:
         return self._session.closed
 
@@ -380,6 +383,12 @@ class HTTPQueryAPI:
     def close(self) -> None:
         self._closed = True
 
+    def kill(self) -> None:
+        self._closed = True
+
+    def closed(self) -> bool:
+        return self._closed
+
     def request(
         self,
         method: HTTPVerb,
@@ -444,9 +453,6 @@ class HTTPQueryAPI:
             ),
             body=body,
         )
-
-    def closed(self) -> bool:
-        return self._closed
 
 
 class HTTPVerb(enum.Enum):

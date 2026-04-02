@@ -143,6 +143,7 @@ class AsyncBolt(AsyncConnection):
     most_recent_qid = None
 
     auth_manager = None
+    auth = None
 
     SKIP_REGISTRATION = False
 

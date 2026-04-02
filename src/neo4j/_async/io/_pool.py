@@ -247,9 +247,9 @@ class AsyncIOPool(abc.ABC, t.Generic[_TCon]):
         """
         raise NotImplementedError
 
-    async def on_neo4j_error(self, error, connection):
+    async def on_neo4j_error(self, error: Neo4jError, connection: _TCon):
         assert isinstance(error, Neo4jError)
-        if error._has_security_code():
+        if error._has_security_code() and connection.auth_manager is not None:
             handled = await AsyncUtil.callback(
                 connection.auth_manager.handle_security_exception,
                 connection.auth,
@@ -1467,6 +1467,7 @@ class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
             connection = await self.opener(
                 self.address, auth_manager, deadline
             )
+            connection.pool = self
             if unprepared and (liveness_check_timeout == 0 or force_auth):
                 await self._ping(connection)
             return connection
@@ -1493,7 +1494,13 @@ class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
         await connection.fetch_all()
 
     def kill_and_release(self, *connections: AsyncHttpConnection) -> None:
-        pass
+        for connection in connections:
+            log.debug(
+                "[#0000]  _: <POOL> killing %s",
+                connection.connection_id,
+            )
+            connection.kill()
+            self._semaphore.release()
 
     async def release(self, *connections: AsyncHttpConnection) -> None:
         for connection in connections:
@@ -1503,6 +1510,10 @@ class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
             )
             await connection.close()
             self._semaphore.release()
+
+    async def _close_connection(self, connection: AsyncHttpConnection) -> None:
+        await connection.close()
+        self._semaphore.release()
 
     async def close(self) -> None:
         await self._async_http_query_api_factory.shutdown()

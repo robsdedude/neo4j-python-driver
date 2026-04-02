@@ -244,9 +244,9 @@ class IOPool(abc.ABC, t.Generic[_TCon]):
         """
         raise NotImplementedError
 
-    def on_neo4j_error(self, error, connection):
+    def on_neo4j_error(self, error: Neo4jError, connection: _TCon):
         assert isinstance(error, Neo4jError)
-        if error._has_security_code():
+        if error._has_security_code() and connection.auth_manager is not None:
             handled = Util.callback(
                 connection.auth_manager.handle_security_exception,
                 connection.auth,
@@ -1464,6 +1464,7 @@ class HttpV2Pool(IOPool["HttpConnection"]):
             connection = self.opener(
                 self.address, auth_manager, deadline
             )
+            connection.pool = self
             if unprepared and (liveness_check_timeout == 0 or force_auth):
                 self._ping(connection)
             return connection
@@ -1490,7 +1491,13 @@ class HttpV2Pool(IOPool["HttpConnection"]):
         connection.fetch_all()
 
     def kill_and_release(self, *connections: HttpConnection) -> None:
-        pass
+        for connection in connections:
+            log.debug(
+                "[#0000]  _: <POOL> killing %s",
+                connection.connection_id,
+            )
+            connection.kill()
+            self._semaphore.release()
 
     def release(self, *connections: HttpConnection) -> None:
         for connection in connections:
@@ -1500,6 +1507,10 @@ class HttpV2Pool(IOPool["HttpConnection"]):
             )
             connection.close()
             self._semaphore.release()
+
+    def _close_connection(self, connection: HttpConnection) -> None:
+        connection.close()
+        self._semaphore.release()
 
     def close(self) -> None:
         self._async_http_query_api_factory.shutdown()

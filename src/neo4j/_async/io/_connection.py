@@ -28,6 +28,7 @@ if t.TYPE_CHECKING:
         AuthManager,
     )
     from ..._codec.hydration import HydrationScope
+    from ...api import _TAuth
 
 
 class AsyncConnection(abc.ABC):
@@ -35,6 +36,12 @@ class AsyncConnection(abc.ABC):
     @abc.abstractmethod
     def auth_manager(self) -> AsyncAuthManager | AuthManager | None:
         """The current auth manager used for this connection, if any."""
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def auth(self) -> _TAuth:
+        """The current auth token in use."""
         raise NotImplementedError
 
     @property
