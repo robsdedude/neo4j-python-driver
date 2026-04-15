@@ -206,6 +206,18 @@ def test_serverinfo_with_metadata(
             neo4j._api.SECURITY_TYPE_SECURE,
             None,
         ),
+        (
+            "http://localhost:7676",
+            neo4j._api.DRIVER_HTTP,
+            neo4j._api.SECURITY_TYPE_NOT_SECURE,
+            None,
+        ),
+        (
+            "https://localhost:7676",
+            neo4j._api.DRIVER_HTTP,
+            neo4j._api.SECURITY_TYPE_SECURE,
+            None,
+        ),
         ("undefined://localhost:7676", None, None, ConfigurationError),
         ("localhost:7676", None, None, ConfigurationError),
         ("://localhost:7676", None, None, ConfigurationError),

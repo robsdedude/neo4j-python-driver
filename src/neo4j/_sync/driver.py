@@ -277,28 +277,9 @@ class GraphDatabase:
                     parsed.netloc, routing_context=routing_context, **config
                 )
             elif driver_type == DRIVER_BOLT:
-                if parse_routing_context(parsed.query):
-                    raise ConfigurationError(
-                        "Routing context (URI query parameters) are not "
-                        "supported by direct drivers "
-                        f'("bolt[+s[sc]]://" scheme). Given URI: {uri!r}.'
-                    )
                 return cls._bolt_driver(parsed.netloc, **config)
             else:  # driver_type == DRIVER_HTTP
-                preview_warn(
-                    (
-                        "The Query API/HTTP support in the Neo4j Python "
-                        "driver is currently in preview."
-                    ),
-                    stack_level=2,
-                )
-                if parse_routing_context(parsed.query):
-                    raise ConfigurationError(
-                        "Routing context (URI query parameters) are not "
-                        "supported by HTTP drivers "
-                        f'("http[s]://" scheme). Given URI: {uri!r}.'
-                    )
-                return cls._http_driver(parsed.netloc, **config)
+                return cls._http_driver(parsed.netloc, parsed.path, **config)
 
     @classmethod
     def bookmark_manager(
@@ -450,7 +431,7 @@ class GraphDatabase:
             raise ServiceUnavailable(str(error)) from error
 
     @classmethod
-    def _http_driver(cls, target, **config):
+    def _http_driver(cls, target, path, **config):
         """
         Create an HTTP driver.
 
@@ -463,7 +444,7 @@ class GraphDatabase:
         )
 
         try:
-            return HttpDriver._open(target, **config)
+            return HttpDriver._open(target, path, **config)
         except (BoltHandshakeError, BoltSecurityError) as error:
             from ..exceptions import ServiceUnavailable
 
@@ -1503,7 +1484,7 @@ class HttpDriver(_Http, Driver):
     """
 
     @classmethod
-    def _open(cls, target, **config):
+    def _open(cls, target, path, **config) -> t.Self:
         from .io import HttpV2Pool
 
         address = cls._parse_target(target)
@@ -1512,12 +1493,13 @@ class HttpDriver(_Http, Driver):
         )
         pool = HttpV2Pool.open(
             address,
+            path=path,
             pool_config=pool_config,
             workspace_config=default_workspace_config,
         )
         return cls(pool, default_workspace_config)
 
-    def __init__(self, pool, default_workspace_config):
+    def __init__(self, pool, default_workspace_config) -> None:
         _Http.__init__(self, pool.address)
         Driver.__init__(self, pool, default_workspace_config)
 

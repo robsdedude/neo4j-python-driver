@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import inspect
+import re
 import ssl
 import warnings
 
@@ -66,6 +67,10 @@ from ..._async_compat import (
     TestDecorators,
 )
 from ..._deprecated_imports import NotificationDisabledCategory
+
+
+if t.TYPE_CHECKING:
+    from neo4j import Driver
 
 
 @pytest.fixture
@@ -1316,3 +1321,132 @@ def test_using_closed_driver_where_no_op(
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         Util.callback(method, *args, **kwargs)
+
+
+@pytest.mark.parametrize(
+    ("uri", "driver_type", "message_scheme", "blocked_uri_part", "hard_block"),
+    (
+        *(
+            (
+                f"{http_scheme}://{uri}",
+                "Query API/HTTP",
+                "http[s]://",
+                blocked_uri_part,
+                True,
+            )
+            for http_scheme in ("http", "https")
+            for (uri, blocked_uri_part) in (
+                ("example.com", None),
+                ("example.com/", None),
+                ("a.b.c.d.example.com", None),
+                ("a.b.c.d.example.com/", None),
+                ("example.com/foo/bar", None),
+                ("example.com/foo/bar/", None),
+                ("me:secret@example.com/baz", "userinfo"),
+                ("me@example.com/baz", "userinfo"),
+                ("example.com?foo=bar", "query"),
+                ("example.com/?foo=bar", "query"),
+                ("example.com/baz?foo=bar", "query"),
+                ("example.com#foo", "fragment"),
+                ("example.com/#foo", "fragment"),
+                ("example.com/baz#foo", "fragment"),
+            )
+        ),
+        *(
+            (
+                f"{scheme}://{uri}",
+                "direct",
+                "bolt[+s[sc]]://",
+                blocked_uri_part,
+                False,
+            )
+            for scheme in ("bolt", "bolt", "bolt+s", "bolt+ssc")
+            for (uri, blocked_uri_part) in (
+                ("example.com", None),
+                ("example.com/", None),
+                ("a.b.c.d.example.com", None),
+                ("a.b.c.d.example.com/", None),
+                ("example.com/foo/bar", "path"),
+                ("example.com/foo/bar/", "path"),
+                ("me:secret@example.com", "userinfo"),
+                ("me@example.com", "userinfo"),
+                ("example.com?foo=bar", "query"),
+                ("example.com/?foo=bar", "query"),
+                ("example.com#foo", "fragment"),
+                ("example.com/#foo", "fragment"),
+            )
+        ),
+        *(
+            (
+                f"{scheme}://{uri}",
+                "routing",
+                "neo4j[+s[sc]]://",
+                blocked_uri_part,
+                False,
+            )
+            for scheme in ("neo4j", "neo4j", "neo4j+s", "neo4j+ssc")
+            for (uri, blocked_uri_part) in (
+                ("example.com", None),
+                ("example.com/", None),
+                ("a.b.c.d.example.com", None),
+                ("a.b.c.d.example.com/", None),
+                ("example.com?foo=bar", None),
+                ("example.com/?foo=bar", None),
+                ("example.com/foo/bar", "path"),
+                ("example.com/foo/bar/", "path"),
+                ("me:secret@example.com", "userinfo"),
+                ("me@example.com", "userinfo"),
+                ("example.com#foo", "fragment"),
+                ("example.com/#foo", "fragment"),
+            )
+        ),
+    ),
+)
+@mark_sync_test
+def test_url_with_unsupported_parts(
+    uri: str,
+    driver_type: str,
+    message_scheme: str,
+    blocked_uri_part: str | None,
+    hard_block: bool,
+) -> None:
+    if blocked_uri_part in {"userinfo", "query"}:
+        # URL parts that are always hard blocked (if blocked)
+        hard_block = True
+    driver: Driver | None = None
+    try:
+        if blocked_uri_part is None:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error")
+                driver = _make_driver(uri)
+        elif hard_block:
+            with pytest.raises(
+                ConfigurationError, match=re.escape(blocked_uri_part)
+            ) as recorded_exception:
+                driver = _make_driver(uri)
+            exc = recorded_exception
+            assert uri in str(exc.value)
+            assert driver_type in str(exc.value)
+            assert message_scheme in str(exc.value)
+            assert blocked_uri_part in str(exc.value)
+        else:
+            with pytest.warns(
+                DeprecationWarning, match=re.escape(blocked_uri_part)
+            ) as recoded_warnings:
+                driver = _make_driver(uri)
+            assert len(recoded_warnings) == 1
+            warning = recoded_warnings[0]
+            assert uri in str(warning.message)
+            assert driver_type in str(warning.message)
+            assert message_scheme in str(warning.message)
+            assert blocked_uri_part in str(warning.message)
+    finally:
+        if driver is not None:
+            driver.close()
+
+
+def _make_driver(uri: str) -> Driver:
+    if uri.startswith(("http://", "https://")):
+        with pytest.warns(PreviewWarning, match="Query API/HTTP support"):
+            return GraphDatabase.driver(uri)
+    return GraphDatabase.driver(uri)

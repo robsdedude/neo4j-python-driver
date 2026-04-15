@@ -1405,6 +1405,7 @@ class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
         cls,
         address: Address,
         *,
+        path: str,
         pool_config: AsyncPoolConfig,
         workspace_config: WorkspaceConfig,
     ) -> t.Self:
@@ -1425,7 +1426,7 @@ class AsyncHttpV2Pool(AsyncIOPool["AsyncHttpConnection"]):
             )
 
         api_factory = AsyncHTTPQueryAPIFactory()
-        connection_factory = AsyncHttpConnectionFactory(address)
+        connection_factory = AsyncHttpConnectionFactory(address, path)
         pool = cls(
             opener,
             pool_config,

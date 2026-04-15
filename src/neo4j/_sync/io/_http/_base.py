@@ -63,12 +63,16 @@ class HttpConnectionFactory:
     _server_agent_cache: _ServerAgentCache
     _id_generator: t.ClassVar[IdGenerator] = IdGenerator()
     _address: Address
+    _path: str
 
-    def __init__(self, address: Address) -> None:
+    def __init__(self, address: Address, path: str) -> None:
         self._address = address
+        self._path = path
+        if not self._path.startswith("/"):
+            self._path = f"/{self._path}"
         self._server_agent_cache = (
             HttpConnectionFactory._ServerAgentCache(
-                address=address, log_id=0
+                address=address, path=self._path, log_id=0
             )
         )
 
@@ -86,6 +90,7 @@ class HttpConnectionFactory:
         auth = Util.callback(auth_manager.get_auth)
         query_api = factory.new_http_query_api(
             self._address,
+            self._path,
             pool_config=pool_config,
         )
         id_ = self._id_generator.next_id()
@@ -120,12 +125,16 @@ class HttpConnectionFactory:
         _lock: Lock
         _log_id: int
         _address: Address
+        _path: str
 
-        def __init__(self, *, address: Address, log_id: int) -> None:
+        def __init__(
+            self, *, address: Address, path: str, log_id: int
+        ) -> None:
             self._value = None
             self._last_fetch = float("-inf")
             self._lock = Lock()
             self._address = address
+            self._path = path
             self._log_id = log_id
 
         def get(
@@ -151,6 +160,7 @@ class HttpConnectionFactory:
         ) -> None:
             query_api = factory.new_http_query_api(
                 self._address,
+                self._path,
                 pool_config=pool_config,
             )
             try:

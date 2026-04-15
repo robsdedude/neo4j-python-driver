@@ -1402,6 +1402,7 @@ class HttpV2Pool(IOPool["HttpConnection"]):
         cls,
         address: Address,
         *,
+        path: str,
         pool_config: PoolConfig,
         workspace_config: WorkspaceConfig,
     ) -> t.Self:
@@ -1422,7 +1423,7 @@ class HttpV2Pool(IOPool["HttpConnection"]):
             )
 
         api_factory = HTTPQueryAPIFactory()
-        connection_factory = HttpConnectionFactory(address)
+        connection_factory = HttpConnectionFactory(address, path)
         pool = cls(
             opener,
             pool_config,

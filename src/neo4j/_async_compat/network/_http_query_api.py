@@ -108,6 +108,7 @@ class AsyncHTTPQueryAPIFactory:
     async def new_http_query_api(
         self,
         address: Address,
+        path: str,
         *,
         pool_config: AsyncPoolConfig,
     ) -> AsyncHTTPQueryAPI:
@@ -116,14 +117,16 @@ class AsyncHTTPQueryAPIFactory:
             total=5 * 60,
             sock_connect=pool_config.connection_timeout,
         )
+        path = _normalize_path_prefix(path)
         return AsyncHTTPQueryAPI(
             aiohttp.ClientSession(
-                base_url=_build_base_url(address, config.secure),
+                base_url=_build_base_url(address, path, config.secure),
                 connector=config.connector,
                 connector_owner=False,
                 cookie_jar=aiohttp.DummyCookieJar(),
                 timeout=timeout,
-            )
+            ),
+            _PathLogger(path),
         )
 
     async def _get_config_cache(
@@ -191,12 +194,15 @@ class AsyncHTTPQueryAPI:
     )
 
     _session: aiohttp.ClientSession
+    _path_logger: _PathLogger
 
     def __init__(
         self,
         session: aiohttp.ClientSession,
+        path_logger: _PathLogger,
     ) -> None:
         self._session = session
+        self._path_logger = path_logger
         # tcp_timeout: float | None,
         # deadline: Deadline,
         # custom_resolver: t.Callable | None,
@@ -228,7 +234,7 @@ class AsyncHTTPQueryAPI:
                 "[#%04X]  C: %s %s %s (%s)",
                 log_id,
                 method.value,
-                path,
+                self._path_logger(path),
                 kwargs["data"],
                 _HeaderLogFormatter.from_request_headers(headers),
             )
@@ -237,7 +243,7 @@ class AsyncHTTPQueryAPI:
                 "[#%04X]  C: %s %s (%s)",
                 log_id,
                 method.value,
-                path,
+                self._path_logger(path),
                 _HeaderLogFormatter.from_request_headers(headers),
             )
 
@@ -283,6 +289,7 @@ class HTTPQueryAPIFactory:
         pool: urllib3.HTTPConnectionPool
         pool_config: PoolConfig
         address: Address
+        path: str
 
     _config_cache: _ConfigCache | None = None
     _config_cache_lock: Lock
@@ -294,15 +301,18 @@ class HTTPQueryAPIFactory:
     def new_http_query_api(
         self,
         address: Address,
+        path: str,
         *,
         pool_config: PoolConfig,
     ) -> HTTPQueryAPI:
-        config = self._get_config_cache(address, pool_config)
-        return HTTPQueryAPI(config.pool)
+        path = _normalize_path_prefix(path)
+        config = self._get_config_cache(address, path, pool_config)
+        return HTTPQueryAPI(config.pool, _PathLogger(path))
 
     def _get_config_cache(
         self,
         address: Address,
+        path: str,
         pool_config: PoolConfig,
     ) -> _ConfigCache:
         with self._config_cache_lock:
@@ -312,7 +322,7 @@ class HTTPQueryAPIFactory:
                         "Cannot open HTTP connection: session already closed"
                     )
                 self._config_cache = self._new_config_cache(
-                    address, pool_config
+                    address, path, pool_config
                 )
             else:
                 assert self._config_cache.pool_config is pool_config, (
@@ -322,21 +332,26 @@ class HTTPQueryAPIFactory:
                 assert self._config_cache.address is address, (
                     "Query API/HTTP pool must always point to the same address"
                 )
+                assert self._config_cache.path is path, (
+                    "Query API/HTTP pool must always point to the same path"
+                )
             return self._config_cache
 
     def _new_config_cache(
-        self, address: Address, pool_config: PoolConfig
+        self, address: Address, path: str, pool_config: PoolConfig
     ) -> _ConfigCache:
-        pool = self._new_pool(address, pool_config)
+        pool = self._new_pool(address, path, pool_config)
         return self._ConfigCache(
             pool=pool,
             pool_config=pool_config,
             address=address,
+            path=path,
         )
 
     def _new_pool(
         self,
         address: Address,
+        path: str,
         pool_config: PoolConfig,
     ) -> urllib3.HTTPConnectionPool:
         # TODO: pool_config.max_connection_lifetime
@@ -349,7 +364,7 @@ class HTTPQueryAPIFactory:
             extra_kwargs["ssl_context"] = ssl_context
         keep_alive = 1 if pool_config.keep_alive else 0
         return urllib3.connectionpool.connection_from_url(
-            _build_base_url(address, secure),
+            _build_base_url(address, path, secure),
             maxsize=0,
             socket_options=[
                 (SOL_SOCKET, SO_KEEPALIVE, keep_alive),
@@ -374,11 +389,15 @@ class HTTPQueryAPI:
     CONNECTION_ERRORS = (OSError,)
 
     _pool: urllib3.HTTPConnectionPool
+    _path_logger: _PathLogger
 
     _closed: bool = False
 
-    def __init__(self, pool: urllib3.HTTPConnectionPool) -> None:
+    def __init__(
+        self, pool: urllib3.HTTPConnectionPool, path_logger: _PathLogger
+    ) -> None:
         self._pool = pool
+        self._path_logger = path_logger
 
     def close(self) -> None:
         self._closed = True
@@ -405,7 +424,7 @@ class HTTPQueryAPI:
                 "[#%04X]  C: %s %s %s (%s)",
                 log_id,
                 method.value,
-                path,
+                self._path_logger(path),
                 kwargs["body"],
                 _HeaderLogFormatter.from_request_headers(headers),
             )
@@ -414,7 +433,7 @@ class HTTPQueryAPI:
                 "[#%04X]  C: %s %s (%s)",
                 log_id,
                 method.value,
-                path,
+                self._path_logger(path),
                 _HeaderLogFormatter.from_request_headers(headers),
             )
 
@@ -462,14 +481,42 @@ class HTTPVerb(enum.Enum):
     DELETE = "DELETE"
 
 
+def _normalize_path_prefix(prefix: str) -> str:
+    if not prefix.startswith("/"):
+        prefix = f"/{prefix}"
+    if not prefix.endswith("/"):
+        prefix = f"{prefix}/"
+    return prefix
+
+
 def _build_base_url(
     address: Address,
+    path: str,
     secure: bool,
 ) -> str:
     scheme = "https" if secure else "http"
     host = address.host
     port = address.port
-    return f"{scheme}://{host}:{port}/"
+    return f"{scheme}://{host}:{port}{path}"
+
+
+@dataclass(frozen=True)
+class _PathLogger:
+    path_prefix: str
+
+    @dataclass(frozen=True)
+    class _PathFormatter:
+        _logger: _PathLogger
+        _path: str
+
+        def __str__(self) -> str:
+            path = self._path
+            if path.startswith("/"):
+                path = self._path[1:]
+            return f"{self._logger.path_prefix}{path}"
+
+    def __call__(self, path: str) -> _PathFormatter:
+        return self._PathFormatter(self, path)
 
 
 class _HeaderLogFormatter:
