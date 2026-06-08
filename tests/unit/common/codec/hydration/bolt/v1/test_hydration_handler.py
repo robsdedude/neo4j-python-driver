@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+import typing as t
 from datetime import (
     date,
     datetime,
@@ -47,6 +48,10 @@ from neo4j.time import (
 )
 from neo4j.vector import Vector
 
+from ......._optional_deps import (
+    HAS_NP,
+    HAS_PD,
+)
 from .._base import HydrationHandlerTestBase
 
 
@@ -74,7 +79,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
 
         assert not hooks.exact_values
 
-        expected_keys = {
+        expected_keys: set[t.Any] = {
             date,
             datetime,
             time,
@@ -88,14 +93,14 @@ class TestHydrationHandler(HydrationHandlerTestBase):
             WGS84Point,
             Vector,
         }
-        if np is not None:
+        if HAS_NP:
             expected_keys.update(
                 {
                     np.datetime64,
                     np.timedelta64,
                 }
             )
-        if pd is not None:
+        if HAS_PD:
             expected_keys.update(
                 {
                     pd.Timestamp,

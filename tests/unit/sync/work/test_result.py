@@ -64,6 +64,8 @@ from ...._async_compat import (
     wrap_async,
 )
 from ...._optional_deps import (
+    HAS_PD,
+    mark_skip_with_optional_dependency,
     mark_skip_without_optional_dependency,
     pd,
 )
@@ -80,7 +82,9 @@ if t.TYPE_CHECKING:
 
 # https://pandas.pydata.org/docs/user_guide/migration-3-strings.html
 PD_STR_DTYPE = (
-    "object" if int(pd.__version__.split(".", 1)[0]) < 3 else "string"
+    "object"
+    if not HAS_PD or int(pd.__version__.split(".", 1)[0]) < 3
+    else "string"
 )
 
 
@@ -791,6 +795,16 @@ def test_to_eager_result(records):
     assert eager_result.keys == list(records.fields)
 
 
+@mark_skip_with_optional_dependency("pd")
+@mark_sync_test
+def test_to_df_requires_pandas():
+    connection = ConnectionStub(records=Records(["x"], [[1], [2]]))
+    result = Result(connection, 1, None, noop, noop, None)
+    with pytest.raises(ImportError):
+        result.to_df()
+
+
+@mark_skip_without_optional_dependency("pd")
 @pytest.mark.parametrize(
     ("keys", "values", "types", "instances"),
     (

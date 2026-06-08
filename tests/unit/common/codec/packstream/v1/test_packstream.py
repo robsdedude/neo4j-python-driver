@@ -15,6 +15,7 @@
 
 
 import struct
+from contextlib import suppress
 from io import BytesIO
 from math import (
     isnan,
@@ -33,8 +34,12 @@ from neo4j._codec.packstream.v1 import (
 )
 
 from ......_optional_deps import (
+    HAS_NP,
+    HAS_PA,
+    HAS_PD,
     mark_skip_without_optional_dependency,
     np,
+    pa,
     pd,
     skip_if_mocked_dependency,
 )
@@ -120,8 +125,174 @@ def assert_packable(packer_with_buffer, unpacker_with_buffer):
     return _assert
 
 
+@pytest.fixture(params=(True, False))
+def np_float_overflow_as_error(request):
+    skip_if_mocked_dependency(np)
+    should_raise = request.param
+    if should_raise:
+        old_err = np.seterr(over="raise")
+    else:
+        old_err = np.seterr(over="ignore")
+    yield
+    np.seterr(**old_err)
+
+
+@pytest.fixture(
+    params=(
+        int,
+        (
+            np.int8,
+            np.int16,
+            np.int32,
+            np.int64,
+            np.longlong,
+            np.uint8,
+            np.uint16,
+            np.uint32,
+            np.uint64,
+            np.ulonglong,
+        ),
+    )
+)
+def int_type(request):
+    if HAS_NP and issubclass(request.param, np.number):
+
+        def _int_type(value):
+            # this avoids deprecation warning from NEP50 and forces
+            # c-style wrapping of the value
+            return np.array(value).astype(request.param).item()
+
+        return _int_type
+    else:
+        return request.param
+
+
+@pytest.fixture(
+    params=(
+        float,
+        (
+            np.float16,
+            np.float32,
+            np.float64,
+            np.longdouble,
+        ),
+    )
+)
+def float_type(request, np_float_overflow_as_error):
+    return request.param
+
+
+@pytest.fixture(
+    params=(
+        bool,
+        (np.bool_,),
+    )
+)
+def bool_type(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=(
+        bytes,
+        bytearray,
+        (np.bytes_,),
+    )
+)
+def bytes_type(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=(
+        str,
+        (np.str_,),
+    )
+)
+def str_type(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=(
+        pytest.param(list, id="list"),
+        pytest.param(tuple, id="tuple"),
+        (pytest.param(np.array, id="np.array"),),
+        (
+            pytest.param(
+                pd.Series,
+                id="pd.Series",
+            ),
+            pytest.param(
+                pd.array,
+                id="pd.array",
+            ),
+            pytest.param(
+                pd.arrays.SparseArray,
+                id="pd.arrays.SparseArray",
+            ),
+        ),
+        (
+            pytest.param(
+                pd.arrays.NumpyExtensionArray,
+                id="pd.arrays.NumpyExtensionArray",
+            ),
+        ),
+        (
+            pytest.param(
+                pd.arrays.ArrowExtensionArray,
+                id="pd.arrays.ArrowExtensionArray",
+            ),
+        ),
+    )
+)
+def sequence_type(request):
+    if HAS_PD and request.param is pd.Series:
+
+        def constructor(value):
+            if not value:
+                return pd.Series(dtype=object)
+            return pd.Series(value)
+
+    elif HAS_PD and request.param is pd.array and pd.__version__ >= "3":
+
+        def constructor(value):
+            with suppress(ValueError):
+                return pd.array(value)
+            return pd.array(value, dtype=object)
+
+    elif HAS_PD and HAS_NP and request.param is pd.arrays.NumpyExtensionArray:
+
+        def constructor(value):
+            return pd.arrays.NumpyExtensionArray(np.array(value))
+
+    elif HAS_PD and HAS_PA and request.param is pd.arrays.ArrowExtensionArray:
+
+        def constructor(value):
+            def _map_value(v):
+                if isinstance(v, pd.arrays.ArrowExtensionArray):
+                    v = pa.array(v)
+                if isinstance(v, pa.Array):
+                    v = v.to_pylist()
+                return v
+
+            value = map(_map_value, value)
+            return pd.arrays.ArrowExtensionArray(pa.array(value))
+
+    else:
+        constructor = request.param
+
+    return constructor
+
+
 class TestPackStream:
-    @pytest.mark.parametrize("value", (None, pd.NA))
+    @pytest.mark.parametrize(
+        "value",
+        (
+            None,
+            pd.NA,
+        ),
+    )
     def test_none(self, value, assert_packable):
         skip_if_mocked_dependency(value)
         assert_packable(value, b"\xc0", None)
@@ -148,15 +319,17 @@ class TestPackStream:
         "dtype",
         (
             int,
-            pd.Int8Dtype(),
-            pd.Int16Dtype(),
-            pd.Int32Dtype(),
-            pd.Int64Dtype(),
-            np.int8,
-            np.int16,
-            np.int32,
-            np.int64,
-            np.longlong,
+            (
+                np.int8,
+                np.int16,
+                np.int32,
+                np.int64,
+                np.longlong,
+                pd.Int8Dtype(),
+                pd.Int16Dtype(),
+                pd.Int32Dtype(),
+                pd.Int64Dtype(),
+            ),
         ),
     )
     @mark_skip_without_optional_dependency("pd")
@@ -227,12 +400,14 @@ class TestPackStream:
         "dtype",
         (
             int,
-            pd.Int64Dtype(),
-            pd.UInt64Dtype(),
-            np.int64,
-            np.longlong,
-            np.uint64,
-            np.ulonglong,
+            (
+                np.int64,
+                np.longlong,
+                np.uint64,
+                np.ulonglong,
+                pd.Int64Dtype(),
+                pd.UInt64Dtype(),
+            ),
         ),
     )
     @mark_skip_without_optional_dependency("pd")
@@ -257,9 +432,11 @@ class TestPackStream:
         "dtype",
         (
             int,
-            pd.Int64Dtype(),
-            np.int64,
-            np.longlong,
+            (
+                np.int64,
+                np.longlong,
+                pd.Int64Dtype(),
+            ),
         ),
     )
     @mark_skip_without_optional_dependency("pd")
@@ -318,12 +495,14 @@ class TestPackStream:
         "dtype",
         (
             float,
-            pd.Float32Dtype(),
-            pd.Float64Dtype(),
-            np.float16,
-            np.float32,
-            np.float64,
-            np.longdouble,
+            (
+                np.float16,
+                np.float32,
+                np.float64,
+                np.longdouble,
+                pd.Float32Dtype(),
+                pd.Float64Dtype(),
+            ),
         ),
     )
     @mark_skip_without_optional_dependency("pd")

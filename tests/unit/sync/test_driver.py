@@ -43,7 +43,8 @@ from neo4j._debug import ENABLED as DEBUG_ENABLED
 from neo4j._sync.auth_management import _StaticClientCertificateProvider
 from neo4j._sync.config import PoolConfig
 from neo4j._sync.driver import _work
-from neo4j._sync.io import (
+from neo4j._sync.io._pool import (
+    BoltPool,
     DirectBoltPool,
     RoutedBoltPool,
 )
@@ -70,6 +71,8 @@ from ..._deprecated_imports import NotificationDisabledCategory
 
 
 if t.TYPE_CHECKING:
+    from types import EllipsisType
+
     from neo4j import Driver
 
 
@@ -873,6 +876,93 @@ def test_session_factory_with_notification_filter(
                 session_config.notifications_disabled_classifications
                 == expected_dis_clss
             )
+
+
+@pytest.mark.parametrize("disable_auto_commit_retries", (True, False))
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "bolt://localhost:7687",
+        "neo4j://localhost:7687",
+    ],
+)
+@mark_sync_test
+def test_driver_factory_with_disable_auto_commit_retries(
+    uri: str,
+    mocker,
+    disable_auto_commit_retries: bool,
+) -> None:
+    pool_cls = _get_pool_cls_from_uri(uri)
+    open_mock = mocker.patch.object(
+        pool_cls,
+        "open",
+        return_value=mocker.MagicMock(spec=pool_cls),
+    )
+    open_mock.return_value.address = mocker.Mock()
+
+    with GraphDatabase.driver(
+        uri, auth=None, disable_auto_commit_retries=disable_auto_commit_retries
+    ) as _:
+        open_mock.assert_called_once()
+        open_workspace_conf = open_mock.call_args.kwargs["workspace_config"]
+        assert (
+            open_workspace_conf.disable_auto_commit_retries
+            == disable_auto_commit_retries
+        )
+
+
+@pytest.mark.parametrize("disable_auto_commit_retries_driver", (True, False))
+@pytest.mark.parametrize(
+    "disable_auto_commit_retries_session", (True, False, None, ...)
+)
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "bolt://localhost:7687",
+        "neo4j://localhost:7687",
+    ],
+)
+@mark_sync_test
+def test_session_factory_with_disable_auto_commit_retries(
+    uri: str,
+    mocker,
+    session_cls_mock,
+    disable_auto_commit_retries_driver: bool,
+    disable_auto_commit_retries_session: bool | EllipsisType | None,
+) -> None:
+    pool_cls = _get_pool_cls_from_uri(uri)
+    pool_mock: t.Any = mocker.MagicMock(spec=pool_cls)
+    mocker.patch.object(pool_cls, "open", return_value=pool_mock)
+    pool_mock.address = mocker.Mock()
+
+    expected = disable_auto_commit_retries_driver
+    if isinstance(disable_auto_commit_retries_session, bool):
+        expected = disable_auto_commit_retries_session
+
+    with GraphDatabase.driver(
+        uri,
+        auth=None,
+        disable_auto_commit_retries=disable_auto_commit_retries_driver,
+    ) as driver:
+        if disable_auto_commit_retries_session is not ...:
+            session = driver.session(
+                disable_auto_commit_retries=disable_auto_commit_retries_session
+            )
+        else:
+            session = driver.session()
+        with session:
+            session_cls_mock.assert_called_once()
+            (_, session_config), _ = session_cls_mock.call_args
+            assert session_config.disable_auto_commit_retries == expected
+
+
+def _get_pool_cls_from_uri(uri: str) -> type[BoltPool]:
+    if uri.startswith("bolt://"):
+        return DirectBoltPool
+    elif uri.startswith("neo4j://"):
+        return RoutedBoltPool
+    else:
+        raise ValueError(f"Invalid URI scheme in {uri!r}")
 
 
 class SomeClass:

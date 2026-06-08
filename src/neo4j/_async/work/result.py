@@ -145,7 +145,8 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
 
         # states
         self._discarding = False  # discard the remainder of records
-        self._attached = False  # attached to a connection
+        self._attached = False  # attached to a record stream
+        self._attach_failed = False  # failed attempt to attach
         # there are still more response messages we wait for
         self._streaming = False
         # there ar more records available to pull from the server
@@ -207,6 +208,7 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
         async def on_failed_attach(metadata):
             self._metadata.update(metadata)
             self._attached = False
+            self._attach_failed = True
             await AsyncUtil.callback(self._on_closed)
 
         self._connection.run(
@@ -241,8 +243,7 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
                     for record in records
                 )
                 self._record_buffer.extend(
-                    Record(zip(self._keys, record, strict=True))
-                    for record in records
+                    Record._new(self._keys, record) for record in records
                 )
 
         async def _on_summary():
@@ -454,7 +455,8 @@ class AsyncResult(AsyncNonConcurrentMethodChecker):
             record_buffer.append(record)
             if n is not None and len(record_buffer) >= n:
                 break
-        assert not self._record_buffer
+        if self._record_buffer:
+            record_buffer.extend(self._record_buffer)
         self._record_buffer = record_buffer
         self._exhausted = not self._record_buffer
 

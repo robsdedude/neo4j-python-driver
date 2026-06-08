@@ -434,7 +434,9 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
         self, as_series: bool, transformer: T_Transformer
     ) -> None:
         animals = ["cat", "dog", "cat", "cat", "dog", "horse"]
-        animals_typed: pd.Categorical | pd.Series = pd.Categorical(animals)
+        animals_typed: pd.Categorical[str] | pd.Series = pd.Categorical(
+            animals
+        )
         if as_series:
             animals_typed = pd.Series(animals_typed)
         encoded = transformer(animals_typed)

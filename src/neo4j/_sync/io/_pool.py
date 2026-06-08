@@ -1520,11 +1520,11 @@ class HttpV2Pool(IOPool["HttpConnection"]):
 def acquisition_timeout_to_deadline(timeout: object) -> Deadline:
     if isinstance(timeout, Deadline):
         return timeout
-    _check_acquisition_timeout(timeout)
+    timeout = _check_acquisition_timeout(timeout)
     return Deadline(timeout)
 
 
-def _check_acquisition_timeout(timeout: object) -> None:
+def _check_acquisition_timeout(timeout: object) -> float:
     if not isinstance(timeout, (int, float)):
         raise TypeError(
             "Connection acquisition timeout must be a number, "
@@ -1536,3 +1536,4 @@ def _check_acquisition_timeout(timeout: object) -> None:
         )
     if math.isnan(timeout):
         raise ValueError("Connection acquisition timeout must not be NaN")
+    return timeout

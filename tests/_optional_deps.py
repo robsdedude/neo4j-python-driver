@@ -23,6 +23,7 @@ from neo4j import _typing as t
 from neo4j._optional_deps import (
     np,
     pa,
+    pa_compute,
     pd,
 )
 
@@ -46,17 +47,28 @@ class _OptionalDepsMock(mock.MagicMock):
         return child
 
 
+HAS_NP = np is not None
+HAS_PD = pd is not None
+HAS_PA = pa is not None
+
 if np is None:
     np = _OptionalDepsMock(name="numpy")
 if pd is None:
     pd = _OptionalDepsMock(name="pandas")
 if pa is None:
     pa = _OptionalDepsMock(name="pyarrow")
+    pa_compute = _OptionalDepsMock(name="pyarrow.compute")
+
 
 __all__ = [
+    "HAS_NP",
+    "HAS_PA",
+    "HAS_PD",
+    "mark_skip_with_optional_dependency",
     "mark_skip_without_optional_dependency",
     "np",
     "pa",
+    "pa_compute",
     "pd",
     "skip_if_mocked_dependency",
 ]
@@ -66,6 +78,19 @@ _DEP_NAME = {
     "pa": "pyarrow",
     "pd": "pandas",
 }
+
+
+def mark_skip_with_optional_dependency(
+    symbol: str,
+) -> t.Callable[[T_Callable], T_Callable]:
+    name = _DEP_NAME.get(symbol)
+    if name is None:
+        raise ValueError(f"Unknown optional dependency: {name!r}")
+    optional_dep = globals()[symbol]
+    return pytest.mark.skipif(
+        not isinstance(optional_dep, mock.Mock),
+        reason=f"{name} installed",
+    )
 
 
 def mark_skip_without_optional_dependency(

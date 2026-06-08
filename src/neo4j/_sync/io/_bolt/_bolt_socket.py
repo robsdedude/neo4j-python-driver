@@ -319,7 +319,7 @@ class BoltSocket(BoltSocketBase):
         )
         for resolved_address in resolved_addresses:
             deadline_timeout = deadline.to_timeout()
-            if (
+            if tcp_timeout is None or (
                 deadline_timeout is not None
                 and deadline_timeout <= tcp_timeout
             ):
@@ -362,8 +362,7 @@ class BoltSocket(BoltSocketBase):
                     "[#%04X]  C: <CANCELED> %s", local_port, resolved_address
                 )
                 if s:
-                    with suppress(OSError):
-                        s.kill()
+                    s.close()
                 raise
             except Exception:
                 if s:
