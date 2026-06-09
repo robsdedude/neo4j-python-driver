@@ -68,6 +68,7 @@ from ..._async_compat import (
     TestDecorators,
 )
 from ..._deprecated_imports import NotificationDisabledCategory
+from ..._optional_deps import skip_if_unsupported_uri
 
 
 if t.TYPE_CHECKING:
@@ -133,14 +134,16 @@ def test_routing_driver_constructor(
 
 
 @pytest.mark.parametrize(
-    "test_uri",
+    ("uri", "accepts_encryption_config"),
     (
-        "bolt+ssc://127.0.0.1:9001",
-        "bolt+s://127.0.0.1:9001",
-        "bolt://127.0.0.1:9001",
-        "neo4j+ssc://127.0.0.1:9001",
-        "neo4j+s://127.0.0.1:9001",
-        "neo4j://127.0.0.1:9001",
+        ("bolt+ssc://127.0.0.1:9001", False),
+        ("bolt+s://127.0.0.1:9001", False),
+        ("bolt://127.0.0.1:9001", True),
+        ("neo4j+ssc://127.0.0.1:9001", False),
+        ("neo4j+s://127.0.0.1:9001", False),
+        ("neo4j://127.0.0.1:9001", True),
+        ("https://127.0.0.1:9001", False),
+        ("http://127.0.0.1:9001", True),
     ),
 )
 @pytest.mark.parametrize(
@@ -178,15 +181,21 @@ def test_routing_driver_constructor(
 )
 @mark_sync_test
 def test_driver_config_error_uri_conflict(
-    test_uri, test_config, expected_failure, expected_failure_message
+    uri,
+    accepts_encryption_config,
+    test_config,
+    expected_failure,
+    expected_failure_message,
 ):
-    if "+" in test_uri:
+    skip_if_unsupported_uri(uri)
+
+    if not accepts_encryption_config:
         # `+s` and `+ssc` are shorthand syntax for not having to configure the
         # encryption behavior of the driver. Specifying both is invalid.
         with pytest.raises(expected_failure, match=expected_failure_message):
-            GraphDatabase.driver(test_uri, **test_config)
+            _make_driver(uri, **test_config)
     else:
-        driver = GraphDatabase.driver(test_uri, **test_config)
+        driver = _make_driver(uri, **test_config)
         driver.close()
 
 
@@ -1500,6 +1509,8 @@ def test_url_with_unsupported_parts(
     blocked_uri_part: str | None,
     hard_block: bool,
 ) -> None:
+    skip_if_unsupported_uri(uri)
+
     if blocked_uri_part in {"userinfo", "query"}:
         # URL parts that are always hard blocked (if blocked)
         hard_block = True
@@ -1535,8 +1546,8 @@ def test_url_with_unsupported_parts(
             driver.close()
 
 
-def _make_driver(uri: str) -> Driver:
+def _make_driver(uri: str, **kwargs) -> Driver:
     if uri.startswith(("http://", "https://")):
         with pytest.warns(PreviewWarning, match="Query API/HTTP support"):
-            return GraphDatabase.driver(uri)
-    return GraphDatabase.driver(uri)
+            return GraphDatabase.driver(uri, **kwargs)
+    return GraphDatabase.driver(uri, **kwargs)

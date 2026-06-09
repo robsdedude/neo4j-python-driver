@@ -36,10 +36,6 @@ from neo4j._codec.hydration.http import (
 )
 from neo4j._codec.hydration.http._common import HydrationScopeHttp
 from neo4j._codec.hydration.http.v2 import HydrationHandler
-from neo4j._optional_deps import (
-    np,
-    pd,
-)
 from neo4j.graph import Graph
 from neo4j.spatial import (
     CartesianPoint,
@@ -54,6 +50,12 @@ from neo4j.time import (
 )
 from neo4j.vector import Vector
 
+from ......._optional_deps import (
+    HAS_NP,
+    HAS_PD,
+    np,
+    pd,
+)
 from .._base import HydrationHandlerTestBase
 
 
@@ -112,7 +114,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
             Id(False),
         }
 
-        if np is not None:
+        if HAS_NP:
             expected_exact_values.update(
                 {
                     Id(np.True_),
@@ -120,9 +122,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
                 }
             )
 
-        import pandas as pd
-
-        if pd is not None:
+        if HAS_PD:
             expected_exact_values.update(
                 {
                     Id(pd.NA),
@@ -138,7 +138,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
         hooks = hydration_scope.dehydration_hooks
         assert isinstance(hooks, DehydrationHooks)
 
-        expected_exact_types = {
+        expected_exact_types: set[type] = {
             int,
             float,
             str,
@@ -162,7 +162,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
             LiteralJson,
             LiteralJsonRecursive,
         }
-        if np is not None:
+        if HAS_NP:
             expected_exact_types.update(
                 {
                     np.ndarray,
@@ -170,7 +170,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
                     np.timedelta64,
                 }
             )
-        if pd is not None:
+        if HAS_PD:
             expected_exact_types.update(
                 {
                     pd.Series,
@@ -190,7 +190,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
         hooks = hydration_scope.dehydration_hooks
         assert isinstance(hooks, DehydrationHooks)
 
-        expected_subtypes = {
+        expected_subtypes: set[type] = {
             int,
             float,
             str,
@@ -201,7 +201,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
             bytearray,
             object,
         }
-        if np is not None:
+        if HAS_NP:
             expected_subtypes.update(
                 {
                     np.integer,
@@ -209,7 +209,7 @@ class TestHydrationHandler(HydrationHandlerTestBase):
                     np.ndarray,
                 }
             )
-        if pd is not None:
+        if HAS_PD:
             expected_subtypes.update(
                 {
                     pd.Series,

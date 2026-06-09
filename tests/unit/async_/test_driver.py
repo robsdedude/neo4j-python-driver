@@ -69,6 +69,7 @@ from ..._async_compat import (
     mark_async_test,
 )
 from ..._deprecated_imports import NotificationDisabledCategory
+from ..._optional_deps import skip_if_unsupported_uri
 
 
 if t.TYPE_CHECKING:
@@ -134,14 +135,16 @@ async def test_routing_driver_constructor(
 
 
 @pytest.mark.parametrize(
-    "test_uri",
+    ("uri", "accepts_encryption_config"),
     (
-        "bolt+ssc://127.0.0.1:9001",
-        "bolt+s://127.0.0.1:9001",
-        "bolt://127.0.0.1:9001",
-        "neo4j+ssc://127.0.0.1:9001",
-        "neo4j+s://127.0.0.1:9001",
-        "neo4j://127.0.0.1:9001",
+        ("bolt+ssc://127.0.0.1:9001", False),
+        ("bolt+s://127.0.0.1:9001", False),
+        ("bolt://127.0.0.1:9001", True),
+        ("neo4j+ssc://127.0.0.1:9001", False),
+        ("neo4j+s://127.0.0.1:9001", False),
+        ("neo4j://127.0.0.1:9001", True),
+        ("https://127.0.0.1:9001", False),
+        ("http://127.0.0.1:9001", True),
     ),
 )
 @pytest.mark.parametrize(
@@ -179,15 +182,21 @@ async def test_routing_driver_constructor(
 )
 @mark_async_test
 async def test_driver_config_error_uri_conflict(
-    test_uri, test_config, expected_failure, expected_failure_message
+    uri,
+    accepts_encryption_config,
+    test_config,
+    expected_failure,
+    expected_failure_message,
 ):
-    if "+" in test_uri:
+    skip_if_unsupported_uri(uri)
+
+    if not accepts_encryption_config:
         # `+s` and `+ssc` are shorthand syntax for not having to configure the
         # encryption behavior of the driver. Specifying both is invalid.
         with pytest.raises(expected_failure, match=expected_failure_message):
-            AsyncGraphDatabase.driver(test_uri, **test_config)
+            _make_driver(uri, **test_config)
     else:
-        driver = AsyncGraphDatabase.driver(test_uri, **test_config)
+        driver = _make_driver(uri, **test_config)
         await driver.close()
 
 
@@ -1501,6 +1510,8 @@ async def test_url_with_unsupported_parts(
     blocked_uri_part: str | None,
     hard_block: bool,
 ) -> None:
+    skip_if_unsupported_uri(uri)
+
     if blocked_uri_part in {"userinfo", "query"}:
         # URL parts that are always hard blocked (if blocked)
         hard_block = True
@@ -1536,8 +1547,8 @@ async def test_url_with_unsupported_parts(
             await driver.close()
 
 
-def _make_driver(uri: str) -> AsyncDriver:
+def _make_driver(uri: str, **kwargs) -> AsyncDriver:
     if uri.startswith(("http://", "https://")):
         with pytest.warns(PreviewWarning, match="Query API/HTTP support"):
-            return AsyncGraphDatabase.driver(uri)
-    return AsyncGraphDatabase.driver(uri)
+            return AsyncGraphDatabase.driver(uri, **kwargs)
+    return AsyncGraphDatabase.driver(uri, **kwargs)

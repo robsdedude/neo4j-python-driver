@@ -153,12 +153,12 @@ def test_set_write_timeout(mocker, none_auth):
     socket_mock = mocker.MagicMock(spec=BoltSocket)
 
     socket_cls_mock = mocker.patch(
-        "neo4j._sync.io._bolt.BoltSocket", autospec=True
+        "neo4j._sync.io._bolt._base.BoltSocket", autospec=True
     )
     socket_cls_mock.connect.return_value = (socket_mock, (6, 0))
     socket_mock.getpeername.return_value = address
     bolt_cls_mock = mocker.patch(
-        "neo4j._sync.io._bolt6.Bolt6x0", autospec=True
+        "neo4j._sync.io._bolt._bolt6.Bolt6x0", autospec=True
     )
     bolt_mock = bolt_cls_mock.return_value
     bolt_mock.socket = socket_mock
@@ -169,7 +169,11 @@ def test_set_write_timeout(mocker, none_auth):
     )
 
     _ = Bolt.open(
-        address, auth_manager=none_auth, pool_config=pool_config
+        neo4j.Address(address),
+        auth_manager=none_auth,
+        deadline=Deadline(None),
+        routing_context=None,
+        pool_config=pool_config,
     )
 
     socket_mock.set_write_timeout.assert_called_once_with(write_timeout_value)

@@ -18,10 +18,11 @@ from __future__ import annotations
 
 from contextlib import suppress
 
-import mock
 import pytest
 
 from ...._optional_deps import (
+    HAS_NP,
+    HAS_PD,
     np,
     pa,
     pd,
@@ -53,12 +54,25 @@ def np_float_overflow_as_error(request):
         np.uint32,
         np.uint64,
         np.ulonglong,
-    )
+    ),
+    ids=(
+        "int",
+        "np.int8",
+        "np.int16",
+        "np.int32",
+        "np.int64",
+        "np.longlong",
+        "np.uint8",
+        "np.uint16",
+        "np.uint32",
+        "np.uint64",
+        "np.ulonglong",
+    ),
 )
 def int_type(request):
     skip_if_mocked_dependency(request.param)
 
-    if not isinstance(np, mock.Mock) and issubclass(request.param, np.number):
+    if HAS_NP and issubclass(request.param, np.number):
 
         def _int_type(value):
             # this avoids deprecation warning from NEP50 and forces
@@ -71,26 +85,30 @@ def int_type(request):
 
 
 @pytest.fixture(
-    params=(float, np.float16, np.float32, np.float64, np.longdouble)
+    params=(float, np.float16, np.float32, np.float64, np.longdouble),
+    ids=("float", "np.float16", "np.float32", "np.float64", "np.longdouble"),
 )
 def float_type(request, np_float_overflow_as_error):
     skip_if_mocked_dependency(request.param)
     return request.param
 
 
-@pytest.fixture(params=(bool, np.bool_))
+@pytest.fixture(params=(bool, np.bool_), ids=("bool", "np.bool_"))
 def bool_type(request):
     skip_if_mocked_dependency(request.param)
     return request.param
 
 
-@pytest.fixture(params=(bytes, bytearray, np.bytes_))
+@pytest.fixture(
+    params=(bytes, bytearray, np.bytes_),
+    ids=("bytes", "bytearray", "np.bytes_"),
+)
 def bytes_type(request):
     skip_if_mocked_dependency(request.param)
     return request.param
 
 
-@pytest.fixture(params=(str, np.str_))
+@pytest.fixture(params=(str, np.str_), ids=("str", "np.str_"))
 def str_type(request):
     skip_if_mocked_dependency(request.param)
     return request.param
@@ -121,26 +139,17 @@ def str_type(request):
 def sequence_type(request):
     skip_if_mocked_dependency(request.param)
 
-    if not isinstance(pd, mock.Mock) and request.param is pd.Series:
+    if HAS_PD and request.param is pd.Series:
+        constructor = _pd_series
+    elif HAS_PD and request.param is pd.array:
+        constructor = _pd_array
+    elif HAS_PD and request.param is pd.arrays.NumpyExtensionArray:
 
         def constructor(value):
-            if not value:
-                return pd.Series(dtype=object)
-            return pd.Series(value)
+            array = _np_array(value)
+            return pd.arrays.NumpyExtensionArray(array)
 
-    elif request.param is pd.array and pd.__version__ >= "3":
-
-        def constructor(value):
-            with suppress(ValueError):
-                return pd.array(value)
-            return pd.array(value, dtype=object)
-
-    elif request.param is pd.arrays.NumpyExtensionArray:
-
-        def constructor(value):
-            return pd.arrays.NumpyExtensionArray(np.array(value))
-
-    elif request.param is pd.arrays.ArrowExtensionArray:
+    elif HAS_PD and request.param is pd.arrays.ArrowExtensionArray:
 
         def constructor(value):
             def _map_value(v):
@@ -150,10 +159,38 @@ def sequence_type(request):
                     v = v.to_pylist()
                 return v
 
-            value = map(_map_value, value)
-            return pd.arrays.ArrowExtensionArray(pa.array(value))
+            value = tuple(map(_map_value, value))
+            array = _pa_array(value)
+            return pd.arrays.ArrowExtensionArray(array)
 
+    elif HAS_NP and request.param is np.array:
+        constructor = _np_array
     else:
         constructor = request.param
 
     return constructor
+
+
+def _np_array(value):
+    with suppress(ValueError):
+        return np.array(value)
+    return np.array(value, dtype=object)
+
+
+def _pd_series(value):
+    if not value:
+        return pd.Series(dtype=object)
+    return pd.Series(value)
+
+
+def _pd_array(value):
+    with suppress(ValueError):
+        return pd.array(value)
+    return pd.array(value, dtype=object)
+
+
+def _pa_array(value):
+    try:
+        return pa.array(value)
+    except (pa.ArrowInvalid, ValueError) as exc:
+        pytest.skip(f"Value not supported by pyarrow: {exc}")

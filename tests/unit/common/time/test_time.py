@@ -236,6 +236,7 @@ class TestTime:
         (
             "12:34:56.123456789Z",
             "12:34:56.123456789+00:00",
+            "12:34:56.123456789-00:00",
         ),
     )
     def test_from_iso_format_with_zulu_tz(self, iso: str) -> None:

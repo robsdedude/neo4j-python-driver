@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
+
 import mock
 import pytest
 
@@ -26,6 +28,23 @@ from neo4j._optional_deps import (
     pa_compute,
     pd,
 )
+
+
+if t.TYPE_CHECKING:
+    import aiohttp
+    import urllib3
+else:
+    aiohttp: t.Any = None
+    with suppress(ImportError):
+        import aiohttp  # type: ignore[no-redef]
+    urllib3: t.Any = None
+    with suppress(ImportError):
+        import urllib3  # type: ignore[no-redef]
+
+    if (aiohttp is None) ^ (urllib3 is None):
+        raise ImportError(
+            "aiohttp and urllib3 must both be installed or both be missing"
+        )
 
 
 if t.TYPE_CHECKING:
@@ -50,6 +69,8 @@ class _OptionalDepsMock(mock.MagicMock):
 HAS_NP = np is not None
 HAS_PD = pd is not None
 HAS_PA = pa is not None
+HAS_HTTP = aiohttp is not None
+
 
 if np is None:
     np = _OptionalDepsMock(name="numpy")
@@ -70,7 +91,9 @@ __all__ = [
     "pa",
     "pa_compute",
     "pd",
+    "skip_if_http_dependencies_missing",
     "skip_if_mocked_dependency",
+    "skip_if_unsupported_uri",
 ]
 
 _DEP_NAME = {
@@ -111,3 +134,13 @@ def skip_if_mocked_dependency(dep: t.Any) -> None:
         name_any = getattr(dep, "_OptionalDepsMock__optional_dep_name", None)
         name = name_any if isinstance(name_any, str) else "optional dependency"
         pytest.skip(f"{name} not installed")
+
+
+def skip_if_http_dependencies_missing() -> None:
+    if not HAS_HTTP:
+        pytest.skip("aiohttp and urllib3 are not installed")
+
+
+def skip_if_unsupported_uri(uri: str) -> None:
+    if uri.startswith(("http://", "https://")):
+        skip_if_http_dependencies_missing()

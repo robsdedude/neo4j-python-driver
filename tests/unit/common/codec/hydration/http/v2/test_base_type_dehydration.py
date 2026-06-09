@@ -63,6 +63,8 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
 
     @pytest.mark.parametrize("value", (None, pd.NA))
     def test_null(self, value: t.Any, transformer: T_Transformer) -> None:
+        skip_if_mocked_dependency(value)
+
         encoded = transformer(value)
         assert isinstance(encoded, dict)
         assert len(encoded) == 2
@@ -307,6 +309,9 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
             "Hello, World!",
             "こんにちは、世界！",  # noqa: RUF001
             "👋🌍",
+            "'",
+            '"',
+            "{}",
             pytest.param("A" * 100_000, id="AAA...AAA"),
         ),
     )
@@ -355,9 +360,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
             assert encoded["_value"] == value_base64
 
     @mark_skip_without_optional_dependency("pd")
-    def test_bytes_pandas_series(
-        self, bytes_type: t.Any, transformer: T_Transformer
-    ) -> None:
+    def test_bytes_pandas_series(self, transformer: T_Transformer) -> None:
         for value in (
             b"",
             b"\x00\x01\x02\x03\x04",
@@ -377,6 +380,89 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
                     }
                 ],
             }
+
+    @pytest.mark.parametrize("inner_as_list", (True, False))
+    def test_nested_lists(
+        self,
+        inner_as_list: bool,
+        sequence_type: t.Any,
+        transformer: T_Transformer,
+    ) -> None:
+        list_: list = [[[]]]
+        if inner_as_list:
+            l_typed = sequence_type(list_)
+        else:
+            l_typed = sequence_type([sequence_type([sequence_type([])])])
+        encoded = transformer(l_typed)
+
+        assert encoded == {
+            "$type": "List",
+            "_value": [
+                {
+                    "$type": "List",
+                    "_value": [
+                        {
+                            "$type": "List",
+                            "_value": [],
+                        }
+                    ],
+                }
+            ],
+        }
+
+    @pytest.mark.parametrize(
+        ("value", "encoded_value"),
+        (
+            (
+                [],
+                [],
+            ),
+            (
+                [1, 2, 3],
+                [
+                    {"$type": "Integer", "_value": "1"},
+                    {"$type": "Integer", "_value": "2"},
+                    {"$type": "Integer", "_value": "3"},
+                ],
+            ),
+            (
+                [[1.2, float("nan"), 0.0], [3.2, float("inf"), float("-inf")]],
+                [
+                    {
+                        "$type": "List",
+                        "_value": [
+                            {"$type": "Float", "_value": "1.2"},
+                            {"$type": "Float", "_value": "NaN"},
+                            {"$type": "Float", "_value": "0.0"},
+                        ],
+                    },
+                    {
+                        "$type": "List",
+                        "_value": [
+                            {"$type": "Float", "_value": "3.2"},
+                            {"$type": "Float", "_value": "Infinity"},
+                            {"$type": "Float", "_value": "-Infinity"},
+                        ],
+                    },
+                ],
+            ),
+        ),
+    )
+    @pytest.mark.parametrize("sequence_type", (list, tuple))
+    def test_matrix_like_list(
+        self,
+        value: list,
+        encoded_value: list,
+        sequence_type: t.Any,
+        transformer: T_Transformer,
+    ) -> None:
+        value = sequence_type(value)
+        encoded = transformer(value)
+        assert isinstance(encoded, dict)
+        assert len(encoded) == 2
+        assert encoded["$type"] == "List"
+        assert isinstance(encoded["_value"], list)
+        assert encoded["_value"] == encoded_value
 
     @pytest.mark.parametrize(
         ("value", "encoded_value"),
@@ -413,7 +499,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
             ),
         ),
     )
-    def test_list(
+    def test_mixed_list(
         self,
         value: list,
         encoded_value: list,
