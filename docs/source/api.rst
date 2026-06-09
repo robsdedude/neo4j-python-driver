@@ -117,7 +117,7 @@ Each supported scheme maps to a particular :class:`neo4j.Driver` subclass that i
 
 
 
-.. versionchanged:: 6.2.0
+.. versionchanged:: 6.2
     Added support for ``http`` and ``https`` schemes.
 
 
@@ -493,7 +493,7 @@ The maximum amount of time in seconds to wait for TCP write operations to comple
 Specify whether to use an encrypted connection between the driver and server.
 
 .. note::
-    This setting is only available for URI schemes ``bolt://`` and ``neo4j://`` (:ref:`uri-ref`).
+    This setting is only available for URI schemes ``bolt://``, ``neo4j://``, ``http://`` (:ref:`uri-ref`).
 
 .. note::
     This setting does not have any effect if a custom ``ssl_context`` is configured.
@@ -637,7 +637,7 @@ Specify a custom SSL context to use for wrapping connections.
 The driver offers other, easier APIs for common encryption configurations (see :ref:`encryption-config-note-ref`).
 It's likely that your use-case doesn't actually require this options.
 
-This setting is only available for URI schemes ``bolt://`` and ``neo4j://`` (:ref:`uri-ref`).
+This setting is only available for URI schemes ``bolt://``, ``neo4j://``, and ``http://`` (:ref:`uri-ref`).
 
 If given, ``encrypted``, ``trusted_certificates``, and ``client_certificate`` have no effect.
 
@@ -658,7 +658,7 @@ If given, ``encrypted``, ``trusted_certificates``, and ``client_certificate`` ha
 ------------------------
 Specify how to determine the authenticity of encryption certificates provided by the Neo4j instance on connection.
 
-This setting is only available for URI schemes ``bolt://`` and ``neo4j://`` (:ref:`uri-ref`).
+This setting is only available for URI schemes ``bolt://``, ``neo4j://``, and ``http://`` (:ref:`uri-ref`).
 
 This setting does not have any effect if ``encrypted`` is set to ``False`` or a
 custom ``ssl_context`` is configured.
@@ -682,7 +682,7 @@ custom ``ssl_context`` is configured.
 Specify a client certificate or certificate provider for mutual TLS (mTLS) authentication.
 
 This setting does not have any effect if ``encrypted`` is set to ``False``
-(and the URI scheme is ``bolt://`` or ``neo4j://``) or a custom ``ssl_context`` is configured.
+(and the URI scheme is ``bolt://``, ``neo4j://``, or ``http://``) or a custom ``ssl_context`` is configured.
 
 :Type: :class:`.ClientCertificate`, :class:`.ClientCertificateProvider` or :data:`None`.
 :Default: :data:`None`
@@ -882,9 +882,9 @@ Note on Encryption Configuration
 --------------------------------
 There are different *mutually exclusive* ways of configuring TLS/SSL encryption behavior of the driver:
 
-* Use a URI scheme ending in ``+s``. This auto-configures the driver to use TLS and only trust system CAs.
+* Use a URI scheme ending in ``+s`` or ``https://``. This auto-configures the driver to use TLS and only trust system CAs.
 * Use a URI scheme ending in ``+ssc``. This auto-configures the driver to use TLS and trust any certificate.
-* Use a URI scheme without suffix (i.e. ``neo4j://`` or ``bolt://``) and one of the following mutually exclusive options:
+* Use a URI scheme without suffix (i.e. ``neo4j://``, ``bolt://``, or ``http://``) and one of the following mutually exclusive options:
 
   * set :ref:`encrypted-ref` to ``True`` and optionally configure :ref:`trusted-certificates-ref` and/or
     :ref:`client-certificate-ref` to enable TLS with custom security settings.
