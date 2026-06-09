@@ -34,6 +34,7 @@ from ...._async_compat.network import (
 )
 from ...._async_compat.util import AsyncUtil
 from ...._auth_management import to_auth_dict
+from ...._codec.hydration import BrokenHydrationObject
 from ...._codec.hydration.http import (
     LiteralJson,
     LiteralJsonRecursive,
@@ -1207,6 +1208,8 @@ class AsyncHttpV2(AsyncHttpConnection):
             transformer = hydration_hooks.get(type(res.body), None)
             if transformer is not None:
                 res.body = transformer(res.body)
+                if isinstance(res.body, BrokenHydrationObject):
+                    res.body = res.body.raw_data
 
         return res
 
