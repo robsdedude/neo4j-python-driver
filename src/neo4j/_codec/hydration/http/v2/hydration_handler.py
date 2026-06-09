@@ -324,7 +324,7 @@ class HydrationHandler(HydrationHandlerHttpBase):
         if pd is not None:
             self.dehydration_hooks.update(
                 exact_types={
-                    pd.Timestamp: temporal.dehydrate_pandas_datetime,
+                    pd.Timestamp: temporal.dehydrate_datetime,
                     pd.Timedelta: temporal.dehydrate_pandas_timedelta,
                     type(pd.NaT): lambda _: make_value_dict("Null", None),
                 }

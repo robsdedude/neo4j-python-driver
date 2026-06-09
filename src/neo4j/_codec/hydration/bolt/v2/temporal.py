@@ -140,17 +140,3 @@ if pd is not None:
                 )
             offset_seconds = offset.days * 86400 + offset.seconds
             return Structure(b"I", seconds, nanoseconds, offset_seconds)
-
-        # simpler but slower alternative
-        # return dehydrate_datetime(
-        #     DateTime(
-        #         value.year,
-        #         value.month,
-        #         value.day,
-        #         value.hour,
-        #         value.minute,
-        #         value.second,
-        #         value.microsecond * 1000 + value.nanosecond,
-        #         value.tzinfo,
-        #         )
-        # )

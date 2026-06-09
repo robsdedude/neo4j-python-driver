@@ -264,7 +264,9 @@ def hydrate_local_datetime(value: object) -> DateTime:
     return DateTime.combine(date, time_)
 
 
-def dehydrate_datetime(value: DateTime | datetime.datetime) -> ValueDict[str]:
+def dehydrate_datetime(
+    value: DateTime | datetime.datetime | pd.Timestamp,
+) -> ValueDict[str]:
     tz = value.tzinfo
     if tz is None:
         return make_value_dict("LocalDateTime", value.isoformat())
@@ -280,14 +282,14 @@ def dehydrate_datetime(value: DateTime | datetime.datetime) -> ValueDict[str]:
 
 
 def _dehydrate_local_datetime(
-    value: DateTime | datetime.datetime,
+    value: DateTime | datetime.datetime | pd.Timestamp,
 ) -> ValueDict[str]:
     assert value.tzinfo is None
     return make_value_dict("LocalDateTime", value.isoformat())
 
 
 def _dehydrate_zoned_datetime(
-    value: DateTime | datetime.datetime,
+    value: DateTime | datetime.datetime | pd.Timestamp,
     zone_name: str | None = None,
 ) -> ValueDict[str]:
     tz = value.tzinfo
@@ -373,23 +375,6 @@ if np is not None:
             value_str += f".{nanoseconds:09d}".rstrip("0")
 
         return make_value_dict("LocalDateTime", value_str)
-
-
-if pd is not None:
-
-    def dehydrate_pandas_datetime(value):
-        return dehydrate_datetime(
-            DateTime(
-                value.year,
-                value.month,
-                value.day,
-                value.hour,
-                value.minute,
-                value.second,
-                value.microsecond * 1000 + value.nanosecond,
-                value.tzinfo,
-            )
-        )
 
 
 def hydrate_duration(value: object) -> Duration:
