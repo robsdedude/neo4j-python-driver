@@ -1089,7 +1089,7 @@ class HttpV2(HttpConnection):
         if not isinstance(res.body, dict):
             raise generic_http_error(res)
         errors = res.body.get("errors")
-        if res.status < 400 and not errors:
+        if res.status < 300 and not errors:
             return None
         if not isinstance(errors, list) or not errors:
             raise generic_http_error(res)
