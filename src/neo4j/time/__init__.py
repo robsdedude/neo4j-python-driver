@@ -1701,7 +1701,10 @@ class Time(_time_base_class, metaclass=_TimeType):
 
         :raises ValueError: if the string does not match the required format.
         """
-        from pytz import FixedOffset
+        from pytz import (
+            FixedOffset,
+            UTC,
+        )
 
         m = _TIME_ISO_PATTERN.match(s)
         if m:
@@ -1713,8 +1716,11 @@ class Time(_time_base_class, metaclass=_TimeType):
                 nanosecond = int(nanosecond[1:10].ljust(9, "0"))
             else:
                 nanosecond = 0
+            tzinfo: _tzinfo | None
             if m.group(8) is None:
-                return cls(hour, minute, second, nanosecond)
+                tzinfo = None
+            elif m.group(8) == "Z":
+                tzinfo = UTC
             else:
                 offset_multiplier = 1 if m.group(9) == "+" else -1
                 offset_hour = int(m.group(10))
@@ -1723,8 +1729,8 @@ class Time(_time_base_class, metaclass=_TimeType):
                 # so we can ignore this part
                 # offset_second = float(m.group(13) or 0.0)
                 offset = 60 * offset_hour + offset_minute
-                tz = FixedOffset(offset_multiplier * offset)
-                return cls(hour, minute, second, nanosecond, tzinfo=tz)
+                tzinfo = FixedOffset(offset_multiplier * offset)
+            return cls(hour, minute, second, nanosecond, tzinfo=tzinfo)
         raise ValueError("Time string is not in ISO format")
 
     @classmethod
