@@ -329,10 +329,10 @@ class HTTPQueryAPIFactory:
                     "Driver must not support dynamic pool configuration "
                     "changes"
                 )
-                assert self._config_cache.address is address, (
+                assert self._config_cache.address == address, (
                     "Query API/HTTP pool must always point to the same address"
                 )
-                assert self._config_cache.path is path, (
+                assert self._config_cache.path == path, (
                     "Query API/HTTP pool must always point to the same path"
                 )
             return self._config_cache
