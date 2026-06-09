@@ -377,14 +377,43 @@ if np is not None:
         return make_value_dict("LocalDateTime", value_str)
 
 
+_DURATION_RE: t.Final[re.Pattern] = re.compile(
+    r"^P(?!$)"
+    r"(?:(?P<years>[+-]?\d+)Y)?"
+    r"(?:(?P<months>[+-]?\d+)M)?"
+    r"(?:(?P<weeks>[+-]?\d+)W)?"
+    r"(?:(?P<days>[+-]?\d+)D)?"
+    r"(T(?!$)"
+    r"(?:(?P<hours>[+-]?\d+)H)?"
+    r"(?:(?P<minutes>[+-]?\d+)M)?"
+    r"(?:(?P<seconds>[+-]?\d+)(?P<sub_seconds>[.,]\d+)?S)?"
+    r")?$"
+)
+
+
 def hydrate_duration(value: object) -> Duration:
     value = value_as_str(value)
-    try:
-        return Duration.from_iso_format(value)
-    except Exception as e:
-        raise QueryApiHttpError(
-            f"expected duration string, got: {value!r}"
-        ) from e
+    match = _DURATION_RE.match(value)
+    if not match:
+        raise QueryApiHttpError(f"expected duration string, got: {value!r}")
+
+    ns = 0
+    if match.group("sub_seconds"):
+        ns = int(match.group("sub_seconds")[1:10].ljust(9, "0"))
+    seconds_group = match.group("seconds")
+    seconds = int(seconds_group or 0)
+    if seconds_group and seconds_group.startswith("-"):
+        ns *= -1
+    return Duration(
+        years=int(match.group("years") or 0),
+        months=int(match.group("months") or 0),
+        weeks=int(match.group("weeks") or 0),
+        days=int(match.group("days") or 0),
+        hours=int(match.group("hours") or 0),
+        minutes=int(match.group("minutes") or 0),
+        seconds=seconds,
+        nanoseconds=ns,
+    )
 
 
 def dehydrate_duration(value: Duration) -> ValueDict[str]:
