@@ -1373,8 +1373,8 @@ class RoutedBoltPool(BoltPool):
 
 
 class HttpV2Pool(IOPool["HttpConnection"]):
-    _async_http_query_api_factory: HTTPQueryAPIFactory
-    _async_http_connection_factory: HttpConnectionFactory
+    _http_query_api_factory: HTTPQueryAPIFactory
+    _http_connection_factory: HttpConnectionFactory
     _semaphore: BoundedSemaphore
 
     def __init__(
@@ -1387,8 +1387,8 @@ class HttpV2Pool(IOPool["HttpConnection"]):
         http_connection_factory: HttpConnectionFactory,
     ) -> None:
         super().__init__(opener, pool_config, workspace_config, address)
-        self._async_http_query_api_factory = http_query_api_factory
-        self._async_http_connection_factory = http_connection_factory
+        self._http_query_api_factory = http_query_api_factory
+        self._http_connection_factory = http_connection_factory
         self._semaphore = BoundedSemaphore(
             pool_config.max_connection_pool_size
         )
@@ -1415,8 +1415,8 @@ class HttpV2Pool(IOPool["HttpConnection"]):
             deadline_,
         ) -> HttpConnection:
             assert addr == address
-            return pool._async_http_connection_factory.open(
-                pool._async_http_query_api_factory,
+            return pool._http_connection_factory.open(
+                pool._http_query_api_factory,
                 auth_manager=auth_manager,
                 routing_context=None,
                 pool_config=pool_config,
@@ -1514,7 +1514,7 @@ class HttpV2Pool(IOPool["HttpConnection"]):
         self._semaphore.release()
 
     def close(self) -> None:
-        self._async_http_query_api_factory.shutdown()
+        self._http_query_api_factory.shutdown()
 
 
 def acquisition_timeout_to_deadline(timeout: object) -> Deadline:

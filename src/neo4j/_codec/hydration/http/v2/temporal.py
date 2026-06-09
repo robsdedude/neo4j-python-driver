@@ -48,7 +48,7 @@ if t.TYPE_CHECKING:
     from .._common import ValueDict
 
 
-ANY_BUILTIN_DATETIME = datetime.datetime(1970, 1, 1)
+_ANY_BUILTIN_DATETIME = datetime.datetime(1970, 1, 1)
 
 
 def hydrate_date(value: object) -> Date:
@@ -63,7 +63,7 @@ def dehydrate_date(value: Date | datetime.date) -> ValueDict[str]:
     return make_value_dict("Date", value.isoformat())
 
 
-ZONED_TIME_RE = re.compile(
+_ZONED_TIME_RE = re.compile(
     r"^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?"
     r"(?:(Z)|([+-])(\d{2})(?::?(\d{2}))?(?::?(\d{2}))?)$"
 )
@@ -73,7 +73,7 @@ def hydrate_zoned_time(value: object) -> Time:
     from pytz import FixedOffset
 
     value = value_as_str(value)
-    match = ZONED_TIME_RE.match(value)
+    match = _ZONED_TIME_RE.match(value)
     if not match:
         raise QueryApiHttpError(
             f"expected zoned datetime string, got: {value!r}"
@@ -102,12 +102,12 @@ def hydrate_zoned_time(value: object) -> Time:
     return Time(hour, minute, second, nanosecond, tzinfo)
 
 
-LOCAL_TIME_RE = re.compile(r"^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$")
+_LOCAL_TIME_RE = re.compile(r"^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$")
 
 
 def hydrate_local_time(value: object) -> Time:
     value = value_as_str(value)
-    match = LOCAL_TIME_RE.match(value)
+    match = _LOCAL_TIME_RE.match(value)
     if not match:
         raise QueryApiHttpError(
             f"expected local datetime string, got: {value!r}"
@@ -127,7 +127,7 @@ def dehydrate_time(value: Time | datetime.time) -> ValueDict[str]:
     return make_value_dict(tag, value.isoformat())
 
 
-OFFSET_DATETIME_RE = re.compile(
+_OFFSET_DATETIME_RE = re.compile(
     r"^(\d{4}|[+-]\d+)-(\d{2})-(\d{2})T"
     r"(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?"
     r"(?:(Z)|([+-])(\d{2})(?::?(\d{2}))?(?::?(\d{2}))?)$"
@@ -141,7 +141,7 @@ def hydrate_offset_datetime(value: object) -> DateTime:
     )
 
     value = value_as_str(value)
-    match = OFFSET_DATETIME_RE.match(value)
+    match = _OFFSET_DATETIME_RE.match(value)
     if not match:
         raise QueryApiHttpError(
             f"expected offset datetime string, got: {value!r}"
@@ -179,7 +179,7 @@ def hydrate_offset_datetime(value: object) -> DateTime:
     return zoned_dt
 
 
-ZONED_DATETIME_RE = re.compile(
+_ZONED_DATETIME_RE = re.compile(
     r"^(\d{4}|[+-]\d+)-(\d{2})-(\d{2})T"
     r"(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?"
     r"(?:(Z)|([+-])(\d{2})(?::?(\d{2}))?(?::?(\d{2}))?)"
@@ -195,7 +195,7 @@ def hydrate_zoned_datetime(value: object) -> DateTime:
     )
 
     value = value_as_str(value)
-    match = ZONED_DATETIME_RE.match(value)
+    match = _ZONED_DATETIME_RE.match(value)
     if not match:
         raise QueryApiHttpError(
             f"expected zoned datetime string, got: {value!r}"
@@ -236,7 +236,7 @@ def hydrate_zoned_datetime(value: object) -> DateTime:
     return zoned_dt
 
 
-LOCAL_DATETIME_RE = re.compile(
+_LOCAL_DATETIME_RE = re.compile(
     r"^(\d{4}|[+-]\d+)-(\d{2})-(\d{2})T"
     r"(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+)?)?)?$"
 )
@@ -244,7 +244,7 @@ LOCAL_DATETIME_RE = re.compile(
 
 def hydrate_local_datetime(value: object) -> DateTime:
     value = value_as_str(value)
-    match = LOCAL_DATETIME_RE.match(value)
+    match = _LOCAL_DATETIME_RE.match(value)
     if not match:
         raise QueryApiHttpError(
             f"expected local datetime string, got: {value!r}"
@@ -298,7 +298,7 @@ def _dehydrate_zoned_datetime(
     offset: datetime.timedelta | None
     if isinstance(tz, datetime.timezone):
         # offset of the timezone is constant, so any date will do
-        offset = tz.utcoffset(ANY_BUILTIN_DATETIME)
+        offset = tz.utcoffset(_ANY_BUILTIN_DATETIME)
     else:
         offset = tz.utcoffset(value)
     if not isinstance(offset, datetime.timedelta):
