@@ -173,7 +173,7 @@ class AsyncHttpConnectionFactory:
                     headers={"Accept": "application/json"},
                     log_id=self._log_id,
                 )
-                if res.status >= 400:
+                if res.status >= 300:
                     raise generic_http_error(res)
                 version = res.body["neo4j_version"]
                 if not isinstance(version, str):
