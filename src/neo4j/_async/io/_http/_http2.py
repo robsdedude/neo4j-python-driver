@@ -78,6 +78,7 @@ if t.TYPE_CHECKING:
         HydrationScope,
         T_TYPE_MAP_DICT,
     )
+    from ...._io import HTTPServerInfo
     from ....api import _TAuth
 
     _TAsyncFn = t.Callable[[], t.Awaitable[None]]
@@ -247,9 +248,12 @@ class AsyncHttpV2(AsyncHttpConnection):
         auth: _TAuth,
         auth_manager: AsyncAuthManager | AuthManager | None,
         id_: int,
+        http_server_info: HTTPServerInfo,
     ) -> None:
         self.unresolved_address = unresolved_address
-        self.server_info = ServerInfo(unresolved_address, (0, 0))
+        self.server_info = http_server_info.as_server_info(
+            unresolved_address, str(id_)
+        )
         self._state = _InitState()
         self._query_api = query_api
         self._auth_header = _auth_dict_to_header(to_auth_dict(auth))

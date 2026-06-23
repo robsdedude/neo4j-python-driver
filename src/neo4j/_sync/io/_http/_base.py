@@ -28,6 +28,9 @@ from ...._async_compat.concurrency import (
 )
 from ...._async_compat.network import HTTPVerb
 from ...._async_compat.util import Util
+from ...._io import HTTPServerInfo
+from ...._logging import LazyStr
+from ....exceptions import ServiceUnavailable
 from ...config import PoolConfig
 from .._connection import Connection
 from ._common import generic_http_error
@@ -38,6 +41,7 @@ if t.TYPE_CHECKING:
     from ...._async_compat.network import HTTPQueryAPIFactory
     from ...._auth_management import AuthManager
     from .._pool import HttpV2Pool
+    from . import HTTPQueryAPI
 
 log = getLogger("neo4j.io")
 
@@ -60,7 +64,7 @@ class IdGenerator:
 
 
 class HttpConnectionFactory:
-    _server_agent_cache: _ServerAgentCache
+    _server_agent_cache: _ServerInfoCache
     _id_generator: t.ClassVar[IdGenerator] = IdGenerator()
     _address: Address
     _path: str
@@ -70,10 +74,8 @@ class HttpConnectionFactory:
         self._path = path
         if not self._path.startswith("/"):
             self._path = f"/{self._path}"
-        self._server_agent_cache = (
-            HttpConnectionFactory._ServerAgentCache(
-                address=address, path=self._path, log_id=0
-            )
+        self._server_agent_cache = HttpConnectionFactory._ServerInfoCache(
+            address=address, path=self._path, log_id=0
         )
 
     def open(
@@ -99,28 +101,21 @@ class HttpConnectionFactory:
 
         http_cls = HttpV2
 
-        connection = http_cls(
+        server_info = self._server_agent_cache.get(factory, pool_config)
+
+        return http_cls(
             self._address,
             query_api=query_api,
             auth=auth,
             auth_manager=auth_manager,
             id_=id_,
+            http_server_info=server_info,
         )
 
-        connection.server_info.update(
-            {
-                "protocol_version": "0.0",
-                "connection_id": str(id_),
-                "server": self._server_agent_cache.get(
-                    factory, pool_config
-                ),
-            }
-        )
+    class _ServerInfoCache:
+        _MAX_AGE: t.Final[float] = 60.0
 
-        return connection
-
-    class _ServerAgentCache:
-        _value: str | None
+        _value: HTTPServerInfo | None
         _last_fetch: float
         _lock: Lock
         _log_id: int
@@ -141,58 +136,72 @@ class HttpConnectionFactory:
             self,
             factory: HTTPQueryAPIFactory,
             pool_config: PoolConfig,
-        ) -> str | None:
+        ) -> HTTPServerInfo:
             age = time.monotonic() - self._last_fetch
-            if self._value is not None and age <= 60:
+            if self._value is not None and age <= self._MAX_AGE:
                 return self._value
             with self._lock:
                 # check if value has been update while waiting for the lock
                 age = time.monotonic() - self._last_fetch
-                if self._value is not None and age <= 60:
+                if self._value is not None and age <= self._MAX_AGE:
                     return self._value
-                self._update(factory, pool_config)
+                self._value = self._fetch(factory, pool_config)
                 return self._value
 
-        def _update(
+        def _fetch(
             self,
             factory: HTTPQueryAPIFactory,
             pool_config: PoolConfig,
-        ) -> None:
+        ) -> HTTPServerInfo:
             query_api = factory.new_http_query_api(
                 self._address,
                 self._path,
                 pool_config=pool_config,
             )
             try:
-                res = query_api.request(
-                    HTTPVerb.GET,
-                    "/",
-                    headers={"Accept": "application/json"},
-                    log_id=self._log_id,
-                )
-                if res.status >= 300:
-                    raise generic_http_error(res)
-                version = res.body["neo4j_version"]
-                if not isinstance(version, str):
-                    raise TypeError(
-                        "Expected 'neo4j_version' to be str, "
-                        f"got {type(version)}"
-                    )
-                self._value = f"Neo4j/{version}"
+                return self._fetch_unguarded(query_api)
             except Exception as e:
                 log.warning(
-                    "[#%04X]  _: Could not fetch server agent: %r",
+                    "[#%04X]  _: Failed to fetch  server info: %r",
                     self._log_id,
                     e,
                 )
                 log.debug(
                     "[#%04X]  _: %s",
                     self._log_id,
-                    traceback.format_exc(),
+                    LazyStr(
+                        lambda exc: "".join(traceback.format_exception(exc)), e
+                    ),
                 )
+                raise ServiceUnavailable(
+                    f"Failed to fetch discovery endpoint: {e}"
+                ) from e
             finally:
                 self._last_fetch = time.monotonic()
                 query_api.close()
+
+        def _fetch_unguarded(
+            self,
+            query_api: HTTPQueryAPI,
+        ) -> HTTPServerInfo:
+            res = query_api.request(
+                HTTPVerb.GET,
+                "/",
+                headers={"Accept": "application/json"},
+                log_id=self._log_id,
+            )
+            if res.status >= 300:
+                raise generic_http_error(res)
+            neo4j_version = res.body["neo4j_version"]
+            if not isinstance(neo4j_version, str):
+                raise TypeError(
+                    "Expected 'neo4j_version' to be str, "
+                    f"got {type(neo4j_version)}"
+                )
+            bolt_version = None  # not yet exposed by the server
+            return HTTPServerInfo(
+                neo4j_version=neo4j_version, bolt_version=bolt_version
+            )
 
 
 class HttpConnection(Connection, abc.ABC):
