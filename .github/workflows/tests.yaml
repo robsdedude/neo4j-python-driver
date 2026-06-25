@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - '6.x'
+      - 'tmp-win' # TODO: tmp
   pull_request:
     branches:
       - '6.x'
@@ -37,8 +38,12 @@ jobs:
 
       - name: Run install tox
         run: python -m pip install -U --group tox
+      - name: Port stats
+        run: netsh int ipv4 show dynamicport tcp
       - name: Run unit tests
+        # TODO: tmp: remove filters and capture config
         run: python -m tox -vv -f unit ${{ matrix.python-version.tox-factor }}
+        # -- --capture=tee-sys -k 'test_basic_manager_manual_expiry or test_driver_factory_with_notification_filters'
 
   gha-conclusion:
     name: gha-conclusion

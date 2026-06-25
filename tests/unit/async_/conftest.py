@@ -31,3 +31,33 @@ __all__ = [
     "async_scripted_connection",
     "async_scripted_connection_generator",
 ]
+
+TRUE_ENV_VALUES = {"1", "y", "yes", "true", "t", "on"}
+
+
+# TODO: explain
+def pytest_asyncio_loop_factories(config, item):
+    import asyncio
+    import os
+    import sys
+    import time
+
+    is_win = sys.platform in {"win32", "cygwin"}
+    is_gha = os.environ.get("GITHUB_ACTION", "").lower() in TRUE_ENV_VALUES
+
+    if is_win and is_gha:
+        last_call = time.monotonic()
+
+        def throttled_new_event_loop():
+            nonlocal last_call
+
+            now = time.monotonic()
+            since_last_call = now - last_call
+            last_call = now
+            if since_last_call < 0.001:
+                time.sleep(0.001 - since_last_call)
+            return asyncio.new_event_loop()
+
+        return {"throttled": throttled_new_event_loop}
+
+    return {"default": asyncio.new_event_loop}
