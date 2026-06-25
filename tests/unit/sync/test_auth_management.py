@@ -116,7 +116,7 @@ def test_static_manager(
 
 @mark_sync_test
 @pytest.mark.parametrize(
-    ("auth1", "auth2"), list(itertools.product(SAMPLE_AUTHS, repeat=2))
+    ("auth1", "auth2"), tuple(itertools.product(SAMPLE_AUTHS, repeat=2))
 )
 @pytest.mark.parametrize("error", SAMPLE_ERRORS)
 def test_basic_manager_manual_expiry(
