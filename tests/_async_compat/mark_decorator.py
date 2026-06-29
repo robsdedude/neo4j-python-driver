@@ -14,11 +14,23 @@
 # limitations under the License.
 
 
+import sys
+
 import pytest
 import pytest_asyncio
 
 
-mark_async_test = pytest.mark.asyncio
+# On Windows + Python 3.14 a per-test asyncio event loop exhausts the ephemeral
+# port range: the ProactorEventLoop self-pipe is emulated with a localhost TCP
+# socket.socketpair(), so heavily parametrized async tests churn thousands of
+# short-lived sockets into TIME_WAIT (OSError WinError 10055 / WSAENOBUFS),
+# which manifests as a hung or failing Windows CI job. Sharing one event loop
+# per module on that platform removes the churn; every other platform keeps the
+# default per-test loop.
+if sys.platform == "win32" and sys.version_info >= (3, 14):
+    mark_async_test = pytest.mark.asyncio(loop_scope="module")
+else:
+    mark_async_test = pytest.mark.asyncio
 
 async_fixture = pytest_asyncio.fixture
 
