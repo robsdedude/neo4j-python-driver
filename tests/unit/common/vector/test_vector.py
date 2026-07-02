@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import abc
+import contextlib
 import math
 import random
 import struct
@@ -36,6 +37,10 @@ from neo4j.vector import (
     VectorDType,
     VectorEndian,
 )
+
+
+with contextlib.suppress(ImportError):
+    import pyarrow.compute
 
 
 if t.TYPE_CHECKING:
