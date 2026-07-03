@@ -1347,10 +1347,7 @@ def _map_profile(profile: dict) -> None:
         profile["args"] = profile.pop("arguments")
     if "records" in profile:
         profile["rows"] = profile.pop("records")
-    if profile.pop("hasPageCacheStats", None) is False:
-        profile.pop("pageCacheHits", None)
-        profile.pop("pageCacheMisses", None)
-        profile.pop("pageCacheHitRatio", None)
+    profile.pop("hasPageCacheStats", None)
     children = profile.get("children")
     if isinstance(children, list):
         if children:
