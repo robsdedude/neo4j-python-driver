@@ -152,6 +152,7 @@ class _QueryResult:
     counters: dict
     available_after: int | None
     consumed_after: int | None
+    query_type: str | None
     notifications: list[dict] | None
     profile: dict | None
     plan: dict | None
@@ -178,6 +179,7 @@ class _QueryResult:
         consumed_after = optional_value(
             value_as_int, body.get("resultConsumedAfter")
         )
+        query_type = optional_value(value_as_str, body.get("queryType"))
         if profile is not None:
             _map_profile(profile)
         plan = body.get("queryPlan") or None
@@ -195,6 +197,7 @@ class _QueryResult:
             counters=counters,
             available_after=available_after,
             consumed_after=consumed_after,
+            query_type=query_type,
             notifications=notifications,
             profile=profile,
             plan=plan,
@@ -534,6 +537,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                     if result.profile is not None:
                         metadata["profile"] = result.profile
                     self._add_query_timers_to_success(metadata, result)
+                    self._add_query_type_to_success(metadata, result)
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
@@ -587,6 +591,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                     if result.profile is not None:
                         metadata["profile"] = result.profile
                     self._add_query_timers_to_success(metadata, result)
+                    self._add_query_type_to_success(metadata, result)
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
@@ -667,6 +672,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                     if result.profile is not None:
                         metadata["profile"] = result.profile
                     self._add_query_timers_to_success(metadata, result)
+                    self._add_query_type_to_success(metadata, result)
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
@@ -725,6 +731,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                     if result.profile is not None:
                         metadata["profile"] = result.profile
                     self._add_query_timers_to_success(metadata, result)
+                    self._add_query_type_to_success(metadata, result)
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
@@ -1242,6 +1249,15 @@ class AsyncHttpV2(AsyncHttpConnection):
             metadata["result_available_after"] = result.available_after
         if result.consumed_after is not None:
             metadata["result_consumed_after"] = result.consumed_after
+
+    @classmethod
+    def _add_query_type_to_success(
+        cls,
+        metadata: dict,
+        result: _QueryResult,
+    ) -> None:
+        if result.query_type is not None:
+            metadata["type"] = result.query_type
 
 
 def _auth_dict_to_header(
