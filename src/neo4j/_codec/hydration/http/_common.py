@@ -150,6 +150,15 @@ def value_as_dict(value: object) -> dict:
     raise protocol_error("dict", value)
 
 
+def optional_value(
+    converter: t.Callable[[object], T],
+    value: object,
+) -> T | None:
+    if value is None:
+        return None
+    return converter(value)
+
+
 def value_dict_key(value: dict, key: str) -> t.Any:
     try:
         return value[key]

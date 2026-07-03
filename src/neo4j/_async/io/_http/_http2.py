@@ -38,6 +38,7 @@ from ...._codec.hydration import BrokenHydrationObject
 from ...._codec.hydration.http import (
     LiteralJson,
     LiteralJsonRecursive,
+    optional_value,
     v2 as hydration_v2,
     value_as_bool,
     value_as_dict,
@@ -149,6 +150,8 @@ class _AutoCommitState(_ConnectionState):
 class _QueryResult:
     records_buffer: list[list]
     counters: dict
+    available_after: int | None
+    consumed_after: int | None
     notifications: list[dict] | None
     profile: dict | None
     plan: dict | None
@@ -169,6 +172,12 @@ class _QueryResult:
         counters = _map_counters(value_as_dict(body.get("counters", {})))
         notifications_raw = body.get("notifications")
         profile = body.get("profiledQueryPlan") or None
+        available_after = optional_value(
+            value_as_int, body.get("resultAvailableAfter")
+        )
+        consumed_after = optional_value(
+            value_as_int, body.get("resultConsumedAfter")
+        )
         if profile is not None:
             _map_profile(profile)
         plan = body.get("queryPlan") or None
@@ -184,6 +193,8 @@ class _QueryResult:
         return cls(
             records_buffer=records,
             counters=counters,
+            available_after=available_after,
+            consumed_after=consumed_after,
             notifications=notifications,
             profile=profile,
             plan=plan,
@@ -522,6 +533,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                         metadata["plan"] = result.plan
                     if result.profile is not None:
                         metadata["profile"] = result.profile
+                    self._add_query_timers_to_success(metadata, result)
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
@@ -574,6 +586,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                         metadata["plan"] = result.plan
                     if result.profile is not None:
                         metadata["profile"] = result.profile
+                    self._add_query_timers_to_success(metadata, result)
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
@@ -653,6 +666,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                         metadata["plan"] = result.plan
                     if result.profile is not None:
                         metadata["profile"] = result.profile
+                    self._add_query_timers_to_success(metadata, result)
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
@@ -710,6 +724,7 @@ class AsyncHttpV2(AsyncHttpConnection):
                         metadata["plan"] = result.plan
                     if result.profile is not None:
                         metadata["profile"] = result.profile
+                    self._add_query_timers_to_success(metadata, result)
                     await AsyncUtil.callback(handler.on_success, metadata)
 
                 self._responses.append(_Response(success_response, "SUCCESS"))
@@ -1216,6 +1231,17 @@ class AsyncHttpV2(AsyncHttpConnection):
                     res.body = res.body.raw_data
 
         return res
+
+    @classmethod
+    def _add_query_timers_to_success(
+        cls,
+        metadata: dict,
+        result: _QueryResult,
+    ) -> None:
+        if result.available_after is not None:
+            metadata["result_available_after"] = result.available_after
+        if result.consumed_after is not None:
+            metadata["result_consumed_after"] = result.consumed_after
 
 
 def _auth_dict_to_header(
