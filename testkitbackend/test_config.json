@@ -69,7 +69,7 @@
     "Feature:Bolt:6.0": true,
     "Feature:Bolt:HandshakeManifestV1": true,
     "Feature:Bolt:Patch:UTC": true,
-    "Feature:HTTP:QueryAPI:1.0": true,
+    "Feature:HTTP:QueryAPI:2.0": true,
     "Feature:IdempotentRetries": true,
     "Feature:Impersonation": true,
     "Feature:TLS:1.1": "Driver blocks TLS 1.1 for security reasons.",
