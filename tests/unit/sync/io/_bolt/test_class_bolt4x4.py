@@ -21,6 +21,10 @@ import pytest
 
 import neo4j
 from neo4j._api import TelemetryAPI
+from neo4j._codec.packstream.v1 import (
+    Packer as PackerV1,
+    Unpacker as UnpackerV1,
+)
 from neo4j._meta import USER_AGENT
 from neo4j._sync.config import PoolConfig
 from neo4j._sync.io._bolt._bolt4 import Bolt4x4
@@ -428,13 +432,15 @@ def test_re_auth_noop(auth, fake_socket, mocker):
 
 @pytest.mark.parametrize(
     ("auth1", "auth2"),
-    itertools.permutations(
-        (
-            None,
-            neo4j.Auth("scheme", "principal", "credentials", "realm"),
-            ("user", "password"),
-        ),
-        2,
+    tuple(
+        itertools.permutations(
+            (
+                None,
+                neo4j.Auth("scheme", "principal", "credentials", "realm"),
+                ("user", "password"),
+            ),
+            2,
+        )
     ),
 )
 @mark_sync_test
@@ -626,18 +632,24 @@ def test_tx_timeout(
 
 @pytest.mark.parametrize(
     "sent_diag_records",
-    powerset(
-        (
-            ...,
-            None,
-            {},
-            [],
-            "1",
-            1,
-            {"OPERATION_CODE": "0"},
-            {"OPERATION": "", "OPERATION_CODE": "0", "CURRENT_SCHEMA": "/"},
-        ),
-        upper_limit=3,
+    tuple(
+        powerset(
+            (
+                ...,
+                None,
+                {},
+                [],
+                "1",
+                1,
+                {"OPERATION_CODE": "0"},
+                {
+                    "OPERATION": "",
+                    "OPERATION_CODE": "0",
+                    "CURRENT_SCHEMA": "/",
+                },
+            ),
+            upper_limit=3,
+        )
     ),
 )
 @pytest.mark.parametrize("method", ("pull", "discard"))
@@ -696,3 +708,8 @@ def test_ssr_enabled(ssr_hint, fake_socket_pair):
     assert connection.ssr_enabled is False
     connection.hello()
     assert connection.ssr_enabled is False
+
+
+def test_uses_packstream_v1():
+    assert Bolt4x4.PACKER_CLS is PackerV1
+    assert Bolt4x4.UNPACKER_CLS is UnpackerV1

@@ -31,6 +31,8 @@ from neo4j._optional_deps import (
 
 
 if t.TYPE_CHECKING:
+    import types
+
     import aiohttp
     import urllib3
 else:
@@ -104,12 +106,12 @@ _DEP_NAME = {
 
 
 def mark_skip_with_optional_dependency(
-    symbol: str,
+    optional_dep: types.ModuleType | _OptionalDepsMock,
 ) -> t.Callable[[T_Callable], T_Callable]:
-    name = _DEP_NAME.get(symbol)
-    if name is None:
-        raise ValueError(f"Unknown optional dependency: {name!r}")
-    optional_dep = globals()[symbol]
+    if isinstance(optional_dep, _OptionalDepsMock):
+        name = optional_dep._OptionalDepsMock__optional_dep_name
+    else:
+        name = optional_dep.__name__
     return pytest.mark.skipif(
         not isinstance(optional_dep, mock.Mock),
         reason=f"{name} installed",
@@ -117,12 +119,12 @@ def mark_skip_with_optional_dependency(
 
 
 def mark_skip_without_optional_dependency(
-    symbol: str,
+    optional_dep: types.ModuleType | _OptionalDepsMock,
 ) -> t.Callable[[T_Callable], T_Callable]:
-    name = _DEP_NAME.get(symbol)
-    if name is None:
-        raise ValueError(f"Unknown optional dependency: {name!r}")
-    optional_dep = globals()[symbol]
+    if isinstance(optional_dep, _OptionalDepsMock):
+        name = optional_dep._OptionalDepsMock__optional_dep_name
+    else:
+        name = optional_dep.__name__
     return pytest.mark.skipif(
         isinstance(optional_dep, mock.Mock),
         reason=f"{name} not installed",

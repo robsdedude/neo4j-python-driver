@@ -51,7 +51,7 @@ def test_class_method_protocol_handlers():
         (3, 0),
         (4, 2), (4, 3), (4, 4),
         (5, 0), (5, 1), (5, 2), (5, 3), (5, 4), (5, 5), (5, 6), (5, 7), (5, 8),
-        (6, 0),
+        (6, 0), (6, 1),
     }
     # fmt: on
 
@@ -85,7 +85,8 @@ def test_class_method_protocol_handlers():
         ((5, 8), 1),
         ((5, 9), 0),
         ((6, 0), 1),
-        ((6, 1), 0),
+        ((6, 1), 1),
+        ((6, 2), 0),
     ],
 )
 def test_class_method_protocol_handlers_with_protocol_version(
@@ -199,6 +200,7 @@ async def test_set_write_timeout(mocker, none_auth):
         ((5, 7), "neo4j._async.io._bolt._bolt5.AsyncBolt5x7"),
         ((5, 8), "neo4j._async.io._bolt._bolt5.AsyncBolt5x8"),
         ((6, 0), "neo4j._async.io._bolt._bolt6.AsyncBolt6x0"),
+        ((6, 1), "neo4j._async.io._bolt._bolt6.AsyncBolt6x0"),
     ),
 )
 @mark_async_test
@@ -245,7 +247,7 @@ async def test_version_negotiation(
         (4, 0),
         (4, 1),
         (5, 9),
-        (6, 1),
+        (6, 2),
     ),
 )
 @mark_async_test
@@ -253,7 +255,7 @@ async def test_failing_version_negotiation(mocker, bolt_version, none_auth):
     supported_protocols = (
         "('3.0', '4.2', '4.3', '4.4', "
         "'5.0', '5.1', '5.2', '5.3', '5.4', '5.5', '5.6', '5.7', '5.8', "
-        "'6.0')"
+        "'6.0', '6.1')"
     )
 
     address = ("localhost", 7687)

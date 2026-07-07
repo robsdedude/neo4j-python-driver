@@ -82,7 +82,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
         assert encoded["_value"] is value
 
     @pytest.mark.parametrize("dtype", (bool, pd.BooleanDtype()))
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_bool_pandas_series(
         self, dtype, transformer: T_Transformer
     ) -> None:
@@ -126,7 +126,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
             np.longlong,
         ),
     )
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_int_pandas_series(
         self, dtype, transformer: T_Transformer
     ) -> None:
@@ -234,7 +234,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
             np.longdouble,
         ),
     )
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_float_pandas_series(
         self,
         dtype: t.Any,
@@ -324,7 +324,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
             pd.StringDtype("pyarrow"),
         ),
     )
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_str_pandas_series(
         self, dtype: t.Any, value: str, transformer: T_Transformer
     ) -> None:
@@ -359,7 +359,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
             assert isinstance(encoded["_value"], str)
             assert encoded["_value"] == value_base64
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_bytes_pandas_series(self, transformer: T_Transformer) -> None:
         for value in (
             b"",
@@ -515,7 +515,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
         assert encoded["_value"] == encoded_value
 
     @pytest.mark.parametrize("as_series", (True, False))
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_list_pandas_categorical(
         self, as_series: bool, transformer: T_Transformer
     ) -> None:
@@ -621,7 +621,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
             },
         }
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_map_pandas_dataframe(self, transformer: T_Transformer) -> None:
         data = {
             "a": [1, 2],

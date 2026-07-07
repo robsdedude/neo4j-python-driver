@@ -96,14 +96,14 @@ class TestTimeDehydration(HydrationHandlerTestBase):
         dt = datetime.datetime(2018, 10, 12, 11, 37, 41, 474716)
         assert_transforms(dt, Structure(b"d", 1539344261, 474716000))
 
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_local_date_time(self, assert_transforms):
         dt = np.datetime64("2018-10-12T11:37:41.474716862")
         assert_transforms(dt, Structure(b"d", 1539344261, 474716862))
 
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_nat_local_date_time(self, assert_transforms):
-        dt = np.datetime64("NaT")
+        dt = np.datetime64("NaT", "ns")
         assert_transforms(dt, None)
 
     @pytest.mark.parametrize(
@@ -115,17 +115,17 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             (np.datetime64("0000-12-31"), ValueError),
         ),
     )
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_invalid_local_date_time(self, value, error, transformer):
         with pytest.raises(error):
             transformer(value)
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_local_date_time(self, assert_transforms):
         dt = pd.Timestamp("2018-10-12T11:37:41.474716862")
         assert_transforms(dt, Structure(b"d", 1539344261, 474716862))
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_nat_local_date_time(self, assert_transforms):
         dt = pd.NaT
         assert_transforms(dt, None)
@@ -152,7 +152,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
         dt = datetime.datetime(2018, 10, 12, 11, 37, 41, 474716, tz)
         assert_transforms(dt, Structure(b"F", 1539344261, 474716000, 3600))
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_date_time_fixed_offset(self, assert_transforms):
         dt = pd.Timestamp("2018-10-12T11:37:41.474716862+0100")
         assert_transforms(dt, Structure(b"F", 1539344261, 474716862, 3600))
@@ -179,7 +179,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
         dt = datetime.datetime(2018, 10, 12, 11, 37, 41, 474716, tz)
         assert_transforms(dt, Structure(b"F", 1539344261, 474716000, -3600))
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_date_time_fixed_negative_offset(self, assert_transforms):
         dt = pd.Timestamp("2018-10-12T11:37:41.474716862-0100")
         assert_transforms(dt, Structure(b"F", 1539344261, 474716862, -3600))
@@ -232,7 +232,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             ),
         ),
     )
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_date_time_zone_id(self, dt, fields, assert_transforms):
         assert_transforms(dt, Structure(b"f", *fields))
 
@@ -315,13 +315,13 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             (np.timedelta64(-1, "as"), (0, 0, 0, -1)),
         ),
     )
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_duration(self, value, expected_fields, assert_transforms):
         assert_transforms(value, Structure(b"E", *expected_fields))
 
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_nat_duration(self, assert_transforms):
-        duration = np.timedelta64("NaT")
+        duration = np.timedelta64("NaT", "ns")
         assert_transforms(duration, None)
 
     @pytest.mark.parametrize(
@@ -331,7 +331,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             (np.timedelta64((MIN_INT64 // 60), "m"), ValueError),
         ),
     )
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_invalid_durations(self, value, error, transformer):
         with pytest.raises(error):
             transformer(value)
@@ -366,6 +366,6 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             ),
         ),
     )
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_duration(self, value, expected_fields, assert_transforms):
         assert_transforms(value, Structure(b"E", *expected_fields))

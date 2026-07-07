@@ -795,7 +795,7 @@ async def test_to_eager_result(records):
     assert eager_result.keys == list(records.fields)
 
 
-@mark_skip_with_optional_dependency("pd")
+@mark_skip_with_optional_dependency(pd)
 @mark_async_test
 async def test_to_df_requires_pandas():
     connection = AsyncConnectionStub(records=Records(["x"], [[1], [2]]))
@@ -804,7 +804,7 @@ async def test_to_df_requires_pandas():
         await result.to_df()
 
 
-@mark_skip_without_optional_dependency("pd")
+@mark_skip_without_optional_dependency(pd)
 @pytest.mark.parametrize(
     ("keys", "values", "types", "instances"),
     (
@@ -876,7 +876,7 @@ async def test_to_df_requires_pandas():
     ),
 )
 @pytest.mark.parametrize("test_default_expand", (True, False))
-@mark_skip_without_optional_dependency("pd")
+@mark_skip_without_optional_dependency(pd)
 @mark_async_test
 async def test_to_df(keys, values, types, instances, test_default_expand):
     connection = AsyncConnectionStub(records=Records(keys, values))
@@ -1102,7 +1102,7 @@ async def test_to_df(keys, values, types, instances, test_default_expand):
         ),
     ),
 )
-@mark_skip_without_optional_dependency("pd")
+@mark_skip_without_optional_dependency(pd)
 @mark_async_test
 async def test_to_df_expand(
     keys, values, expected_columns, expected_rows, expected_types
@@ -1353,7 +1353,7 @@ def _localize(tz: pytz.BaseTzInfo, dt: t.Any) -> t.Any:
     ),
 )
 @pytest.mark.parametrize("expand", [True, False])
-@mark_skip_without_optional_dependency("pd")
+@mark_skip_without_optional_dependency(pd)
 @mark_async_test
 async def test_to_df_parse_dates(keys, values, expected_df, expand):
     connection = AsyncConnectionStub(records=Records(keys, values))

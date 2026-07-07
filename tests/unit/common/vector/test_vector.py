@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import abc
+import contextlib
 import math
 import random
 import struct
@@ -39,6 +40,10 @@ from ...._optional_deps import (
     pa_compute,
     skip_if_mocked_dependency,
 )
+
+
+with contextlib.suppress(ImportError):
+    import pyarrow.compute
 
 
 if t.TYPE_CHECKING:
@@ -869,7 +874,7 @@ def _get_numpy_array(
     return np.frombuffer(data_in, dtype=np_type)
 
 
-@mark_skip_without_optional_dependency("np")
+@mark_skip_without_optional_dependency(np)
 @pytest.mark.parametrize("dtype", ("i8", "i16", "i32", "i64", "f32", "f64"))
 @pytest.mark.parametrize("endian", ("big", "little", "native"))
 @pytest.mark.parametrize(("repeat", "size"), ((10_000, 1), (1, 10_000)))
@@ -891,7 +896,7 @@ def test_from_numpy_random(
         assert nan_equals(array.tolist(), v.to_native())
 
 
-@mark_skip_without_optional_dependency("np")
+@mark_skip_without_optional_dependency(np)
 @pytest.mark.parametrize(("dtype", "value", "data_be_raw"), SPECIAL_VALUES)
 @pytest.mark.parametrize("endian", ("big", "little", "native"))
 def test_from_numpy_special_values(
@@ -908,7 +913,7 @@ def test_from_numpy_special_values(
     assert nan_equals(array.tolist(), v.to_native())
 
 
-@mark_skip_without_optional_dependency("np")
+@mark_skip_without_optional_dependency(np)
 @pytest.mark.parametrize("dtype", ("i8", "i16", "i32", "i64", "f32", "f64"))
 @pytest.mark.parametrize(
     "endian",
@@ -936,7 +941,7 @@ def test_to_numpy_random(
         assert nan_equals(array.tolist(), v.to_native())
 
 
-@mark_skip_without_optional_dependency("np")
+@mark_skip_without_optional_dependency(np)
 @pytest.mark.parametrize(("dtype", "value", "data_be_raw"), SPECIAL_VALUES)
 @pytest.mark.parametrize(
     "endian",
@@ -983,7 +988,7 @@ def _get_pyarrow_array(data_be: bytes, dtype: str) -> pyarrow.Array:
     return pa.Array.from_buffers(pa_type, length, buffers, 0)
 
 
-@mark_skip_without_optional_dependency("pa")
+@mark_skip_without_optional_dependency(pa)
 @pytest.mark.parametrize("dtype", ("i8", "i16", "i32", "i64", "f32", "f64"))
 @pytest.mark.parametrize("endian", ("big", "little", "native"))
 @pytest.mark.parametrize(("repeat", "size"), ((10_000, 1), (1, 10_000)))
@@ -1006,7 +1011,7 @@ def test_from_pyarrow_random(
         assert nan_equals(array.to_pylist(), v.to_native())
 
 
-@mark_skip_without_optional_dependency("pa")
+@mark_skip_without_optional_dependency(pa)
 @pytest.mark.parametrize(("dtype", "value", "data_be_raw"), SPECIAL_VALUES)
 def test_from_pyarrow_special_values(
     dtype: t.Literal["i8", "i16", "i32", "i64", "f32", "f64"],
@@ -1021,7 +1026,7 @@ def test_from_pyarrow_special_values(
     assert nan_equals(array.to_pylist(), v.to_native())
 
 
-@mark_skip_without_optional_dependency("pa")
+@mark_skip_without_optional_dependency(pa)
 @pytest.mark.parametrize("dtype", ("i8", "i16", "i32", "i64", "f32", "f64"))
 @pytest.mark.parametrize(
     "endian",
@@ -1055,7 +1060,7 @@ def test_to_pyarrow_random(
         assert nan_equals(array.tolist(), v.to_native())
 
 
-@mark_skip_without_optional_dependency("pa")
+@mark_skip_without_optional_dependency(pa)
 @pytest.mark.parametrize(("dtype", "value", "data_be_raw"), SPECIAL_VALUES)
 @pytest.mark.parametrize(
     "endian",

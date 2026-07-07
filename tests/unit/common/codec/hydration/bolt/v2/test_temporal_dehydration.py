@@ -57,7 +57,7 @@ class TestTimeDehydration(_TestTemporalDehydration):
         dt = datetime.datetime(2018, 10, 12, 11, 37, 41, 474716, tz)
         assert_transforms(dt, Structure(b"I", 1539340661, 474716000, 3600))
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_date_time_fixed_offset(self, assert_transforms):
         dt = pd.Timestamp("2018-10-12T11:37:41.474716862+0100")
         assert_transforms(dt, Structure(b"I", 1539340661, 474716862, 3600))
@@ -86,7 +86,7 @@ class TestTimeDehydration(_TestTemporalDehydration):
         dt = datetime.datetime(2018, 10, 12, 11, 37, 41, 474716, tz)
         assert_transforms(dt, Structure(b"I", 1539347861, 474716000, -3600))
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_date_time_fixed_negative_offset(self, assert_transforms):
         dt = pd.Timestamp("2018-10-12T11:37:41.474716862-0100")
         assert_transforms(dt, Structure(b"I", 1539347861, 474716862, -3600))
@@ -140,6 +140,6 @@ class TestTimeDehydration(_TestTemporalDehydration):
             ),
         ),
     )
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_date_time_zone_id(self, dt, fields, assert_transforms):
         assert_transforms(dt, Structure(b"i", *fields))

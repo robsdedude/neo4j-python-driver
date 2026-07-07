@@ -150,7 +150,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             "_value": "2018-10-12T11:37:41.474716",
         }
 
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_local_date_time(self, transformer: T_Transformer) -> None:
         dt = np.datetime64("2018-10-12T11:37:41.474716862")
         encoded = transformer(dt)
@@ -159,11 +159,11 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             "_value": "2018-10-12T11:37:41.474716862",
         }
 
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_nat_local_date_time(
         self, transformer: T_Transformer
     ) -> None:
-        dt = np.datetime64("NaT")
+        dt = np.datetime64("NaT", "ns")
         encoded = transformer(dt)
         assert encoded == {"$type": "Null", "_value": None}
 
@@ -176,12 +176,12 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             (np.datetime64("0000-12-31"), ValueError),
         ),
     )
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_invalid_local_date_time(self, value, error, transformer):
         with pytest.raises(error):
             transformer(value)
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_local_date_time(self, transformer: T_Transformer) -> None:
         dt = pd.Timestamp("2018-10-12T11:37:41.474716862")
         encoded = transformer(dt)
@@ -190,7 +190,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             "_value": "2018-10-12T11:37:41.474716862",
         }
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_nat_local_date_time(
         self, transformer: T_Transformer
     ) -> None:
@@ -242,7 +242,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             "_value": "2018-10-12T11:37:41.474716+01:00",
         }
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_date_time_fixed_offset(
         self, transformer: T_Transformer
     ) -> None:
@@ -297,7 +297,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             "_value": "2018-10-12T11:37:41.474716-01:00",
         }
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_date_time_fixed_negative_offset(
         self, transformer: T_Transformer
     ) -> None:
@@ -329,7 +329,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             "_value": "2018-10-12T11:37:41.474716+02:00[Europe/Stockholm]",
         }
 
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_date_time_zone_id(
         self, transformer: T_Transformer
     ) -> None:
@@ -484,7 +484,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             (np.timedelta64(-1, "as"), "PT-0.000000001S"),
         ),
     )
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_duration(
         self,
         value: np.timedelta64,
@@ -497,9 +497,9 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             "_value": encoded_value,
         }
 
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_nat_duration(self, transformer: T_Transformer) -> None:
-        duration = np.timedelta64("NaT")
+        duration = np.timedelta64("NaT", "ns")
         encoded = transformer(duration)
         assert encoded == {"$type": "Null", "_value": None}
 
@@ -510,7 +510,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             (np.timedelta64((MIN_INT64 // 60), "m"), ValueError),
         ),
     )
-    @mark_skip_without_optional_dependency("np")
+    @mark_skip_without_optional_dependency(np)
     def test_numpy_invalid_durations(self, value, error, transformer):
         with pytest.raises(error):
             transformer(value)
@@ -522,7 +522,7 @@ class TestTimeDehydration(HydrationHandlerTestBase):
             ((-1, 2, 3, 4), "PT-23H-59M-57.999996996S"),
         ),
     )
-    @mark_skip_without_optional_dependency("pd")
+    @mark_skip_without_optional_dependency(pd)
     def test_pandas_duration(
         self,
         dsmn: tuple[int, int, int, int],

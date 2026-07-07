@@ -23,6 +23,10 @@ import neo4j
 from neo4j._api import TelemetryAPI
 from neo4j._async.config import AsyncPoolConfig
 from neo4j._async.io._bolt._bolt5 import AsyncBolt5x8
+from neo4j._codec.packstream.v1 import (
+    Packer as PackerV1,
+    Unpacker as UnpackerV1,
+)
 from neo4j._meta import (
     BOLT_AGENT_DICT,
     USER_AGENT,
@@ -412,11 +416,15 @@ def _assert_notifications_in_extra(extra, expected):
 )
 @pytest.mark.parametrize(
     ("cls_min_sev", "method_min_sev"),
-    itertools.product((None, "WARNING", "OFF"), repeat=2),
+    tuple(itertools.product((None, "WARNING", "OFF"), repeat=2)),
 )
 @pytest.mark.parametrize(
     ("cls_dis_clss", "method_dis_clss"),
-    itertools.product((None, [], ["HINT"], ["HINT", "DEPRECATION"]), repeat=2),
+    tuple(
+        itertools.product(
+            (None, [], ["HINT"], ["HINT", "DEPRECATION"]), repeat=2
+        )
+    ),
 )
 @mark_async_test
 async def test_supports_notification_filters(
@@ -610,13 +618,15 @@ async def test_tx_timeout(
 
 @pytest.mark.parametrize(
     "actions",
-    itertools.combinations_with_replacement(
-        itertools.product(
-            ("run", "begin", "begin_run"),
-            ("reset", "commit", "rollback"),
-            (None, "some_db", "another_db"),
-        ),
-        2,
+    tuple(
+        itertools.combinations_with_replacement(
+            itertools.product(
+                ("run", "begin", "begin_run"),
+                ("reset", "commit", "rollback"),
+                (None, "some_db", "another_db"),
+            ),
+            2,
+        )
     ),
 )
 @mark_async_test
@@ -682,20 +692,30 @@ DEFAULT_DIAG_REC_PAIRS = (
 
 @pytest.mark.parametrize(
     "sent_diag_records",
-    powerset(
-        (
-            ...,
-            None,
-            {},
-            [],
-            "1",
-            1,
-            {"OPERATION_CODE": "0"},
-            {"OPERATION": "", "OPERATION_CODE": "0", "CURRENT_SCHEMA": "/"},
-            {"OPERATION": "Foo", "OPERATION_CODE": 1, "CURRENT_SCHEMA": False},
-            {"OPERATION": "", "OPERATION_CODE": "0", "bar": "baz"},
-        ),
-        upper_limit=3,
+    tuple(
+        powerset(
+            (
+                ...,
+                None,
+                {},
+                [],
+                "1",
+                1,
+                {"OPERATION_CODE": "0"},
+                {
+                    "OPERATION": "",
+                    "OPERATION_CODE": "0",
+                    "CURRENT_SCHEMA": "/",
+                },
+                {
+                    "OPERATION": "Foo",
+                    "OPERATION_CODE": 1,
+                    "CURRENT_SCHEMA": False,
+                },
+                {"OPERATION": "", "OPERATION_CODE": "0", "bar": "baz"},
+            ),
+            upper_limit=3,
+        )
     ),
 )
 @pytest.mark.parametrize("method", ("pull", "discard"))
@@ -769,21 +789,31 @@ async def test_enriches_statuses(
 
 @pytest.mark.parametrize(
     "sent_diag_records",
-    powerset(
-        (
-            ...,
-            None,
-            {},
-            [],
-            "1",
-            1,
-            {"OPERATION_CODE": "0"},
-            {"OPERATION": "", "OPERATION_CODE": "0", "CURRENT_SCHEMA": "/"},
-            {"OPERATION": "Foo", "OPERATION_CODE": 1, "CURRENT_SCHEMA": False},
-            {"OPERATION": "", "OPERATION_CODE": "0", "bar": "baz"},
-        ),
-        lower_limit=1,
-        upper_limit=3,
+    tuple(
+        powerset(
+            (
+                ...,
+                None,
+                {},
+                [],
+                "1",
+                1,
+                {"OPERATION_CODE": "0"},
+                {
+                    "OPERATION": "",
+                    "OPERATION_CODE": "0",
+                    "CURRENT_SCHEMA": "/",
+                },
+                {
+                    "OPERATION": "Foo",
+                    "OPERATION_CODE": 1,
+                    "CURRENT_SCHEMA": False,
+                },
+                {"OPERATION": "", "OPERATION_CODE": "0", "bar": "baz"},
+            ),
+            lower_limit=1,
+            upper_limit=3,
+        )
     ),
 )
 @mark_async_test
@@ -874,3 +904,8 @@ async def test_ssr_enabled(ssr_hint, fake_socket_pair):
     assert connection.ssr_enabled is False
     await connection.hello()
     assert connection.ssr_enabled is bool(ssr_hint)
+
+
+def test_uses_packstream_v1():
+    assert AsyncBolt5x8.PACKER_CLS is PackerV1
+    assert AsyncBolt5x8.UNPACKER_CLS is UnpackerV1
