@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import enum
+import io
 import json
 import sys
 from dataclasses import dataclass
@@ -229,15 +230,16 @@ class AsyncHTTPQueryAPI:
     ) -> HTTPQueryAPIResponse:
         kwargs: AiohttpSessionRequestKwargs = {}
         if data is not NO_DATA:
-            kwargs["data"] = json.dumps(data, separators=(",", ":"))
+            json_data = json.dumps(data, separators=(",", ":"))
             log.debug(
                 "[#%04X]  C: %s %s %s (%s)",
                 log_id,
                 method.value,
                 self._path_logger(path),
-                kwargs["data"],
+                json_data,
                 _HeaderLogFormatter.from_request_headers(headers),
             )
+            kwargs["data"] = io.BytesIO(json_data.encode("utf-8"))
         else:
             log.debug(
                 "[#%04X]  C: %s %s (%s)",
