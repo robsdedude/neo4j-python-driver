@@ -314,7 +314,7 @@ class Bolt5x0(Bolt):
             dehydration_hooks, hydration_hooks
         )
         extra = {"n": n}
-        if qid != -1:
+        if qid not in {-1, self.most_recent_qid}:
             extra["qid"] = qid
         log.debug("[#%04X]  C: DISCARD %r", self.local_port, extra)
         self._append(

@@ -290,6 +290,9 @@ class AsyncBolt6x0(AsyncBolt):
         hydration_hooks=None,
         **handlers,
     ):
+        handlers["on_success"] = self._make_qid_tracking_handler(
+            wrapped_handler=handlers.get("on_success")
+        )
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
@@ -336,9 +339,6 @@ class AsyncBolt6x0(AsyncBolt):
         log.debug(
             "[#%04X]  C: RUN %s", self.local_port, " ".join(map(repr, fields))
         )
-        handlers["on_success"] = self._make_qid_tracking_handler(
-            wrapped_handler=handlers.get("on_success")
-        )
         self._append(
             b"\x10",
             fields,
@@ -361,7 +361,7 @@ class AsyncBolt6x0(AsyncBolt):
             dehydration_hooks, hydration_hooks
         )
         extra = {"n": n}
-        if qid != -1:
+        if qid not in {-1, self.most_recent_qid}:
             extra["qid"] = qid
         log.debug("[#%04X]  C: DISCARD %r", self.local_port, extra)
         self._append(
