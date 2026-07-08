@@ -41,6 +41,7 @@ from neo4j.time import (
 )
 
 from ......._optional_deps import (
+    HAS_PA,
     mark_skip_without_optional_dependency,
     np,
     pd,
@@ -321,7 +322,7 @@ class TestDehydrateBaseTypes(HydrationHandlerTestBase):
             str,
             np.str_,
             pd.StringDtype("python"),
-            pd.StringDtype("pyarrow"),
+            *((pd.StringDtype("pyarrow"),) if HAS_PA else ()),
         ),
     )
     @mark_skip_without_optional_dependency(pd)

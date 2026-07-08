@@ -642,7 +642,7 @@ class TestPackStreamV1:
             str,
             np.str_,
             pd.StringDtype("python"),
-            pd.StringDtype("pyarrow"),
+            *((pd.StringDtype("pyarrow"),) if HAS_PA else ()),
         ),
     )
     def test_string_pandas_series(self, dtype, assert_packable):
