@@ -131,25 +131,20 @@ class TestHydrateBaseTypes(HydrationHandlerTestBase):
         self.assert_is_hydrated_type(decoded, str)
         assert decoded == value
 
-    @pytest.mark.parametrize(
-        "value",
-        (
+    def test_bytes(self, hydration_scope: HydrationScopeHttp) -> None:
+        for value in (
             b"",
             b"\x00\x01\x02\x03\x04",
             b"Hello, World!",
             bytes(i % 255 for i in range(1_000_000)),
-        ),
-    )
-    def test_bytes(
-        self, value: bytes, hydration_scope: HydrationScopeHttp
-    ) -> None:
-        encoded = {
-            "$type": "Base64",
-            "_value": base64.b64encode(value).decode("ascii"),
-        }
-        decoded = hydration_scope.hydration_hooks[type(encoded)](encoded)
-        self.assert_is_hydrated_type(decoded, bytes)
-        assert decoded == value
+        ):
+            encoded = {
+                "$type": "Base64",
+                "_value": base64.b64encode(value).decode("ascii"),
+            }
+            decoded = hydration_scope.hydration_hooks[type(encoded)](encoded)
+            self.assert_is_hydrated_type(decoded, bytes)
+            assert decoded == value
 
     @pytest.mark.parametrize(
         ("value", "encoded"),
