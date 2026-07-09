@@ -142,7 +142,7 @@ def sequence_type(request):
 
     if HAS_PD and request.param is pd.Series:
         constructor = _pd_series
-    elif HAS_PD and request.param is pd.array and pd.__version__ >= "3":
+    elif HAS_PD and request.param is pd.array:
         constructor = _pd_array
     elif HAS_NP and HAS_PD and request.param is pd.arrays.NumpyExtensionArray:
         constructor = _np_extension_array
