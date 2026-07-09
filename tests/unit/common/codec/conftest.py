@@ -22,6 +22,7 @@ import pytest
 
 from ...._optional_deps import (
     HAS_NP,
+    HAS_PA,
     HAS_PD,
     np,
     pa,
@@ -123,7 +124,7 @@ def str_type(request):
         pd.array,
         pd.arrays.SparseArray,
         pd.arrays.NumpyExtensionArray,
-        pd.arrays.ArrowExtensionArray,
+        *((pd.arrays.ArrowExtensionArray,) if HAS_PA else ()),
     ),
     ids=(
         "list",
@@ -133,7 +134,7 @@ def str_type(request):
         "pd.array",
         "pd.arrays.SparseArray",
         "pd.arrays.NumpyExtensionArray",
-        "pd.arrays.ArrowExtensionArray",
+        *(("pd.arrays.ArrowExtensionArray",) if HAS_PA else ()),
     ),
 )
 def sequence_type(request):
@@ -141,28 +142,12 @@ def sequence_type(request):
 
     if HAS_PD and request.param is pd.Series:
         constructor = _pd_series
-    elif HAS_PD and request.param is pd.array:
+    elif HAS_PD and request.param is pd.array and pd.__version__ >= "3":
         constructor = _pd_array
-    elif HAS_PD and request.param is pd.arrays.NumpyExtensionArray:
-
-        def constructor(value):
-            array = _np_array(value)
-            return pd.arrays.NumpyExtensionArray(array)
-
-    elif HAS_PD and request.param is pd.arrays.ArrowExtensionArray:
-
-        def constructor(value):
-            def _map_value(v):
-                if isinstance(v, pd.arrays.ArrowExtensionArray):
-                    v = pa.array(v)
-                if isinstance(v, pa.Array):
-                    v = v.to_pylist()
-                return v
-
-            value = tuple(map(_map_value, value))
-            array = _pa_array(value)
-            return pd.arrays.ArrowExtensionArray(array)
-
+    elif HAS_NP and HAS_PD and request.param is pd.arrays.NumpyExtensionArray:
+        constructor = _np_extension_array
+    elif HAS_PD and HAS_PA and request.param is pd.arrays.ArrowExtensionArray:
+        constructor = pa_extension_array
     elif HAS_NP and request.param is np.array:
         constructor = _np_array
     else:
@@ -187,6 +172,25 @@ def _pd_array(value):
     with suppress(ValueError):
         return pd.array(value)
     return pd.array(value, dtype=object)
+
+
+def _np_extension_array(value):
+    array = _np_array(value)
+    return pd.arrays.NumpyExtensionArray(array)
+
+
+def pa_extension_array(value):
+    value = tuple(map(_map_pa_extension_array, value))
+    array = _pa_array(value)
+    return pd.arrays.ArrowExtensionArray(array)
+
+
+def _map_pa_extension_array(v):
+    if isinstance(v, pd.arrays.ArrowExtensionArray):
+        v = pa.array(v)
+    if isinstance(v, pa.Array):
+        v = v.to_pylist()
+    return v
 
 
 def _pa_array(value):
