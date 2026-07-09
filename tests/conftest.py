@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import inspect
 import sys
 from functools import wraps
@@ -29,6 +30,7 @@ from neo4j import (
     GraphDatabase,
 )
 from neo4j.debug import watch
+from neo4j.warnings import PreviewWarning
 
 from . import env
 from ._teamcity import *  # noqa - needed for pytest to pick up the hooks
@@ -75,7 +77,13 @@ def auth():
 
 @pytest.fixture
 def driver(uri, auth):
-    with GraphDatabase.driver(uri, auth=auth) as driver:
+    cm = contextlib.nullcontext()
+    if uri.split("://")[0] in {"http", "https"}:
+        cm = pytest.warns(PreviewWarning, match="Query API/HTTP support")
+
+    with cm:
+        driver = GraphDatabase.driver(uri, auth=auth)
+    with driver as driver:
         yield driver
 
 
