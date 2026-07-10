@@ -97,7 +97,8 @@ class BookmarksExample:
 # end::pass-bookmarks[]
 
 
-def test(uri, auth):
+def test(uri, auth, patch_driver_factory):
+    patch_driver_factory(GraphDatabase)
     eg = BookmarksExample(uri, auth)
     try:
         with eg.driver.session() as session:

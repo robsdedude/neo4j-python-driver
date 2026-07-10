@@ -79,26 +79,31 @@ class _Module:
         return val
 
 
+def _get_url() -> str:
+    return (
+        f"{_module.NEO4J_SCHEME}://{_module.NEO4J_HOST}:{_module.NEO4J_PORT}"
+    )
+
+
 _module = _Module(sys.modules[__name__])
 
 sys.modules[__name__] = _module  # type: ignore[assignment]
 
 
-NEO4J_HOST = _LazyEvalEnv("TEST_NEO4J_HOST")
-NEO4J_PORT = _LazyEvalEnv("TEST_NEO4J_PORT", int)
-NEO4J_USER = _LazyEvalEnv("TEST_NEO4J_USER")
-NEO4J_PASS = _LazyEvalEnv("TEST_NEO4J_PASS")
-NEO4J_SCHEME = _LazyEvalEnv("TEST_NEO4J_SCHEME")
-NEO4J_EDITION = _LazyEvalEnv("TEST_NEO4J_EDITION")
-NEO4J_VERSION = _LazyEvalEnv("TEST_NEO4J_VERSION")
-NEO4J_IS_CLUSTER = _LazyEvalEnv("TEST_NEO4J_IS_CLUSTER", bool)
-NEO4J_SERVER_URI = _LazyEvalFunc(
-    lambda: (
-        f"{_module.NEO4J_SCHEME}://{_module.NEO4J_HOST}:{_module.NEO4J_PORT}"
-    )
+NEO4J_HOST = t.cast(str, _LazyEvalEnv("TEST_NEO4J_HOST"))
+NEO4J_PORT = t.cast(int, _LazyEvalEnv("TEST_NEO4J_PORT", int))
+NEO4J_USER = t.cast(str, _LazyEvalEnv("TEST_NEO4J_USER"))
+NEO4J_PASS = t.cast(str, _LazyEvalEnv("TEST_NEO4J_PASS"))
+NEO4J_SCHEME = t.cast(str, _LazyEvalEnv("TEST_NEO4J_SCHEME"))
+NEO4J_EDITION = t.cast(str, _LazyEvalEnv("TEST_NEO4J_EDITION"))
+NEO4J_VERSION = t.cast(str, _LazyEvalEnv("TEST_NEO4J_VERSION"))
+NEO4J_IS_CLUSTER = t.cast(bool, _LazyEvalEnv("TEST_NEO4J_IS_CLUSTER", bool))
+NEO4J_SERVER_URI = t.cast(str, _LazyEvalFunc(_get_url))
+NEO4J_DEFAULT_DB = t.cast(
+    str, _LazyEvalEnv("TEST_NEO4J_DEFAULT_DB", default="neo4j")
 )
 IS_WIN = sys.platform in {"win32", "cygwin"}
-IS_GHA = _LazyEvalEnv("GITHUB_ACTIONS", bool, default="false")
+IS_GHA = t.cast(bool, _LazyEvalEnv("GITHUB_ACTIONS", bool, default="false"))
 
 
 __all__ = (

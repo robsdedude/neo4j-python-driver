@@ -131,7 +131,8 @@ if __name__ == "__main__":
 # end::driver-introduction-example[]
 
 
-def test_driver_introduction_example(uri, auth):
+def test_driver_introduction_example(uri, auth, patch_driver_factory):
+    patch_driver_factory(GraphDatabase)
     try:
         s = StringIO()
         with redirect_stdout(s):

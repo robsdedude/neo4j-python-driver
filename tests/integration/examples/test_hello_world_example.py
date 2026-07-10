@@ -70,7 +70,8 @@ if __name__ == "__main__":
 # end::hello-world-output[]
 
 
-def test_hello_world_example(uri, auth):
+def test_hello_world_example(uri, auth, patch_driver_factory):
+    patch_driver_factory(GraphDatabase)
     try:
         s = StringIO()
         with redirect_stdout(s):
