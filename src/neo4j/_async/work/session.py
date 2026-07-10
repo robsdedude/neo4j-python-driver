@@ -147,7 +147,7 @@ class AsyncSession(AsyncWorkspace):
         if connection:
             log.debug(
                 "[#%04X]  _: <SESSION> %s cancellation clean-up",
-                connection.local_port,
+                connection.log_id,
                 message,
             )
             self._pool.kill_and_release(connection)

@@ -254,6 +254,7 @@ class AsyncHttpV2(AsyncHttpConnection):
     server_info: ServerInfo
     _id: int
     _defunct: bool
+    log_id: int = 0
 
     def __init__(
         self,
@@ -275,7 +276,7 @@ class AsyncHttpV2(AsyncHttpConnection):
         self.auth = auth
         self._requests = deque()
         self._responses = deque()
-        self._id = id_
+        self._id = self.log_id = id_
         self._defunct = False
 
     def new_hydration_scope(self) -> HydrationScope:

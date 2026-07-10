@@ -34,6 +34,18 @@ if t.TYPE_CHECKING:
 class AsyncConnection(abc.ABC):
     @property
     @abc.abstractmethod
+    def log_id(self) -> int:
+        """
+        Some id to prepend in log entries.
+
+        The id should be unique to the connection (at least for a reasonable
+        amount of time—might re-use numbers after a while).
+        Further, should the id be in {0..0xFFFF} (i.e., 0 and 65535 inclusive).
+        """
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
     def auth_manager(self) -> AsyncAuthManager | AuthManager | None:
         """The current auth manager used for this connection, if any."""
         raise NotImplementedError
