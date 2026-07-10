@@ -14,10 +14,8 @@
 # limitations under the License.
 
 
-from ...conftest import (
-    mark_skip_if_scheme,
-    Scheme,
-)
+from ...conftest import mark_skip_if_scheme
+from ...env import Scheme
 
 
 # isort: off

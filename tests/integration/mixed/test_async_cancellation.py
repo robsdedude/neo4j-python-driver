@@ -27,8 +27,8 @@ from ..._async_compat import mark_async_test
 from ...conftest import (
     async_driver_factory,
     mark_skip_if_scheme,
-    Scheme,
 )
+from ...env import Scheme
 
 
 def _get_work():

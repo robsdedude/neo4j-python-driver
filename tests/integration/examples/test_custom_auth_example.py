@@ -19,10 +19,8 @@ import pytest
 from neo4j._exceptions import BoltHandshakeError
 from neo4j.exceptions import ServiceUnavailable
 
-from ...conftest import (
-    mark_skip_if_scheme,
-    Scheme,
-)
+from ...conftest import mark_skip_if_scheme
+from ...env import Scheme
 from ._base import DriverSetupExample
 
 

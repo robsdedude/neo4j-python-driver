@@ -18,9 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import enum
 import inspect
-import re
 import sys
 from functools import wraps
 
@@ -200,42 +198,26 @@ def mark_requires_edition(edition):
     )
 
 
-class Scheme(str, enum.Enum):
-    BOLT = "bolt"
-    NEO4J = "neo4j"
-    HTTP = "http"
-
-
-def _current_scheme() -> Scheme:
-    if re.match(r"^bolt(\+s(sc)?)?", env.NEO4J_SCHEME):
-        return Scheme.BOLT
-    if re.match(r"^neo4j(\+s(sc)?)?", env.NEO4J_SCHEME):
-        return Scheme.NEO4J
-    if re.match(r"^http(s)?", env.NEO4J_SCHEME):
-        return Scheme.HTTP
-    raise ValueError(f"Unknown scheme: {env.NEO4J_SCHEME!r}")
-
-
-CURRENT_SCHEME = _current_scheme()
-
-
-def mark_requires_scheme(*schemes: Scheme):
+def mark_requires_scheme(*schemes: env.Scheme):
     return pytest.mark.skipif(
-        CURRENT_SCHEME not in schemes,
+        env.NEO4J_PARSED_SCHEME not in schemes,
         reason=(
             f"requires scheme(s) {', '.join(s.value for s in schemes)}, "
-            f"found '{CURRENT_SCHEME.value}'"
+            f"found '{env.NEO4J_PARSED_SCHEME.value}'"
         ),
     )
 
 
-def mark_skip_if_scheme(*schemes: Scheme, reason: str | None = None):
+def mark_skip_if_scheme(*schemes: env.Scheme, reason: str | None = None):
     if reason is None:
         reason = (
             f"skipping for scheme(s) {', '.join(s.value for s in schemes)}, "
-            f"found '{CURRENT_SCHEME.value}'"
+            f"found '{env.NEO4J_PARSED_SCHEME.value}'"
         )
-    return pytest.mark.skipif(CURRENT_SCHEME in schemes, reason=reason)
+    return pytest.mark.skipif(
+        env.NEO4J_PARSED_SCHEME in schemes,
+        reason=reason,
+    )
 
 
 @pytest.fixture

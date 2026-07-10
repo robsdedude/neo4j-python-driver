@@ -15,10 +15,8 @@
 
 from neo4j import unit_of_work
 
-from ...conftest import (
-    mark_skip_if_scheme,
-    Scheme,
-)
+from ...conftest import mark_skip_if_scheme
+from ...env import Scheme
 
 
 # tag::transaction-metadata-config[]
