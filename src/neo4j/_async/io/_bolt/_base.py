@@ -145,6 +145,8 @@ class AsyncBolt(AsyncConnection):
     auth_manager = None
     auth = None
 
+    log_id: int = 0
+
     SKIP_REGISTRATION = False
 
     def __init__(
@@ -163,7 +165,7 @@ class AsyncBolt(AsyncConnection):
     ):
         self.unresolved_address = unresolved_address
         self.socket = sock
-        self.local_port = self.socket.getsockname()[1]
+        self.local_port = self.log_id = self.socket.getsockname()[1]
         self.server_info = ServerInfo(
             ResolvedAddress(
                 sock.getpeername(), host_name=unresolved_address.host
