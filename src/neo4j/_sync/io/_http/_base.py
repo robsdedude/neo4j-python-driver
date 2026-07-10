@@ -26,7 +26,10 @@ from ...._async_compat.concurrency import (
     CooperativeLock,
     Lock,
 )
-from ...._async_compat.network import HTTPVerb
+from ...._async_compat.network import (
+    HTTPQueryAPIFactory,
+    HTTPVerb,
+)
 from ...._async_compat.util import Util
 from ...._io import HTTPServerInfo
 from ...._logging import LazyStr
@@ -38,7 +41,6 @@ from ._common import generic_http_error
 
 if t.TYPE_CHECKING:
     from ...._addressing import Address
-    from ...._async_compat.network import HTTPQueryAPIFactory
     from ...._auth_management import AuthManager
     from .._pool import HttpV2Pool
     from . import HTTPQueryAPI
@@ -173,9 +175,11 @@ class HttpConnectionFactory:
                         lambda exc: "".join(traceback.format_exception(exc)), e
                     ),
                 )
-                raise ServiceUnavailable(
-                    f"Failed to fetch discovery endpoint: {e}"
-                ) from e
+                if isinstance(e, HTTPQueryAPIFactory.CONNECTION_ERRORS):
+                    raise ServiceUnavailable(
+                        f"Failed to fetch discovery endpoint: {e}"
+                    ) from e
+                raise
             finally:
                 self._last_fetch = time.monotonic()
                 query_api.close()

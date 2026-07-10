@@ -26,7 +26,10 @@ from ...._async_compat.concurrency import (
     AsyncCooperativeLock,
     AsyncLock,
 )
-from ...._async_compat.network import HTTPVerb
+from ...._async_compat.network import (
+    AsyncHTTPQueryAPIFactory,
+    HTTPVerb,
+)
 from ...._async_compat.util import AsyncUtil
 from ...._io import HTTPServerInfo
 from ...._logging import LazyStr
@@ -38,7 +41,6 @@ from ._common import generic_http_error
 
 if t.TYPE_CHECKING:
     from ...._addressing import Address
-    from ...._async_compat.network import AsyncHTTPQueryAPIFactory
     from ...._auth_management import (
         AsyncAuthManager,
         AuthManager,
@@ -176,9 +178,11 @@ class AsyncHttpConnectionFactory:
                         lambda exc: "".join(traceback.format_exception(exc)), e
                     ),
                 )
-                raise ServiceUnavailable(
-                    f"Failed to fetch discovery endpoint: {e}"
-                ) from e
+                if isinstance(e, AsyncHTTPQueryAPIFactory.CONNECTION_ERRORS):
+                    raise ServiceUnavailable(
+                        f"Failed to fetch discovery endpoint: {e}"
+                    ) from e
+                raise
             finally:
                 self._last_fetch = time.monotonic()
                 await query_api.close()

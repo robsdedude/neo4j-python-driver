@@ -30,6 +30,7 @@ from socket import (
 
 import aiohttp
 import urllib3
+import urllib3.exceptions
 
 from ... import _typing as t
 from ..._async_compat.concurrency import (
@@ -292,6 +293,11 @@ class HTTPQueryAPIFactory:
         pool_config: PoolConfig
         address: Address
         path: str
+
+    CONNECTION_ERRORS: t.ClassVar[tuple[type[BaseException], ...]] = (
+        urllib3.exceptions.HTTPError,
+        OSError,
+    )
 
     _config_cache: _ConfigCache | None = None
     _config_cache_lock: Lock
