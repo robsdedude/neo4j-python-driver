@@ -17,9 +17,12 @@
 import re
 from pathlib import Path
 
+from ..conftest import mark_requires_tx_support
+
 
 # fmt: off
 # ruff: noqa: E303 (too many blank lines, test must match README)
+@mark_requires_tx_support
 def test_should_run_readme(uri, auth, patch_driver_factory):
     names = set()
     print = names.add

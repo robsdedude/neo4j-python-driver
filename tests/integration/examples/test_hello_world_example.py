@@ -22,6 +22,8 @@ import pytest
 from neo4j._exceptions import BoltHandshakeError
 from neo4j.exceptions import ServiceUnavailable
 
+from ...conftest import mark_requires_tx_support
+
 
 # isort: off
 # tag::hello-world-import[]
@@ -70,6 +72,7 @@ if __name__ == "__main__":
 # end::hello-world-output[]
 
 
+@mark_requires_tx_support
 def test_hello_world_example(uri, auth, patch_driver_factory):
     patch_driver_factory(GraphDatabase)
     try:

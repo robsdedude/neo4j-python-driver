@@ -21,6 +21,8 @@ import pytest
 
 from neo4j._exceptions import BoltHandshakeError
 
+from ...conftest import mark_requires_tx_support
+
 
 # isort: off
 # tag::driver-introduction-example-import[]
@@ -131,6 +133,7 @@ if __name__ == "__main__":
 # end::driver-introduction-example[]
 
 
+@mark_requires_tx_support
 def test_driver_introduction_example(uri, auth, patch_driver_factory):
     patch_driver_factory(GraphDatabase)
     try:

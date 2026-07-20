@@ -220,6 +220,24 @@ def mark_skip_if_scheme(*schemes: env.Scheme, reason: str | None = None):
     )
 
 
+def mark_requires_tx_support(f: t.Callable | None = None):
+    match env.NEO4J_PARSED_SCHEME:
+        case env.Scheme.BOLT | env.Scheme.NEO4J:
+            has_tx_support = True
+        case env.Scheme.HTTP:
+            has_tx_support = _parse_version(env.NEO4J_VERSION) >= (5, 26)
+        case _:
+            t.assert_never(env.NEO4J_PARSED_SCHEME)
+
+    skip_decorator = pytest.mark.skipif(
+        not has_tx_support,
+        reason="requires support for explicit transactions",
+    )
+    if f is None:
+        return skip_decorator
+    return skip_decorator(f)
+
+
 @pytest.fixture
 def session(driver):
     with driver.session() as session:

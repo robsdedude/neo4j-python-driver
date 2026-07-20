@@ -15,7 +15,10 @@
 
 from neo4j import unit_of_work
 
-from ...conftest import mark_skip_if_scheme
+from ...conftest import (
+    mark_requires_tx_support,
+    mark_skip_if_scheme,
+)
 from ...env import Scheme
 
 
@@ -53,6 +56,7 @@ def work(tx, query, **parameters):
 @mark_skip_if_scheme(
     Scheme.HTTP, reason="TX metadata & timeout not supported via HTTP(S)"
 )
+@mark_requires_tx_support
 def test_example(driver):
     eg = TransactionMetadataConfigExample(driver)
     with eg.driver.session() as session:

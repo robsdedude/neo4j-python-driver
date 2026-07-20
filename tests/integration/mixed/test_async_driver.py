@@ -24,11 +24,13 @@ import neo4j
 from ..._async_compat import mark_async_test
 from ...conftest import (
     async_driver_factory,
+    mark_requires_tx_support,
     mark_skip_if_scheme,
 )
 from ...env import Scheme
 
 
+@mark_requires_tx_support
 def test_can_create_async_driver_outside_of_loop(uri, auth):
     pool_size = 2
     # used to make sure the pool was full at least at some point
