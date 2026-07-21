@@ -123,11 +123,9 @@ NEO4J_DEFAULT_DB = t.cast(
     str, _LazyEvalEnv("TEST_NEO4J_DEFAULT_DB", default="neo4j")
 )
 IS_WIN = sys.platform in {"win32", "cygwin"}
-IS_GHA = t.cast(bool, _LazyEvalEnv("GITHUB_ACTIONS", bool, default="false"))
 
 
 __all__ = (
-    "IS_GHA",
     "IS_WIN",
     "NEO4J_EDITION",
     "NEO4J_HOST",
