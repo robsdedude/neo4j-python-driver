@@ -12,11 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest
 
 from neo4j import (
+    _typing as t,
     AsyncTransaction,
     NotificationMinimumSeverity,
     Query,
@@ -367,8 +371,9 @@ async def test_server_error_propagates(async_scripted_connection, error):
 @mark_async_test
 async def test_on_database_callback(
     async_scripted_connection, async_cb, resolved_db
-):
-    cb_calls = []
+) -> None:
+    cb_calls: list[str] = []
+    db_callback: t.Callable[[str], t.Awaitable[None] | None]
 
     if async_cb:
 
