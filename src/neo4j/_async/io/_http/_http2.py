@@ -247,6 +247,7 @@ class AsyncHttpV2(AsyncHttpConnection):
     _state: _ConnectionState
     _query_api: AsyncHTTPQueryAPI
     _requests: deque[_Request]
+    _current_request: _Request | None
     _responses: deque[_Response]
     auth_manager: AsyncAuthManager | AuthManager | None = None
     auth: _TAuth = None
@@ -275,6 +276,7 @@ class AsyncHttpV2(AsyncHttpConnection):
         self.auth_manager = auth_manager
         self.auth = auth
         self._requests = deque()
+        self._current_request = None
         self._responses = deque()
         self._id = self.log_id = id_
         self._defunct = False
@@ -871,7 +873,7 @@ class AsyncHttpV2(AsyncHttpConnection):
 
             self._responses.append(_Response(success_response, "SUCCESS"))
 
-        self._requests.append(_Request(req_handler_commit, "COMMIT"))
+        self._requests.append(_CommitRequest(req_handler_commit))
 
     def rollback(
         self,
@@ -936,8 +938,11 @@ class AsyncHttpV2(AsyncHttpConnection):
             )
 
         while self._requests:
-            req = self._requests.popleft()
-            await AsyncUtil.callback(req.handler)
+            self._current_request = self._requests.popleft()
+            try:
+                await AsyncUtil.callback(self._current_request.handler)
+            finally:
+                self._current_request = None
 
     async def fetch_message(self) -> None:
         if self.closed():
@@ -1104,9 +1109,8 @@ class AsyncHttpV2(AsyncHttpConnection):
                     raise
                 if protocol_error or not connection_failed:
                     raise
-                for request in self._requests:
-                    if isinstance(request, _CommitRequest):
-                        raise IncompleteCommit(message) from error
+                if isinstance(self._current_request, _CommitRequest):
+                    raise IncompleteCommit(message) from error
                 raise SessionExpired(message) from error
 
         return inner

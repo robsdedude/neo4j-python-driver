@@ -244,6 +244,7 @@ class HttpV2(HttpConnection):
     _state: _ConnectionState
     _query_api: HTTPQueryAPI
     _requests: deque[_Request]
+    _current_request: _Request | None
     _responses: deque[_Response]
     auth_manager: AuthManager | AuthManager | None = None
     auth: _TAuth = None
@@ -272,6 +273,7 @@ class HttpV2(HttpConnection):
         self.auth_manager = auth_manager
         self.auth = auth
         self._requests = deque()
+        self._current_request = None
         self._responses = deque()
         self._id = self.log_id = id_
         self._defunct = False
@@ -868,7 +870,7 @@ class HttpV2(HttpConnection):
 
             self._responses.append(_Response(success_response, "SUCCESS"))
 
-        self._requests.append(_Request(req_handler_commit, "COMMIT"))
+        self._requests.append(_CommitRequest(req_handler_commit))
 
     def rollback(
         self,
@@ -933,8 +935,11 @@ class HttpV2(HttpConnection):
             )
 
         while self._requests:
-            req = self._requests.popleft()
-            Util.callback(req.handler)
+            self._current_request = self._requests.popleft()
+            try:
+                Util.callback(self._current_request.handler)
+            finally:
+                self._current_request = None
 
     def fetch_message(self) -> None:
         if self.closed():
@@ -1101,9 +1106,8 @@ class HttpV2(HttpConnection):
                     raise
                 if protocol_error or not connection_failed:
                     raise
-                for request in self._requests:
-                    if isinstance(request, _CommitRequest):
-                        raise IncompleteCommit(message) from error
+                if isinstance(self._current_request, _CommitRequest):
+                    raise IncompleteCommit(message) from error
                 raise SessionExpired(message) from error
 
         return inner
