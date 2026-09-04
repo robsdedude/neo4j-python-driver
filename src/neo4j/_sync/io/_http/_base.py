@@ -61,7 +61,7 @@ class IdGenerator:
     def next_id(self) -> int:
         with self._lock:
             current_id = self._next_id
-            self._next_id = min((self._next_id + 1) % IdGenerator._MAX, 1)
+            self._next_id = max((self._next_id + 1) % IdGenerator._MAX, 1)
         return current_id
 
 
