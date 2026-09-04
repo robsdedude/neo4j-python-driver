@@ -1484,7 +1484,7 @@ class HttpDriver(_Http, Driver):
     See also
     https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
 
-    .. versionadded:: 6.2.0
+    .. versionadded:: 6.4.0
     """
 
     @classmethod

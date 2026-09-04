@@ -545,6 +545,19 @@ Will result in:
 .. autoclass:: neo4j.AsyncNeo4jDriver
 
 
+.. _async-http-driver-ref:
+
+AsyncHttpDriver
+===============
+
+URI schemes:
+    ``http``, ``https``
+
+Will result in:
+
+.. autoclass:: neo4j.AsyncHttpDriver
+
+
 *********************************
 AsyncSessions & AsyncTransactions
 *********************************
