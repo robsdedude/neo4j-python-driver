@@ -1460,9 +1460,9 @@ class AsyncHttpDriver(_Http, AsyncDriver):
     * Summary information may differ:
 
         * :attr:`.ResultSummary.result_available_after` and
-          :attr:`.ResultSummary.result_consumed_after` will always be
-          :data:`None` because this information is not provided by the server.
-          TODO: check whether None or 0!!
+          :attr:`.ResultSummary.result_consumed_after` will be :data:`None`
+          for servers older than 2026.07 as this information is not provided
+          such servers.
         * :attr:`.ServerInfo.agent` is being computed from the DBMS's
           advertised version. Further, it is being cached to reduce
           round-trips and overloading the DBMS's HTTP endpoints.
