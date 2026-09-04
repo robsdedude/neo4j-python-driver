@@ -1161,7 +1161,7 @@ Specifically, the following applies:
     This will use the default database on the Neo4j instance.
 
 .. note::
-    A string value must be provided connected via
+    A string value must be provided when connected via
     ``http://`` or ``https://`` scheme.
 
 :Type: ``str``, ``neo4j.DEFAULT_DATABASE``

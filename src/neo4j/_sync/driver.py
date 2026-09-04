@@ -1470,7 +1470,7 @@ class HttpDriver(_Http, Driver):
     * Transmitting and receiving :class:`Vector` values is currently not
       supported.
 
-    * The only supported auth scheme (see :ref:`auth-ref`) is ``"basic"`` and
+    * The only supported auth schemes (see :ref:`auth-ref`) are ``"basic"`` and
       ``"bearer"``.
 
     * Transactions, if not interacted with regularly, will time out.
