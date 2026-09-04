@@ -48,7 +48,10 @@ from neo4j.exceptions import (
     SessionExpired,
 )
 
-from ...._async_compat import mark_sync_test
+from ...._async_compat import (
+    fixture,
+    mark_sync_test,
+)
 
 
 MONOTONIC_TIME_RESOLUTION = time.get_clock_info("monotonic").resolution
@@ -150,10 +153,27 @@ def _auth_manager(auth):
     return AuthManagers.static(auth)
 
 
-def _simple_pool(opener) -> RoutedBoltPool:
-    return RoutedBoltPool(
-        opener, _pool_config(), WorkspaceConfig(), ROUTER1_ADDRESS
-    )
+@fixture
+def simple_pool_factory():
+    pools = []
+
+    def factory(opener, pool_config=None):
+        nonlocal pools
+
+        pool = RoutedBoltPool(
+            opener,
+            _pool_config() if pool_config is None else pool_config,
+            WorkspaceConfig(),
+            ROUTER1_ADDRESS,
+        )
+        pools.append(pool)
+        return pool
+
+    try:
+        yield factory
+    finally:
+        for pool in pools:
+            pool.close()
 
 
 TEST_DB1 = AcquisitionDatabase("test_db1")
@@ -164,11 +184,12 @@ TEST_DB2 = AcquisitionDatabase("test_db2")
 @mark_sync_test
 def test_acquires_new_routing_table_if_deleted(
     custom_routing_opener,
+    simple_pool_factory,
     guessed_db,
 ) -> None:
     db = AcquisitionDatabase("test_db", guessed=guessed_db)
     opener = custom_routing_opener(db_resolve=make_home_db_resolve(db.name))
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     cx = pool.acquire(READ_ACCESS, 30, db, None, None, None)
     pool.release(cx)
     assert pool.routing_tables.get(db.name)
@@ -187,11 +208,12 @@ def test_acquires_new_routing_table_if_deleted(
 @mark_sync_test
 def test_acquires_new_routing_table_if_stale(
     custom_routing_opener,
+    simple_pool_factory,
     guessed_db,
 ) -> None:
     db = AcquisitionDatabase("test_db", guessed=guessed_db)
     opener = custom_routing_opener(db_resolve=make_home_db_resolve(db.name))
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     cx = pool.acquire(READ_ACCESS, 30, db, None, None, None)
     pool.release(cx)
     assert pool.routing_tables.get(db.name)
@@ -210,8 +232,8 @@ def test_acquires_new_routing_table_if_stale(
 
 
 @mark_sync_test
-def test_removes_old_routing_table(opener):
-    pool = _simple_pool(opener)
+def test_removes_old_routing_table(simple_pool_factory, opener):
+    pool = simple_pool_factory(opener)
     cx = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     pool.release(cx)
     assert pool.routing_tables.get(TEST_DB1.name)
@@ -234,7 +256,9 @@ def test_removes_old_routing_table(opener):
 
 @pytest.mark.parametrize("guessed_db", (True, False))
 @mark_sync_test
-def test_db_resolution_callback(custom_routing_opener, guessed_db):
+def test_db_resolution_callback(
+    simple_pool_factory, custom_routing_opener, guessed_db
+):
     cb_calls = []
 
     def cb(db_):
@@ -246,7 +270,7 @@ def test_db_resolution_callback(custom_routing_opener, guessed_db):
     expected_target_db = home_db if db.guessed else db.name
 
     opener = custom_routing_opener(db_resolve=make_home_db_resolve(home_db))
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     cx = pool.acquire(
         READ_ACCESS, 30, db, None, None, None, database_callback=cb
     )
@@ -259,8 +283,10 @@ def test_db_resolution_callback(custom_routing_opener, guessed_db):
 
 @pytest.mark.parametrize("type_", ("r", "w"))
 @mark_sync_test
-def test_chooses_right_connection_type(opener, type_):
-    pool = _simple_pool(opener)
+def test_chooses_right_connection_type(
+    simple_pool_factory, opener, type_
+):
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(
         READ_ACCESS if type_ == "r" else WRITE_ACCESS,
         30,
@@ -277,8 +303,8 @@ def test_chooses_right_connection_type(opener, type_):
 
 
 @mark_sync_test
-def test_reuses_connection(opener):
-    pool = _simple_pool(opener)
+def test_reuses_connection(simple_pool_factory, opener):
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     pool.release(cx1)
     cx2 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
@@ -287,7 +313,9 @@ def test_reuses_connection(opener):
 
 @pytest.mark.parametrize("break_on_close", (True, False))
 @mark_sync_test
-def test_closes_stale_connections(opener, break_on_close):
+def test_closes_stale_connections(
+    simple_pool_factory, opener, break_on_close
+):
     def break_connection():
         pool.deactivate(cx1.unresolved_address)
 
@@ -298,7 +326,7 @@ def test_closes_stale_connections(opener, break_on_close):
             return res
         return None
 
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     pool.release(cx1)
     assert cx1 in pool.connections[cx1.unresolved_address]
@@ -322,8 +350,10 @@ def test_closes_stale_connections(opener, break_on_close):
 
 
 @mark_sync_test
-def test_does_not_close_stale_connections_in_use(opener):
-    pool = _simple_pool(opener)
+def test_does_not_close_stale_connections_in_use(
+    simple_pool_factory, opener
+):
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     assert cx1 in pool.connections[cx1.unresolved_address]
     # simulate connection going stale (e.g. exceeding idle timeout) while being
@@ -352,8 +382,8 @@ def test_does_not_close_stale_connections_in_use(opener):
 
 
 @mark_sync_test
-def test_release_resets_connections(opener):
-    pool = _simple_pool(opener)
+def test_release_resets_connections(simple_pool_factory, opener):
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     cx1.is_reset_mock.return_value = False
     cx1.is_reset_mock.reset_mock()
@@ -363,8 +393,10 @@ def test_release_resets_connections(opener):
 
 
 @mark_sync_test
-def test_release_does_not_resets_closed_connections(opener):
-    pool = _simple_pool(opener)
+def test_release_does_not_resets_closed_connections(
+    simple_pool_factory, opener
+):
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     cx1.closed.return_value = True
     cx1.closed.reset_mock()
@@ -376,8 +408,10 @@ def test_release_does_not_resets_closed_connections(opener):
 
 
 @mark_sync_test
-def test_release_does_not_resets_defunct_connections(opener):
-    pool = _simple_pool(opener)
+def test_release_does_not_resets_defunct_connections(
+    simple_pool_factory, opener
+):
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     cx1.defunct.return_value = True
     cx1.defunct.reset_mock()
@@ -391,9 +425,9 @@ def test_release_does_not_resets_defunct_connections(opener):
 @pytest.mark.parametrize("liveness_timeout", (0, 1, 2))
 @mark_sync_test
 def test_acquire_performs_no_liveness_check_on_fresh_connection(
-    opener, liveness_timeout
+    simple_pool_factory, opener, liveness_timeout
 ):
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     cx1 = pool._acquire(
         READER1_ADDRESS, None, Deadline(30), liveness_timeout
     )
@@ -404,9 +438,9 @@ def test_acquire_performs_no_liveness_check_on_fresh_connection(
 @pytest.mark.parametrize("liveness_timeout", (0, 1, 2))
 @mark_sync_test
 def test_acquire_performs_liveness_check_on_existing_connection(
-    opener, liveness_timeout
+    simple_pool_factory, opener, liveness_timeout
 ):
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     # populate the pool with a connection
     cx1 = pool._acquire(
         READER1_ADDRESS, None, Deadline(30), liveness_timeout
@@ -437,13 +471,13 @@ def test_acquire_performs_liveness_check_on_existing_connection(
 )
 @mark_sync_test
 def test_acquire_creates_connection_on_failed_liveness_check(
-    opener, liveness_error
+    simple_pool_factory, opener, liveness_error
 ):
     def liveness_side_effect(*args, **kwargs):
         raise liveness_error("liveness check failed")
 
     liveness_timeout = 1
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     # populate the pool with a connection
     cx1 = pool._acquire(
         READER1_ADDRESS, None, Deadline(30), liveness_timeout
@@ -479,13 +513,13 @@ def test_acquire_creates_connection_on_failed_liveness_check(
 )
 @mark_sync_test
 def test_acquire_returns_other_connection_on_failed_liveness_check(
-    opener, liveness_error
+    simple_pool_factory, opener, liveness_error
 ):
     def liveness_side_effect(*args, **kwargs):
         raise liveness_error("liveness check failed")
 
     liveness_timeout = 1
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     # populate the pool with a connection
     cx1 = pool._acquire(
         READER1_ADDRESS, None, Deadline(30), liveness_timeout
@@ -531,13 +565,13 @@ def test_acquire_returns_other_connection_on_failed_liveness_check(
 )
 @mark_sync_test
 def test_failed_liveness_check_does_not_alter_routing_table(
-    opener, liveness_error
+    simple_pool_factory, opener, liveness_error
 ):
     def liveness_side_effect(*args, **kwargs):
         raise liveness_error("liveness check failed")
 
     liveness_timeout = 1
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     # simulate cx1 failing next liveness check
     cx1.liveness_check.side_effect = liveness_side_effect
@@ -552,7 +586,9 @@ def test_failed_liveness_check_does_not_alter_routing_table(
 
 
 @mark_sync_test
-def test_multiple_broken_connections_on_close(opener, mocker):
+def test_multiple_broken_connections_on_close(
+    simple_pool_factory, opener, mocker
+):
     def mock_connection_breaks_on_close(cx):
         def close_side_effect():
             cx.closed.return_value = True
@@ -564,7 +600,7 @@ def test_multiple_broken_connections_on_close(opener, mocker):
         )
 
     # create pool with 2 idle connections
-    pool = _simple_pool(opener)
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     cx2 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
     pool.release(cx1)
@@ -585,8 +621,10 @@ def test_multiple_broken_connections_on_close(opener, mocker):
 
 
 @mark_sync_test
-def test_failing_opener_leaves_connections_in_use_alone(opener):
-    pool = _simple_pool(opener)
+def test_failing_opener_leaves_connections_in_use_alone(
+    simple_pool_factory, opener
+):
+    pool = simple_pool_factory(opener)
     cx1 = pool.acquire(READ_ACCESS, 30, TEST_DB1, None, None, None)
 
     opener.side_effect = ServiceUnavailable("Server overloaded")
@@ -1039,8 +1077,10 @@ def test_tracks_ssr_connection_hints(custom_routing_opener):
     ),
 )
 @mark_sync_test
-def test_invalid_acquisition_timeouts(opener, timeout, expected_error):
-    pool = _simple_pool(opener)
+def test_invalid_acquisition_timeouts(
+    simple_pool_factory, opener, timeout, expected_error
+):
+    pool = simple_pool_factory(opener)
 
     def call():
         with contextlib.suppress(ConnectionAcquisitionTimeoutError):
@@ -1053,3 +1093,27 @@ def test_invalid_acquisition_timeouts(opener, timeout, expected_error):
     else:
         with pytest.raises(expected_error):
             call()
+
+
+@mark_sync_test
+def test_connection_acquisition_timeout(simple_pool_factory, opener):
+    pool_max_size = 5
+
+    pool_config = _pool_config()
+    pool_config.max_connection_pool_size = pool_max_size
+    pool = simple_pool_factory(opener, pool_config)
+
+    connections = []
+    for _ in range(pool_max_size):
+        connection = pool.acquire(
+            READ_ACCESS, 0.5, TEST_DB1, None, None, None
+        )
+        connections.append(connection)
+
+    with pytest.raises(ConnectionAcquisitionTimeoutError):
+        pool.acquire(READ_ACCESS, 0.5, TEST_DB1, None, None, None)
+
+    assert set(pool.connections.keys()) == {READER1_ADDRESS}
+    assert len(pool.connections[READER1_ADDRESS]) == pool_max_size
+
+    pool.release(*connections)

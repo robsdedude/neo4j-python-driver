@@ -1460,7 +1460,12 @@ class HttpV2Pool(IOPool["HttpConnection"]):
         force_auth = auth.force_auth
         auth_manager = auth.auth or self.pool_config.auth
 
-        acquire_bounded_semaphore(self._semaphore, timeout)
+        if not acquire_bounded_semaphore(self._semaphore, timeout):
+            log.debug("[#0000]  _: <POOL> acquisition timed out")
+            raise ConnectionAcquisitionTimeoutError(
+                "failed to obtain a connection from the pool within "
+                f"{deadline.original_timeout!r}s (timeout)"
+            )
         try:
             connection = self.opener(
                 self.address, auth_manager, deadline

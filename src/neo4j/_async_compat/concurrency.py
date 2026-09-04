@@ -482,8 +482,32 @@ AsyncBoundedSemaphore: t.TypeAlias = asyncio.BoundedSemaphore
 
 async def async_acquire_bounded_semaphore(
     semaphore: AsyncBoundedSemaphore, timeout: float | None = None
-) -> None:
-    await wait_for(semaphore.acquire(), timeout=timeout)
+) -> bool:
+    acquire_finished = False
+
+    async def _acquire() -> t.Literal[True]:
+        # Before Python 3.12, wait_for wraps the passed coroutine in a Task and
+        # thus can end up being cancelled after the completion of the wrapped
+        # coroutine.
+        # This helper function makes sure this scenario is detected and the
+        # successful, but timed-out acquisition, does not end up changing the
+        # semaphore's state.
+        nonlocal acquire_finished
+        acquired = await semaphore.acquire()
+        acquire_finished = True
+        return acquired
+
+    acquired = False
+    try:
+        acquired = await wait_for(_acquire(), timeout=timeout)
+    except asyncio.CancelledError:
+        if acquire_finished:
+            semaphore.release()
+        raise
+    except asyncio.TimeoutError:
+        if acquire_finished:
+            semaphore.release()
+    return acquired
 
 
 Condition: t.TypeAlias = threading.Condition
@@ -496,5 +520,5 @@ BoundedSemaphore: t.TypeAlias = threading.BoundedSemaphore
 
 def acquire_bounded_semaphore(
     semaphore: BoundedSemaphore, timeout: float | None = None
-) -> None:
-    semaphore.acquire(timeout=timeout)
+) -> bool:
+    return semaphore.acquire(timeout=timeout)
