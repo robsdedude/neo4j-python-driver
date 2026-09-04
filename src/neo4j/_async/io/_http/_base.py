@@ -167,7 +167,7 @@ class AsyncHttpConnectionFactory:
                 return await self._fetch_unguarded(query_api)
             except Exception as e:
                 log.warning(
-                    "[#%04X]  _: Failed to fetch  server info: %r",
+                    "[#%04X]  _: Failed to fetch server info: %r",
                     self._log_id,
                     e,
                 )

@@ -116,7 +116,6 @@ Each supported scheme maps to a particular :class:`neo4j.Driver` subclass that i
     See https://neo4j.com/docs/operations-manual/current/configuration/ports/ for Neo4j ports.
 
 
-
 .. versionchanged:: 6.2
     Added support for ``http`` and ``https`` schemes.
 
@@ -955,7 +954,7 @@ Will result in:
 .. _http-driver-ref:
 
 HttpDriver
-===========
+==========
 
 URI schemes:
     ``http``, ``https``
