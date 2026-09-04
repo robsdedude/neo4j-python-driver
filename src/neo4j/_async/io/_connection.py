@@ -93,7 +93,7 @@ class AsyncConnection(abc.ABC):
     @property
     @abc.abstractmethod
     def supports_notification_filtering(self) -> bool:
-        """Whether the connection version supports re-authentication."""
+        """Whether the connection version supports notification filtering."""
         raise NotImplementedError
 
     @abc.abstractmethod
