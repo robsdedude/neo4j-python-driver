@@ -18,14 +18,12 @@ import pytest
 
 from neo4j import READ_ACCESS
 from neo4j._addressing import ResolvedAddress
-from neo4j._async_compat.network._http_query_api import HTTPQueryAPIFactory
 from neo4j._conf import WorkspaceConfig
 from neo4j._sync.config import PoolConfig
 from neo4j._sync.io import (
     AcquisitionDatabase,
     HttpV2Pool,
 )
-from neo4j._sync.io._http import HttpConnectionFactory
 from neo4j.auth_management import AuthManagers
 from neo4j.exceptions import ConnectionAcquisitionTimeoutError
 
@@ -33,6 +31,7 @@ from ...._async_compat import (
     fixture,
     mark_sync_test,
 )
+from ...._optional_deps import mark_skip_if_http_dependencies_missing
 
 
 ADDRESS = ResolvedAddress(("1.2.3.1", 9000), host_name="host")
@@ -79,6 +78,9 @@ def _auth_manager(auth):
 
 @fixture
 def simple_pool_factory(mocker):
+    from neo4j._async_compat.network._http_query_api import HTTPQueryAPIFactory
+    from neo4j._sync.io._http import HttpConnectionFactory
+
     pools = []
 
     def factory(opener, pool_config=None):
@@ -108,6 +110,7 @@ TEST_DB = AcquisitionDatabase("test_db")
 
 
 @mark_sync_test
+@mark_skip_if_http_dependencies_missing
 def test_connection_acquisition_timeout(simple_pool_factory, opener):
     pool_max_size = 5
 

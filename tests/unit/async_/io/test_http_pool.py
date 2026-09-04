@@ -23,10 +23,6 @@ from neo4j._async.io import (
     AcquisitionDatabase,
     AsyncHttpV2Pool,
 )
-from neo4j._async.io._http import AsyncHttpConnectionFactory
-from neo4j._async_compat.network._http_query_api import (
-    AsyncHTTPQueryAPIFactory,
-)
 from neo4j._conf import WorkspaceConfig
 from neo4j.auth_management import AsyncAuthManagers
 from neo4j.exceptions import ConnectionAcquisitionTimeoutError
@@ -35,6 +31,7 @@ from ...._async_compat import (
     async_fixture,
     mark_async_test,
 )
+from ...._optional_deps import mark_skip_if_http_dependencies_missing
 
 
 ADDRESS = ResolvedAddress(("1.2.3.1", 9000), host_name="host")
@@ -81,6 +78,11 @@ def _auth_manager(auth):
 
 @async_fixture
 async def simple_pool_factory(mocker):
+    from neo4j._async.io._http import AsyncHttpConnectionFactory
+    from neo4j._async_compat.network._http_query_api import (
+        AsyncHTTPQueryAPIFactory,
+    )
+
     pools = []
 
     def factory(opener, pool_config=None):
@@ -110,6 +112,7 @@ TEST_DB = AcquisitionDatabase("test_db")
 
 
 @mark_async_test
+@mark_skip_if_http_dependencies_missing
 async def test_connection_acquisition_timeout(simple_pool_factory, opener):
     pool_max_size = 5
 

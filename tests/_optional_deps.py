@@ -87,6 +87,7 @@ __all__ = [
     "HAS_NP",
     "HAS_PA",
     "HAS_PD",
+    "mark_skip_if_http_dependencies_missing",
     "mark_skip_with_optional_dependency",
     "mark_skip_without_optional_dependency",
     "np",
@@ -136,6 +137,11 @@ def skip_if_mocked_dependency(dep: t.Any) -> None:
         name_any = getattr(dep, "_OptionalDepsMock__optional_dep_name", None)
         name = name_any if isinstance(name_any, str) else "optional dependency"
         pytest.skip(f"{name} not installed")
+
+
+mark_skip_if_http_dependencies_missing = pytest.mark.skipif(
+    not HAS_HTTP, reason="aiohttp and urllib3 are not installed"
+)
 
 
 def skip_if_http_dependencies_missing() -> None:
