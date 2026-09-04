@@ -553,11 +553,11 @@ class _HeaderLogFormatter:
 
     def _compute_repr(self) -> str:
         fields_repr = (
-            f"{key!r}: {value!r}" for key, value in self._iter_sanintized()
+            f"{key!r}: {value!r}" for key, value in self._iter_sanitized()
         )
         return f"{{{', '.join(fields_repr)}}}"
 
-    def _iter_sanintized(self) -> t.Generator[tuple[str, str]]:
+    def _iter_sanitized(self) -> t.Generator[tuple[str, str]]:
         if self._headers is None:
             return
         for key, values in self._headers:
