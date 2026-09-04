@@ -623,7 +623,7 @@ For example:
     via ``http://`` or ``https://`` scheme.
 
 
-:Type: ``Callable`` or  :data:`None`
+:Type: ``Callable`` or :data:`None`
 :Default: :data:`None`
 
 
