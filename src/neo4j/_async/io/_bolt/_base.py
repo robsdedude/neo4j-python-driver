@@ -404,11 +404,6 @@ class AsyncBolt(AsyncConnection):
 
         return connection
 
-    @property
-    @abc.abstractmethod
-    def encrypted(self):
-        pass
-
     @abc.abstractmethod
     async def hello(self, dehydration_hooks=None, hydration_hooks=None):
         """

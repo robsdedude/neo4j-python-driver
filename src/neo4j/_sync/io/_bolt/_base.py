@@ -403,11 +403,6 @@ class Bolt(Connection):
 
         return connection
 
-    @property
-    @abc.abstractmethod
-    def encrypted(self):
-        pass
-
     @abc.abstractmethod
     def hello(self, dehydration_hooks=None, hydration_hooks=None):
         """

@@ -29,4 +29,16 @@ if __name__ == "__main__":
     if IS_HTTP:
         factors = ["integration-http", "integration-allextra"]
     factor_args = (arg for factor in factors for arg in ("-f", factor))
-    run_python(["-m", "tox", "-vv", *factor_args])
+    run_python(
+        [
+            "-m",
+            "tox",
+            "-vv",
+            *factor_args,
+            "--",
+            "-vv",
+            "--showlocals",
+            "--tb=long",
+            "--log-level=DEBUG",
+        ]
+    )

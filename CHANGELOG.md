@@ -8,7 +8,7 @@ See also https://github.com/neo4j/neo4j-python-driver/wiki for a full changelog.
   This deprecation will be turned into an exception in a future version.
 
 
-## Version 6.2
+## Version 6.2 - 6.3
 - No breaking or major changes.
 
 
