@@ -503,7 +503,7 @@ class _Routing:
 
 
 class _Http(_Direct):
-    _default_port = 7687
+    _default_port = 7474
 
 
 class AsyncDriver:
