@@ -462,5 +462,5 @@ class Unpacker:
             raise ValueError(f"Expected structure, found marker {marker:02X}")
 
     @staticmethod
-    def new_unpackable_buffer():
-        return UnpackableBuffer()
+    def new_unpackable_buffer(data=None):
+        return UnpackableBuffer(data=data)

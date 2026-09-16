@@ -27,6 +27,11 @@ class UnsupportedType:
     containing a type that the current version of the driver does not yet
     understand.
 
+    Likewise is this type used if the driver receives a type it no longer
+    supports. In such case, the :attr:`minimum_protocol_version` attribute will
+    indicate the required protocol version that is no longer supported.
+    Further, will the :attr:`message` clearly indicate this condition.
+
     Note that this type may only be received from the server but cannot be
     sent to the server (e.g., as a query parameter).
 
@@ -34,8 +39,8 @@ class UnsupportedType:
     purposes.
     They may change in future versions of the server and should not be relied
     upon for any logic in your application.
-    If your application requires handling this type, you must upgrade your
-    driver to a version that supports it.
+    If your application requires handling the underlying type, you must upgrade
+    (or downgrade) your driver to a version that supports it.
     """
 
     _name: str

@@ -44,6 +44,9 @@ from typing import (
     Concatenate,
     Final,
     Generic,
+    get_args,
+    get_origin,
+    get_type_hints,
     Literal,
     NamedTuple,
     overload,
@@ -98,6 +101,9 @@ __all__: list[str] = [
     "ValuesView",
     "assert_never",
     "cast",
+    "get_args",
+    "get_origin",
+    "get_type_hints",
     "overload",
 ]
 
