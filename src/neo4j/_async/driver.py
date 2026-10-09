@@ -45,7 +45,7 @@ from .._debug import ENABLED as DEBUG_ENABLED
 from .._warnings import (
     deprecation_warn,
     preview_warn,
-    unclosed_resource_warn,
+    unclosed_resource_warn, preview,
 )
 from .._work import (
     EagerResult,
@@ -86,11 +86,14 @@ from .bookmark_manager import (
     TBmConsumer as _TBmConsumer,
     TBmSupplier as _TBmSupplier,
 )
-from .config import AsyncPoolConfig
+from .config import AsyncPoolConfig, AsyncDriverConfig
 from .work import (
     AsyncManagedTransaction,
     AsyncResult,
     AsyncSession,
+)
+from .property_encryption.profile import (
+    AsyncPropertyEncryptionProfile,
 )
 
 
@@ -172,6 +175,9 @@ class AsyncGraphDatabase:
             bookmark_manager: (
                 AsyncBookmarkManager | BookmarkManager | None
             ) = ...,
+            property_encryption_profiles: t.Iterable[
+                AsyncPropertyEncryptionProfile
+            ] = ...,
         ) -> AsyncDriver: ...
 
     else:
@@ -272,6 +278,8 @@ class AsyncGraphDatabase:
                     "greater than or equal to 0 but was "
                     f"{liveness_check_timeout}."
                 )
+
+            _normalize_property_encryption_profiles(config)
 
             assert driver_type in {DRIVER_BOLT, DRIVER_NEO4J, DRIVER_HTTP}
             if driver_type == DRIVER_NEO4J:
@@ -532,12 +540,14 @@ class AsyncDriver:
     #: Flag if the driver has been closed
     _closed = False
 
-    def __init__(self, pool, default_workspace_config):
+    def __init__(self, pool, default_workspace_config, driver_config):
         assert pool is not None
         assert default_workspace_config is not None
+        assert driver_config is not None
         self._pool = pool
         self._default_workspace_config = default_workspace_config
         self._query_bookmark_manager = AsyncGraphDatabase.bookmark_manager()
+        self._driver_config = driver_config
 
     async def __aenter__(self) -> AsyncDriver:
         return self
@@ -1331,6 +1341,16 @@ class AsyncDriver:
         async with self._session(session_config) as session:
             return await session._get_server_info()
 
+    @preview("Property encryption is a preview feature.")
+    def property_encryption(self) -> AsyncPropertyEncryption:
+        """
+        Provide and handle to encryption for Neo4j properties.
+
+        .. versionadded:: 6.4
+
+        .. seealso:: :mod:`.property_encryption`
+        """
+
 
 async def _work(
     tx: AsyncManagedTransaction,
@@ -1361,20 +1381,23 @@ class AsyncBoltDriver(_Direct, AsyncDriver):
         from .io import AsyncDirectBoltPool
 
         address = cls._parse_target(target)
-        pool_config, default_workspace_config = Config.consume_chain(
-            config, AsyncPoolConfig, WorkspaceConfig
+        pool_config, default_workspace_config, driver_config = (
+            Config.consume_chain(
+                config, AsyncPoolConfig, WorkspaceConfig, AsyncDriverConfig
+            )
         )
         pool = AsyncDirectBoltPool.open(
             address,
             pool_config=pool_config,
             workspace_config=default_workspace_config,
         )
-        return cls(pool, default_workspace_config)
+        return cls(pool, default_workspace_config, driver_config)
 
-    def __init__(self, pool, default_workspace_config):
+    def __init__(self, pool, default_workspace_config, driver_config):
         _Direct.__init__(self, pool.address)
-        AsyncDriver.__init__(self, pool, default_workspace_config)
-        self._default_workspace_config = default_workspace_config
+        AsyncDriver.__init__(
+            self, pool, default_workspace_config, driver_config
+        )
 
 
 class AsyncNeo4jDriver(_Routing, AsyncDriver):
@@ -1395,8 +1418,10 @@ class AsyncNeo4jDriver(_Routing, AsyncDriver):
         from .io import AsyncRoutedBoltPool
 
         addresses = cls._parse_targets(*targets)
-        pool_config, default_workspace_config = Config.consume_chain(
-            config, AsyncPoolConfig, WorkspaceConfig
+        pool_config, default_workspace_config, driver_config = (
+            Config.consume_chain(
+                config, AsyncPoolConfig, WorkspaceConfig, AsyncDriverConfig
+            )
         )
         pool = AsyncRoutedBoltPool.open(
             *addresses,
@@ -1404,11 +1429,13 @@ class AsyncNeo4jDriver(_Routing, AsyncDriver):
             pool_config=pool_config,
             workspace_config=default_workspace_config,
         )
-        return cls(pool, default_workspace_config)
+        return cls(pool, default_workspace_config, driver_config)
 
-    def __init__(self, pool, default_workspace_config):
+    def __init__(self, pool, default_workspace_config, driver_config):
         _Routing.__init__(self, [pool.address])
-        AsyncDriver.__init__(self, pool, default_workspace_config)
+        AsyncDriver.__init__(
+            self, pool, default_workspace_config, driver_config
+        )
 
 
 class AsyncHttpDriver(_Http, AsyncDriver):
@@ -1508,8 +1535,10 @@ class AsyncHttpDriver(_Http, AsyncDriver):
     def _open(cls, target, path, **config) -> t.Self:
         from .io import AsyncHttpV2Pool
 
-        pool_config, default_workspace_config = Config.consume_chain(
-            config, AsyncPoolConfig, WorkspaceConfig
+        pool_config, default_workspace_config, driver_config = (
+            Config.consume_chain(
+                config, AsyncPoolConfig, WorkspaceConfig, AsyncDriverConfig
+            )
         )
         if pool_config.encrypted:
             address = cls._parse_target_secure(target)
@@ -1521,11 +1550,13 @@ class AsyncHttpDriver(_Http, AsyncDriver):
             pool_config=pool_config,
             workspace_config=default_workspace_config,
         )
-        return cls(pool, default_workspace_config)
+        return cls(pool, default_workspace_config, driver_config)
 
-    def __init__(self, pool, default_workspace_config) -> None:
+    def __init__(self, pool, default_workspace_config, driver_config) -> None:
         _Http.__init__(self, pool.address)
-        AsyncDriver.__init__(self, pool, default_workspace_config)
+        AsyncDriver.__init__(
+            self, pool, default_workspace_config, driver_config
+        )
 
 
 def _normalize_notifications_config(config_kwargs, *, driver_level=False):
@@ -1580,3 +1611,27 @@ def _normalize_notifications_config(config_kwargs, *, driver_level=False):
                 )
         elif value == NotificationMinimumSeverity.OFF:
             config_kwargs["warn_notification_severity"] = None
+
+
+def _normalize_property_encryption_profiles(config: dict[str, t.Any]) -> None:
+    if "property_encryption_profiles" not in config:
+        return
+    preview_warn(
+        "Property encryption is a preview feature.",
+        stack_level=3,
+    )
+    profiles = frozenset(config["property_encryption_profiles"])
+    names: set[str] = set()
+    for profile in profiles:
+        if not isinstance(profile, AsyncPropertyEncryptionProfile):
+            raise TypeError(
+                "Invalid type for property encryption profile: "
+                f"{type(profile)}."
+            )
+        if profile.name in names:
+            raise ValueError(
+                f"Duplicate property encryption profile name in configuration "
+                f"property_encryption_profiles: {profile.name}"
+            )
+        names.add(profile.name)
+    config["property_encryption_profiles"] = profiles

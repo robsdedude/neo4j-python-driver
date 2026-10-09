@@ -20,8 +20,8 @@ import dataclasses
 import math
 import re
 
-from ._version import VersionTuple
 from . import _typing as t
+from ._version import VersionTuple
 from .api import ServerInfo
 
 

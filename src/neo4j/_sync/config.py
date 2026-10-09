@@ -36,6 +36,7 @@ if t.TYPE_CHECKING:
         AuthManager,
         ClientCertificate,
     )
+    from .property_encryption import PropertyEncryptionProfile
 
 
 class PoolConfig(Config):
@@ -195,3 +196,10 @@ class PoolConfig(Config):
 
             self._ssl_context_cache = ssl_context
             return ssl_context
+
+
+class DriverConfig(Config):
+    #: A set of property encryption profiles
+    property_encryption_profiles: frozenset[PropertyEncryptionProfile] = (
+        frozenset()
+    )

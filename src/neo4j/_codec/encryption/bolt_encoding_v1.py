@@ -61,40 +61,54 @@ class BoltEncodingSchemeV1(BoltEncodingScheme):
             f"No backward compatibility declared from {cls.__name__}."
         )
 
-    _1_0_LIST_SAFE_TYPES = (
-        bool,
-        int,
-        float,
-        bytes,
-        uuid.UUID,
-        str,
-        Time,
-        Duration,
-        DateTime,
-        Date,
-        Point,
-    )
-    _1_0_NON_LIST_SAFE_TYPES = (
-        Vector,
-        type(None),
-    )
-
     @classmethod
     @abc.abstractmethod
-    def type_baseline(cls, value: object) -> SchemeVersion:
+    def type_baseline(cls, value: object) -> tuple[SchemeVersion, str]:
         return cls._type_baseline(value, inside_list=False)
 
     @classmethod
-    def _type_baseline(cls, value, inside_list=False) -> SchemeVersion:
-        if isinstance(value, cls._1_0_LIST_SAFE_TYPES):
-            return SchemeVersion(1, 0)
+    def _type_baseline(
+        cls, value: object, /, *, inside_list: bool
+    ) -> tuple[SchemeVersion, str]:
+        if isinstance(value, bool):
+            return SchemeVersion(1, 0), "BOOLEAN"
+        if isinstance(value, int):
+            return SchemeVersion(1, 0), "INTEGER"
+        if isinstance(value, float):
+            return SchemeVersion(1, 0), "FLOAT"
+        if isinstance(value, bytes):
+            return SchemeVersion(1, 0), "BYTES"
+        if isinstance(value, uuid.UUID):
+            return SchemeVersion(1, 0), "UUID"
+        if isinstance(value, str):
+            return SchemeVersion(1, 0), "STRING"
+        if isinstance(value, Time):
+            if value.tz is None:
+                return SchemeVersion(1, 0), "LOCAL TIME"
+            else:
+                return SchemeVersion(1, 0), "ZONED TIME"
+        if isinstance(value, Duration):
+            return SchemeVersion(1, 0), "DURATION"
+        if isinstance(value, DateTime):
+            if value.tz is None:
+                return SchemeVersion(1, 0), "LOCAL DATETIME"
+            else:
+                return SchemeVersion(1, 0), "ZONED DATETIME"
+        if isinstance(value, Date):
+            return SchemeVersion(1, 0), "DATE"
+        if isinstance(value, Point):
+            return SchemeVersion(1, 0), "POINT"
+
         if inside_list:
             cls._raise_for_unsupported_type(value)
-        if isinstance(value, cls._1_0_NON_LIST_SAFE_TYPES):
-            return SchemeVersion(1, 0)
+
+        if isinstance(value, Vector):
+            return SchemeVersion(1, 0), "VECTOR"
+        if value is None:
+            return SchemeVersion(1, 0), "NULL"
         if isinstance(value, list):
             if not value:
-                return SchemeVersion(1, 0)
+                return SchemeVersion(1, 0), "LIST"
             first_elem = value[0]
             first_elem_type = type(first_elem)
             if not all(type(elem) is first_elem_type for elem in value):
@@ -105,7 +119,10 @@ class BoltEncodingSchemeV1(BoltEncodingScheme):
                     (elem.tz is not None) == first_has_tz for elem in value
                 ):
                     cls._raise_for_mixed_list(value)
-            return cls._type_baseline(first_elem, inside_list=True)
+            inner_type_baseline, _ = cls._type_baseline(
+                first_elem, inside_list=True
+            )
+            return inner_type_baseline, "LIST"
         cls._raise_for_unsupported_type(value)
         t.assert_never(value)
 
@@ -119,6 +136,19 @@ class BoltEncodingSchemeV1(BoltEncodingScheme):
             f"Unsupported value type: {type(value)} "
             "containing inhomogeneous types"
         )
+
+    @classmethod
+    def type_baseline_aad(cls, value: object, /) -> SchemeVersion:
+        if isinstance(
+            value, (bool, Date, int, Time, Point, str, bytes, uuid.UUID)
+        ):
+            return SchemeVersion(1, 0)
+        cls._raise_for_unsupported_aad_type(value)
+        t.assert_never(value)
+
+    @classmethod
+    def _raise_for_unsupported_aad_type(cls, value: object) -> t.Never:
+        raise TypeError(f"Unsupported aad type: {type(value)}")
 
     @classmethod
     def _encode(cls, value: object) -> bytes | bytearray:

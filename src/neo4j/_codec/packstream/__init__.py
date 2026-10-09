@@ -15,12 +15,16 @@
 
 
 from ._common import (
+    PackableBuffer,
     RUST_AVAILABLE,
     Structure,
+    UnpackableBuffer,
 )
 
 
 __all__ = [
     "RUST_AVAILABLE",
+    "PackableBuffer",
     "Structure",
+    "UnpackableBuffer",
 ]

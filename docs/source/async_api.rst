@@ -404,6 +404,7 @@ driver accepts
  * a sync as well as an async custom resolver function (see :ref:`async-resolver-ref`)
  * a sync as well as an async auth token manager (see :class:`.AsyncAuthManager`).
  * an async client certificate provider (see :ref:`async-client-certificate-ref`).
+ * async property encryption profiles (see :ref:`async-property-encryption-profiles-ref`).
 
 
 .. _async-resolver-ref:
@@ -490,6 +491,23 @@ This setting does not have any effect if ``encrypted`` is set to ``False``
     :show-inheritance:
     :members:
 
+
+.. _async-property-encryption-profiles-ref:
+
+``property_encryption_profiles``
+--------------------------------
+Configures the property encryption profiles that the driver should use.
+
+Each profile must have a unique :attr:`.AsyncPropertyEncryptionProfile.name`.
+The profiles are identified by name when selecting a property encryption
+profile for encryption.
+
+:Type: :term:`iterable` of :class:`.AsyncPropertyEncryptionProfile`
+:Default: ``()``
+
+.. versionadded:: 6.5
+
+.. seealso:: :mod:`.property_encryption`
 
 
 AsyncDriver Object Lifetime

@@ -44,6 +44,7 @@ from .._conf import (
 from .._debug import ENABLED as DEBUG_ENABLED
 from .._warnings import (
     deprecation_warn,
+    preview,
     preview_warn,
     unclosed_resource_warn,
 )
@@ -85,7 +86,11 @@ from .bookmark_manager import (
     TBmConsumer as _TBmConsumer,
     TBmSupplier as _TBmSupplier,
 )
-from .config import PoolConfig
+from .config import (
+    DriverConfig,
+    PoolConfig,
+)
+from .property_encryption.profile import PropertyEncryptionProfile
 from .work import (
     ManagedTransaction,
     Result,
@@ -171,6 +176,9 @@ class GraphDatabase:
             bookmark_manager: (
                 BookmarkManager | BookmarkManager | None
             ) = ...,
+            property_encryption_profiles: t.Iterable[
+                PropertyEncryptionProfile
+            ] = ...,
         ) -> Driver: ...
 
     else:
@@ -271,6 +279,8 @@ class GraphDatabase:
                     "greater than or equal to 0 but was "
                     f"{liveness_check_timeout}."
                 )
+
+            _normalize_property_encryption_profiles(config)
 
             assert driver_type in {DRIVER_BOLT, DRIVER_NEO4J, DRIVER_HTTP}
             if driver_type == DRIVER_NEO4J:
@@ -531,12 +541,14 @@ class Driver:
     #: Flag if the driver has been closed
     _closed = False
 
-    def __init__(self, pool, default_workspace_config):
+    def __init__(self, pool, default_workspace_config, driver_config):
         assert pool is not None
         assert default_workspace_config is not None
+        assert driver_config is not None
         self._pool = pool
         self._default_workspace_config = default_workspace_config
         self._query_bookmark_manager = GraphDatabase.bookmark_manager()
+        self._driver_config = driver_config
 
     def __enter__(self) -> Driver:
         return self
@@ -1330,6 +1342,16 @@ class Driver:
         with self._session(session_config) as session:
             return session._get_server_info()
 
+    @preview("Property encryption is a preview feature.")
+    def property_encryption(self) -> PropertyEncryption:
+        """
+        Provide and handle to encryption for Neo4j properties.
+
+        .. versionadded:: 6.4
+
+        .. seealso:: :mod:`.property_encryption`
+        """
+
 
 def _work(
     tx: ManagedTransaction,
@@ -1360,20 +1382,23 @@ class BoltDriver(_Direct, Driver):
         from .io import DirectBoltPool
 
         address = cls._parse_target(target)
-        pool_config, default_workspace_config = Config.consume_chain(
-            config, PoolConfig, WorkspaceConfig
+        pool_config, default_workspace_config, driver_config = (
+            Config.consume_chain(
+                config, PoolConfig, WorkspaceConfig, DriverConfig
+            )
         )
         pool = DirectBoltPool.open(
             address,
             pool_config=pool_config,
             workspace_config=default_workspace_config,
         )
-        return cls(pool, default_workspace_config)
+        return cls(pool, default_workspace_config, driver_config)
 
-    def __init__(self, pool, default_workspace_config):
+    def __init__(self, pool, default_workspace_config, driver_config):
         _Direct.__init__(self, pool.address)
-        Driver.__init__(self, pool, default_workspace_config)
-        self._default_workspace_config = default_workspace_config
+        Driver.__init__(
+            self, pool, default_workspace_config, driver_config
+        )
 
 
 class Neo4jDriver(_Routing, Driver):
@@ -1394,8 +1419,10 @@ class Neo4jDriver(_Routing, Driver):
         from .io import RoutedBoltPool
 
         addresses = cls._parse_targets(*targets)
-        pool_config, default_workspace_config = Config.consume_chain(
-            config, PoolConfig, WorkspaceConfig
+        pool_config, default_workspace_config, driver_config = (
+            Config.consume_chain(
+                config, PoolConfig, WorkspaceConfig, DriverConfig
+            )
         )
         pool = RoutedBoltPool.open(
             *addresses,
@@ -1403,11 +1430,13 @@ class Neo4jDriver(_Routing, Driver):
             pool_config=pool_config,
             workspace_config=default_workspace_config,
         )
-        return cls(pool, default_workspace_config)
+        return cls(pool, default_workspace_config, driver_config)
 
-    def __init__(self, pool, default_workspace_config):
+    def __init__(self, pool, default_workspace_config, driver_config):
         _Routing.__init__(self, [pool.address])
-        Driver.__init__(self, pool, default_workspace_config)
+        Driver.__init__(
+            self, pool, default_workspace_config, driver_config
+        )
 
 
 class HttpDriver(_Http, Driver):
@@ -1507,8 +1536,10 @@ class HttpDriver(_Http, Driver):
     def _open(cls, target, path, **config) -> t.Self:
         from .io import HttpV2Pool
 
-        pool_config, default_workspace_config = Config.consume_chain(
-            config, PoolConfig, WorkspaceConfig
+        pool_config, default_workspace_config, driver_config = (
+            Config.consume_chain(
+                config, PoolConfig, WorkspaceConfig, DriverConfig
+            )
         )
         if pool_config.encrypted:
             address = cls._parse_target_secure(target)
@@ -1520,11 +1551,13 @@ class HttpDriver(_Http, Driver):
             pool_config=pool_config,
             workspace_config=default_workspace_config,
         )
-        return cls(pool, default_workspace_config)
+        return cls(pool, default_workspace_config, driver_config)
 
-    def __init__(self, pool, default_workspace_config) -> None:
+    def __init__(self, pool, default_workspace_config, driver_config) -> None:
         _Http.__init__(self, pool.address)
-        Driver.__init__(self, pool, default_workspace_config)
+        Driver.__init__(
+            self, pool, default_workspace_config, driver_config
+        )
 
 
 def _normalize_notifications_config(config_kwargs, *, driver_level=False):
@@ -1579,3 +1612,27 @@ def _normalize_notifications_config(config_kwargs, *, driver_level=False):
                 )
         elif value == NotificationMinimumSeverity.OFF:
             config_kwargs["warn_notification_severity"] = None
+
+
+def _normalize_property_encryption_profiles(config: dict[str, t.Any]) -> None:
+    if "property_encryption_profiles" not in config:
+        return
+    preview_warn(
+        "Property encryption is a preview feature.",
+        stack_level=3,
+    )
+    profiles = frozenset(config["property_encryption_profiles"])
+    names: set[str] = set()
+    for profile in profiles:
+        if not isinstance(profile, PropertyEncryptionProfile):
+            raise TypeError(
+                "Invalid type for property encryption profile: "
+                f"{type(profile)}."
+            )
+        if profile.name in names:
+            raise ValueError(
+                f"Duplicate property encryption profile name in configuration "
+                f"property_encryption_profiles: {profile.name}"
+            )
+        names.add(profile.name)
+    config["property_encryption_profiles"] = profiles

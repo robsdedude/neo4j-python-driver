@@ -72,6 +72,7 @@ http = [
     # [bump-urllib3] search tag when bumping urllib3
     "urllib3 >= 2.0.0, < 3.0.0",
 ]
+encryption = ["cryptography >= 49.0.0, < 51.0.0"]
 
 
 [build-system]

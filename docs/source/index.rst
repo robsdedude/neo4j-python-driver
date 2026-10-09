@@ -43,6 +43,8 @@ Topics
 
 + :ref:`other-data-types`
 
++ :ref:`property-encryption`
+
 + :ref:`breaking-changes`
 
 
@@ -56,6 +58,7 @@ Topics
    types/temporal.rst
    types/vector.rst
    types/other.rst
+   property_encryption.rst
    breaking_changes.rst
 
 

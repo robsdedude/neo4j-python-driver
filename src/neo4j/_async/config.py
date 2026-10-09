@@ -37,6 +37,7 @@ if t.TYPE_CHECKING:
         AuthManager,
         ClientCertificate,
     )
+    from .property_encryption import AsyncPropertyEncryptionProfile
 
 
 class AsyncPoolConfig(Config):
@@ -196,3 +197,10 @@ class AsyncPoolConfig(Config):
 
             self._ssl_context_cache = ssl_context
             return ssl_context
+
+
+class AsyncDriverConfig(Config):
+    #: A set of property encryption profiles
+    property_encryption_profiles: frozenset[AsyncPropertyEncryptionProfile] = (
+        frozenset()
+    )

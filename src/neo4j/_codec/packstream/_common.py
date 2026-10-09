@@ -16,15 +16,22 @@
 
 from contextlib import contextmanager
 
+from ... import _typing as t
 
-try:
-    from ..._rust.codec.packstream import Structure
 
-    RUST_AVAILABLE = True
-except ImportError:
+if t.TYPE_CHECKING:
     from ._python import Structure
 
-    RUST_AVAILABLE = False
+    RUST_AVAILABLE: bool
+else:
+    try:
+        from ..._rust.codec.packstream import Structure
+
+        RUST_AVAILABLE = True
+    except ImportError:
+        from ._python import Structure
+
+        RUST_AVAILABLE = False
 
 
 class PackableBuffer:

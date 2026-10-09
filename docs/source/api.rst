@@ -437,6 +437,7 @@ Additional configuration can be provided via the :class:`neo4j.Driver` construct
 + :ref:`driver-warn-notification-severity-ref`
 + :ref:`telemetry-disabled-ref`
 + :ref:`disable-auto-commit-retries-ref`
++ :ref:`property-encryption-profiles-ref`
 
 :ref:`encryption-config-note-ref`
 
@@ -873,6 +874,24 @@ when encountering rate limiting and other errors that can be safely retried.
 :Default: :data:`False`
 
 .. versionadded:: 6.2
+
+
+.. _property-encryption-profiles-ref:
+
+``property_encryption_profiles``
+--------------------------------
+Configures the property encryption profiles that the driver should use.
+
+Each profile must have a unique :attr:`.PropertyEncryptionProfile.name`.
+The profiles are identified by name when selecting a property encryption
+profile for encryption.
+
+:Type: :term:`iterable` of :class:`.PropertyEncryptionProfile`
+:Default: ``()``
+
+.. versionadded:: 6.5
+
+.. seealso:: :mod:`.property_encryption`
 
 
 .. _encryption-config-note-ref:
