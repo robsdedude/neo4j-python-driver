@@ -481,7 +481,16 @@ class GqlError(Exception):
             f"{{gql_status_description: {self.gql_status_description}}} "
             f"{{message: {self.message}}} "
             f"{{diagnostic_record: {self.diagnostic_record}}} "
-            f"{{raw_classification: {self.gql_raw_classification}}}"
+            f"{{classification: {self.gql_classification}}}"
+        )
+
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__name__} "
+            f"gql_status={self.gql_status!r} "
+            f"gql_status_description={self.gql_status_description!r} "
+            f"message={self.message!r} "
+            f"diagnostic_record={self.diagnostic_record!r}>"
         )
 
 
@@ -712,6 +721,19 @@ class Neo4jError(GqlError):
             f"{{message: {message}}} "
             f"{{gql_status: {gql_status}}} "
             f"{{gql_status_description: {gql_description}}}"
+        )
+
+    def __repr__(self):
+        if not getattr(self, "_from_server", False):
+            return Exception.__repr__(self)
+        return (
+            f"<{self.__class__.__name__} "
+            f"neo4j_code={self.code!r} "
+            f"message={self.message!r} "
+            f"gql_status={self.gql_status!r} "
+            f"gql_status_description={self.gql_status_description!r} "
+            f"message={self.message!r} "
+            f"diagnostic_record={self.diagnostic_record!r}>"
         )
 
 

@@ -20,6 +20,7 @@ from ...._api import TelemetryAPI
 from ...._async_compat.util import Util
 from ...._exceptions import BoltProtocolError
 from ...._io import BoltProtocolVersion
+from ...._logging import LazyStr
 from ....api import (
     READ_ACCESS,
     SYSTEM_DATABASE,
@@ -134,7 +135,7 @@ class Bolt4x0(Bolt):
         logged_headers = dict(headers)
         if "credentials" in logged_headers:
             logged_headers["credentials"] = "*******"
-        log.debug("[#%04X]  C: HELLO %r", self.local_port, logged_headers)
+        self._log_client_message("HELLO", (logged_headers,))
         self._append(
             b"\x01",
             (headers,),
@@ -281,9 +282,7 @@ class Bolt4x0(Bolt):
         if timeout is not None:
             extra["tx_timeout"] = tx_timeout_as_ms(timeout)
         fields = (query, parameters, extra)
-        log.debug(
-            "[#%04X]  C: RUN %s", self.local_port, " ".join(map(repr, fields))
-        )
+        self._log_client_message("RUN", fields)
         self._append(
             b"\x10",
             fields,
@@ -305,7 +304,7 @@ class Bolt4x0(Bolt):
         extra = {"n": n}
         if qid not in {-1, self.most_recent_qid}:
             extra["qid"] = qid
-        log.debug("[#%04X]  C: DISCARD %r", self.local_port, extra)
+        self._log_client_message("DISCARD", (extra,))
         self._append(
             b"\x2f",
             (extra,),
@@ -327,7 +326,7 @@ class Bolt4x0(Bolt):
         extra = {"n": n}
         if qid not in {-1, self.most_recent_qid}:
             extra["qid"] = qid
-        log.debug("[#%04X]  C: PULL %r", self.local_port, extra)
+        self._log_client_message("PULL", (extra,))
         self._append(
             b"\x3f",
             (extra,),
@@ -386,7 +385,7 @@ class Bolt4x0(Bolt):
                 ) from None
         if timeout is not None:
             extra["tx_timeout"] = tx_timeout_as_ms(timeout)
-        log.debug("[#%04X]  C: BEGIN %r", self.local_port, extra)
+        self._log_client_message("BEGIN", (extra,))
         self._append(
             b"\x11",
             (extra,),
@@ -398,7 +397,7 @@ class Bolt4x0(Bolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: COMMIT", self.local_port)
+        self._log_client_message("COMMIT")
         self._append(
             b"\x12",
             (),
@@ -412,7 +411,7 @@ class Bolt4x0(Bolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: ROLLBACK", self.local_port)
+        self._log_client_message("ROLLBACK")
         self._append(
             b"\x13",
             (),
@@ -430,7 +429,7 @@ class Bolt4x0(Bolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: RESET", self.local_port)
+        self._log_client_message("RESET")
         response = ResetResponse(self, "reset", hydration_hooks)
         self._append(
             b"\x0f", response=response, dehydration_hooks=dehydration_hooks
@@ -442,7 +441,7 @@ class Bolt4x0(Bolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: GOODBYE", self.local_port)
+        self._log_client_message("GOODBYE")
         self._append(b"\x02", (), dehydration_hooks=dehydration_hooks)
 
     def _process_message(self, tag, fields):
@@ -464,7 +463,9 @@ class Bolt4x0(Bolt):
 
         if details:
             # Do not log any data
-            log.debug("[#%04X]  S: RECORD * %d", self.local_port, len(details))
+            self._log_server_message(
+                "RECORD", extra=LazyStr(lambda: f" * {len(details):d}")
+            )
             self.responses[0].on_records(details)
 
         if summary_signature is None:
@@ -473,20 +474,16 @@ class Bolt4x0(Bolt):
         response = self.responses.popleft()
         response.complete = True
         if summary_signature == b"\x70":
-            log.debug(
-                "[#%04X]  S: SUCCESS %r", self.local_port, summary_metadata
-            )
+            self._log_server_message("SUCCESS", (summary_metadata,))
             self._server_state_manager.transition(
                 response.message, summary_metadata
             )
             response.on_success(summary_metadata or {})
         elif summary_signature == b"\x7e":
-            log.debug("[#%04X]  S: IGNORED", self.local_port)
+            self._log_server_message("IGNORED")
             response.on_ignored(summary_metadata or {})
         elif summary_signature == b"\x7f":
-            log.debug(
-                "[#%04X]  S: FAILURE %r", self.local_port, summary_metadata
-            )
+            self._log_server_message("FAILURE", (summary_metadata,))
             self._server_state_manager.state = BoltStates.FAILED
             try:
                 response.on_failure(summary_metadata or {})
@@ -593,12 +590,8 @@ class Bolt4x3(Bolt4x2):
         )
 
         routing_context = self.routing_context or {}
-        log.debug(
-            "[#%04X]  C: ROUTE %r %r %r",
-            self.local_port,
-            routing_context,
-            bookmarks,
-            database,
+        self._log_client_message(
+            "ROUTE", (routing_context, bookmarks, database)
         )
         metadata = {}
         bookmarks = [] if bookmarks is None else list(bookmarks)
@@ -651,7 +644,7 @@ class Bolt4x3(Bolt4x2):
         logged_headers = dict(headers)
         if "credentials" in logged_headers:
             logged_headers["credentials"] = "*******"
-        log.debug("[#%04X]  C: HELLO %r", self.local_port, logged_headers)
+        self._log_client_message("HELLO", (logged_headers,))
         self._append(
             b"\x01",
             (headers,),
@@ -690,12 +683,8 @@ class Bolt4x4(Bolt4x3):
             db_context.update(db=database)
         if imp_user is not None:
             db_context.update(imp_user=imp_user)
-        log.debug(
-            "[#%04X]  C: ROUTE %r %r %r",
-            self.local_port,
-            routing_context,
-            bookmarks,
-            db_context,
+        self._log_client_message(
+            "ROUTE", (routing_context, bookmarks, db_context)
         )
         metadata = {}
         bookmarks = [] if bookmarks is None else list(bookmarks)
@@ -770,9 +759,7 @@ class Bolt4x4(Bolt4x3):
         if timeout is not None:
             extra["tx_timeout"] = tx_timeout_as_ms(timeout)
         fields = (query, parameters, extra)
-        log.debug(
-            "[#%04X]  C: RUN %s", self.local_port, " ".join(map(repr, fields))
-        )
+        self._log_client_message("RUN", fields)
         self._append(
             b"\x10",
             fields,
@@ -827,7 +814,7 @@ class Bolt4x4(Bolt4x3):
                 ) from None
         if timeout is not None:
             extra["tx_timeout"] = tx_timeout_as_ms(timeout)
-        log.debug("[#%04X]  C: BEGIN %r", self.local_port, extra)
+        self._log_client_message("BEGIN", (extra,))
         self._append(
             b"\x11",
             (extra,),

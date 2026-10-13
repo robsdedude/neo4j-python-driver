@@ -28,6 +28,8 @@ __all__ = [
 
 
 class LazyStr(t.Generic[R, P]):
+    __slots__ = ("_resolve", "_str")
+
     _resolve: t.Callable[[], str]
     _str: str | None
 

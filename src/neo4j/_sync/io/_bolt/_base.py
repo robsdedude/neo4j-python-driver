@@ -45,6 +45,7 @@ from ...._exceptions import (
     SocketDeadlineExceededError,
 )
 from ...._io import BoltProtocolVersion
+from ...._logging import LazyStr
 from ...._meta import USER_AGENT
 from ...._sync.config import PoolConfig
 from ....api import ServerInfo
@@ -788,6 +789,26 @@ class Bolt(Connection):
         :rtype: bool
         """
         return monotonic() - self.idle_since > timeout
+
+    def _log_client_message(
+        self, name: str, fields: t.Collection = (), extra: t.Any = ""
+    ) -> None:
+        self._log_message("C", name, fields, extra)
+
+    def _log_server_message(
+        self, name: str, fields: t.Collection = (), extra: t.Any = ""
+    ) -> None:
+        self._log_message("S", name, fields, extra)
+
+    def _log_message(
+        self, side: str, name: str, fields: t.Collection, extra: t.Any
+    ) -> None:
+        line = LazyStr(self._format_message, name, fields)
+        log.debug("[#%04X]  %s: %s%s", self.local_port, side, line, extra)
+
+    @staticmethod
+    def _format_message(name: str, fields: t.Collection[t.Any]) -> str:
+        return " ".join(map(repr, (name, *fields)))
 
 
 BoltSocket.Bolt = Bolt  # type: ignore

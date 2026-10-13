@@ -22,6 +22,7 @@ from logging import getLogger
 from .... import _typing as t
 from ...._exceptions import BoltProtocolError
 from ...._io import BoltProtocolVersion
+from ...._logging import LazyStr
 from ....api import READ_ACCESS
 from ....exceptions import (
     ConfigurationError,
@@ -213,7 +214,7 @@ class AsyncBolt3(AsyncBolt):
         logged_headers = dict(headers)
         if "credentials" in logged_headers:
             logged_headers["credentials"] = "*******"
-        log.debug("[#%04X]  C: HELLO %r", self.local_port, logged_headers)
+        self._log_client_message("HELLO", (logged_headers,))
         self._append(
             b"\x01",
             (headers,),
@@ -359,9 +360,7 @@ class AsyncBolt3(AsyncBolt):
         if timeout is not None:
             extra["tx_timeout"] = tx_timeout_as_ms(timeout)
         fields = (query, parameters, extra)
-        log.debug(
-            "[#%04X]  C: RUN %s", self.local_port, " ".join(map(repr, fields))
-        )
+        self._log_client_message("RUN", fields)
         self._append(
             b"\x10",
             fields,
@@ -381,7 +380,7 @@ class AsyncBolt3(AsyncBolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: DISCARD_ALL", self.local_port)
+        self._log_client_message("DISCARD_ALL")
         self._append(
             b"\x2f",
             (),
@@ -401,7 +400,7 @@ class AsyncBolt3(AsyncBolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: PULL_ALL", self.local_port)
+        self._log_client_message("PULL_ALL")
         self._append(
             b"\x3f",
             (),
@@ -463,7 +462,7 @@ class AsyncBolt3(AsyncBolt):
                 ) from None
         if timeout is not None:
             extra["tx_timeout"] = tx_timeout_as_ms(timeout)
-        log.debug("[#%04X]  C: BEGIN %r", self.local_port, extra)
+        self._log_client_message("BEGIN", (extra,))
         self._append(
             b"\x11",
             (extra,),
@@ -475,7 +474,7 @@ class AsyncBolt3(AsyncBolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: COMMIT", self.local_port)
+        self._log_client_message("COMMIT")
         self._append(
             b"\x12",
             (),
@@ -489,7 +488,7 @@ class AsyncBolt3(AsyncBolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: ROLLBACK", self.local_port)
+        self._log_client_message("ROLLBACK")
         self._append(
             b"\x13",
             (),
@@ -507,7 +506,7 @@ class AsyncBolt3(AsyncBolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: RESET", self.local_port)
+        self._log_client_message("RESET")
         response = ResetResponse(self, "reset", hydration_hooks)
         self._append(
             b"\x0f", response=response, dehydration_hooks=dehydration_hooks
@@ -519,7 +518,7 @@ class AsyncBolt3(AsyncBolt):
         dehydration_hooks, hydration_hooks = self._default_hydration_hooks(
             dehydration_hooks, hydration_hooks
         )
-        log.debug("[#%04X]  C: GOODBYE", self.local_port)
+        self._log_client_message("GOODBYE")
         self._append(b"\x02", (), dehydration_hooks=dehydration_hooks)
 
     async def _process_message(self, tag, fields):
@@ -541,7 +540,9 @@ class AsyncBolt3(AsyncBolt):
 
         if details:
             # Do not log any data
-            log.debug("[#%04X]  S: RECORD * %d", self.local_port, len(details))
+            self._log_server_message(
+                "RECORD", extra=LazyStr(lambda: f" * {len(details):d}")
+            )
             await self.responses[0].on_records(details)
 
         if summary_signature is None:
@@ -550,20 +551,16 @@ class AsyncBolt3(AsyncBolt):
         response = self.responses.popleft()
         response.complete = True
         if summary_signature == b"\x70":
-            log.debug(
-                "[#%04X]  S: SUCCESS %r", self.local_port, summary_metadata
-            )
+            self._log_server_message("SUCCESS", (summary_metadata,))
             self._server_state_manager.transition(
                 response.message, summary_metadata
             )
             await response.on_success(summary_metadata or {})
         elif summary_signature == b"\x7e":
-            log.debug("[#%04X]  S: IGNORED", self.local_port)
+            self._log_server_message("IGNORED")
             await response.on_ignored(summary_metadata or {})
         elif summary_signature == b"\x7f":
-            log.debug(
-                "[#%04X]  S: FAILURE %r", self.local_port, summary_metadata
-            )
+            self._log_server_message("FAILURE", (summary_metadata,))
             self._server_state_manager.state = BoltStates.FAILED
             try:
                 await response.on_failure(summary_metadata or {})

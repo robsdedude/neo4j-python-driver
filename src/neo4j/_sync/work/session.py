@@ -204,7 +204,7 @@ class Session(Workspace):
                     # session.
                     log.warning(
                         "Failed to consume outstanding auto-commit "
-                        "transaction result before closing session: %s",
+                        "transaction result before closing session: %r",
                         e,
                     )
 
@@ -359,7 +359,7 @@ class Session(Workspace):
                 log.warning(
                     (
                         "Auto-commit transaction failed "
-                        "and will be retried (%s)"
+                        "and will be retried (%r)"
                     ),
                     error,
                 )
@@ -608,7 +608,7 @@ class Session(Workspace):
                 break
             delay = next(retry_delay)
             log.warning(
-                "Transaction failed and will be retried in %ss (%s)",
+                "Transaction failed and will be retried in %ss (%r)",
                 delay,
                 errors[-1],
             )
