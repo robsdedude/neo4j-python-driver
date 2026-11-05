@@ -166,7 +166,7 @@ Closing a driver will immediately shut down all connections in the pool.
 .. autoclass:: neo4j.AsyncDriver()
     :members: session, execute_query_bookmark_manager, encrypted, close,
               verify_connectivity, get_server_info, verify_authentication,
-              supports_session_auth, supports_multi_db
+              supports_session_auth, supports_multi_db, property_encryption
 
     .. method:: execute_query(query, parameters_=None, routing_=neo4j.RoutingControl.WRITE, database_=None, impersonated_user_=None, bookmark_manager_=self.execute_query_bookmark_manager, auth_=None, result_transformer_=AsyncResult.to_eager_result, **kwargs)
         :async:
@@ -507,7 +507,7 @@ profile for encryption.
 
 .. versionadded:: 6.5
 
-.. seealso:: :mod:`.property_encryption`
+.. seealso:: :mod:`.neo4j.property_encryption`
 
 
 AsyncDriver Object Lifetime

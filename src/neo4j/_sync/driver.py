@@ -90,7 +90,6 @@ from .config import (
     DriverConfig,
     PoolConfig,
 )
-from .property_encryption.profile import PropertyEncryptionProfile
 from .work import (
     ManagedTransaction,
     Result,
@@ -107,6 +106,8 @@ if t.TYPE_CHECKING:
         T_NotificationMinimumSeverity,
         T_RoutingControl,
     )
+    from .property_encryption import PropertyEncryption
+    from .property_encryption.profile import PropertyEncryptionProfile
 
     class _DefaultEnum(Enum):
         default = "default"
@@ -1351,6 +1352,12 @@ class Driver:
 
         .. seealso:: :mod:`.property_encryption`
         """
+        from .property_encryption import (
+            DriverHolder,
+            PropertyEncryption,
+        )
+
+        return PropertyEncryption(DriverHolder(self))
 
 
 def _work(
@@ -1617,6 +1624,9 @@ def _normalize_notifications_config(config_kwargs, *, driver_level=False):
 def _normalize_property_encryption_profiles(config: dict[str, t.Any]) -> None:
     if "property_encryption_profiles" not in config:
         return
+
+    from .property_encryption.profile import PropertyEncryptionProfile
+
     preview_warn(
         "Property encryption is a preview feature.",
         stack_level=3,

@@ -26,13 +26,19 @@ from .profile_envelope import (
     EnvelopePropertyEncryptionProfile,
     KeyEncapsulationService,
 )
+from .property_encryption import (
+    DriverHolder,
+    PropertyEncryption,
+)
 
 
 __all__ = [
+    "DriverHolder",
     "EncapsulatedKeyRecordRepository",
     "EnvelopePropertyEncryptionProfile",
     "KeyAliasCache",
     "KeyCache",
     "KeyEncapsulationService",
+    "PropertyEncryption",
     "PropertyEncryptionProfile",
 ]

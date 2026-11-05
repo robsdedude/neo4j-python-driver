@@ -17,29 +17,29 @@
 from __future__ import annotations
 
 import abc
-import dataclasses
 
 from .... import _typing as t
-from ...._property_encryption.profile_envelope import (
-    EncapsulatedKey,
-    EncapsulatedKeyRecord,
-    KeyEncapsulationOptions,
-    KeyEncapsulationResult,
-)
-from ...._warnings import preview
-from ..caching import (
-    KeyAliasCache,
-    KeyCache,
-)
-from ..profile import (
-    internal_implementer,
-    PropertyEncryptionProfile,
-)
+
+
+if t.TYPE_CHECKING:
+    from ...._property_encryption.profile_envelope import EncapsulatedKeyRecord
+
+
+__all__ = [
+    "EncapsulatedKeyRecordRepository",
+]
 
 
 class EncapsulatedKeyRecordRepository(abc.ABC):
     """
     A repository for :class:`.EncapsulatedKeyRecord` data.
+
+    Implementations of this abstract base class represent some persistent
+    storage for encapsulated keys. Encapsulation and decapsulation of keys
+    before storage and after retrieval respectively is handled by a
+    :class:`.KeyEncapsulationService` implementation.
+
+    Any implementation of this abstract base class must be thread-safe.
 
     .. versionadded:: 6.5
     """
@@ -68,7 +68,12 @@ class EncapsulatedKeyRecordRepository(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def create(self, alias: str | None, encapsulation: bytes, metadata: t.Mapping[str, str]) -> EncapsulatedKeyRecord:
+    def create(
+        self,
+        alias: str | None,
+        encapsulation: bytes,
+        metadata: t.Mapping[str, str],
+    ) -> EncapsulatedKeyRecord:
         """
         Create a new encapsulated key and assign a globally unique id.
 

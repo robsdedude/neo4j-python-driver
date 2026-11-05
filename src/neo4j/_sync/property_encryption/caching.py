@@ -32,6 +32,14 @@ __all__ = [
 ]
 
 
+class _Entry(t.NamedTuple, t.Generic[T]):
+    id: T
+    last_used: float
+
+    def age(self) -> float:
+        return monotonic() - self.last_used
+
+
 class _Cache(t.Generic[T]):
     _ttl: float
     _size: int
@@ -99,26 +107,9 @@ class _Cache(t.Generic[T]):
         del self._cache[oldest_key]
 
 
-if t.TYPE_CHECKING:
-
-    class _Entry(t.NamedTuple, t.Generic[T]):
-        id: T
-        last_used: float
-
-        def age(self) -> float: ...
-else:
-    # Python 3.10 does not support generic `NamedTuple`s
-    class _Entry(t.NamedTuple):
-        id: T
-        last_used: float
-
-        def age(self) -> float:
-            return monotonic() - self.last_used
-
-
 class KeyAliasCache(_Cache[str]):
-    pass
+    """Caches key alias -> key id."""
 
 
 class KeyCache(_Cache[bytes]):
-    pass
+    """Caches key id -> decapsulated key."""

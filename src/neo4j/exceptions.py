@@ -58,6 +58,7 @@ Driver API Errors
     + UnsupportedServerProduct
   + ConnectionPoolError
     + ConnectionAcquisitionTimeoutError
+  + PropertyEncryptionError
 """
 
 from __future__ import annotations as _
@@ -115,6 +116,7 @@ __all__ = [
     "IncompleteCommit",
     "Neo4jError",
     "NotALeader",
+    "PropertyEncryptionError",
     "ReadServiceUnavailable",
     "ResultConsumedError",
     "ResultError",
@@ -1097,4 +1099,14 @@ class ConnectionAcquisitionTimeoutError(ConnectionPoolError):
 
     The amount of time is determined by the connection acquisition timeout
     configuration option.
+    """
+
+
+# DriverError > PropertyEncryptionError
+class PropertyEncryptionError(DriverError):
+    """
+    Raised for any failed client-side property encryption operation.
+
+    Refer to the error's :attr:`__cause__` and message for more details on the
+    failure.
     """

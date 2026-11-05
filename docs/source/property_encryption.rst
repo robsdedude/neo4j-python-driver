@@ -6,3 +6,5 @@ Property Encryption
 
 .. automodule:: neo4j.property_encryption
     :members:
+    :show-inheritance:
+    :inherited-members:

@@ -17,29 +17,48 @@
 from __future__ import annotations
 
 import abc
-import os
-import dataclasses
 import base64
+import os
 
-from ..caching import AsyncKeyAliasCache, AsyncKeyCache
-from ..profile import AsyncPropertyEncryptionProfile, internal_implementer
+from cryptography.hazmat.primitives.ciphers import (
+    Cipher,
+    modes,
+)
+from cryptography.hazmat.primitives.ciphers.algorithms import AES256
+
+from .... import _typing as t  # noqa: TC001
+from ...._property_encryption.profile_envelope import (
+    KeyEncapsulationOptions,
+    KeyEncapsulationResult,
+)
 from ...._warnings import preview
-from .... import _typing as t
-from ...._property_encryption.profile_envelope import KeyEncapsulationOptions, KeyEncapsulationResult, EncapsulatedKey, EncapsulatedKeyRecord
+
+
+__all__ = [
+    "AsyncKeyEncapsulationService",
+    "AsyncKeyEncapsulationServices",
+]
 
 
 class AsyncKeyEncapsulationService(abc.ABC):
     """
     A service responsible for encapsulating and decapsulating keys.
 
-    .. versionadded:: 6.5
+    This means that a private key used for data encryption, called a data
+    encryption key (DEK), is being encrypted using a second (usually symmetric)
+    key, called the key encryption key (KEK). This technique is also know as
+    key encapsulation.
 
-    .. seealso::
-        :class:`.KeyEncapsulationOptions`, :class:`.KeyEncapsulationResult`
+    Implementations of this abstract base class are provided through
+    :class:`.AsyncKeyEncapsulationServices`.
+
+    .. versionadded:: 6.5
     """
 
     @abc.abstractmethod
-    async def encapsulate(self, options: KeyEncapsulationOptions | None) -> KeyEncapsulationResult:
+    async def encapsulate(
+        self, options: KeyEncapsulationOptions | None
+    ) -> KeyEncapsulationResult:
         """
         Create a new key, encapsulates it and return the result.
 
@@ -50,11 +69,13 @@ class AsyncKeyEncapsulationService(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def decapsulate(self, encapsulation: bytes, matadata: t.Mapping[str, str]) -> bytes:
+    async def decapsulate(
+        self, encapsulation: bytes, matadata: t.Mapping[str, str]
+    ) -> bytes:
         """
-        Decapsulate encapsulated bytes.
+        Decapsulate an encapsulated key.
 
-        :param encapsulation: the encapsulated bytes.
+        :param encapsulation: the encapsulated key.
         :param metadata: the key metadata.
 
         :returns: the decapsulated key
@@ -92,14 +113,15 @@ class AsyncKeyEncapsulationServices:
 
 class _AsyncLocalKeyEncapsulationService(AsyncKeyEncapsulationService):
     def __init__(self, master_key: bytes) -> None:
-        from cryptography.hazmat.primitives.ciphers.algorithms import AES256
         self._algo = AES256(master_key)
 
-    async def encapsulate(self, options: KeyEncapsulationOptions | None) -> KeyEncapsulationResult:
-        from cryptography.hazmat.primitives.ciphers import Cipher, modes
-
+    async def encapsulate(
+        self, options: KeyEncapsulationOptions | None
+    ) -> KeyEncapsulationResult:
         if options is not None:
-            raise ValueError("Local key encapsulation service does not accept options.")
+            raise ValueError(
+                "Local key encapsulation service does not accept options."
+            )
 
         iv = os.urandom(16)
         mode = modes.CBC(iv)
@@ -108,4 +130,41 @@ class _AsyncLocalKeyEncapsulationService(AsyncKeyEncapsulationService):
         encryptor = cipher.encryptor()
         encapsulation = encryptor.update(secret_key) + encryptor.finalize()
         metadata = {"iv": base64.b64encode(iv).decode("utf-8")}
-        return KeyEncapsulationResult(encapsulation=encapsulation, metadata=metadata, secret_key=secret_key,)
+        return KeyEncapsulationResult(
+            encapsulation=encapsulation,
+            metadata=metadata,
+            secret_key=secret_key,
+        )
+
+    async def decapsulate(
+        self, encapsulation: bytes, matadata: t.Mapping[str, str]
+    ) -> bytes:
+        try:
+            iv_base64 = matadata["iv"]
+        except KeyError as e:
+            raise ValueError(
+                "Metadata for decapsulation must contain 'iv'."
+            ) from e
+        if len(matadata) != 1:
+            raise ValueError(
+                "Metadata for decapsulation must only contain 'iv'."
+            )
+        try:
+            iv = base64.b64decode(iv_base64)
+        except Exception as e:
+            raise ValueError(
+                "Metadata for decapsulation must contain a valid "
+                "base64-encoded 'iv'."
+            ) from e
+        if len(iv) != 16:
+            raise ValueError(
+                "Metadata for decapsulation must contain a valid 16-byte 'iv'."
+            )
+        mode = modes.CBC(iv)
+        cipher = Cipher(self._algo, mode)
+        decryptor = cipher.decryptor()
+        try:
+            secret_key = decryptor.update(encapsulation) + decryptor.finalize()
+        except Exception as e:
+            raise ValueError("Failed to decapsulate the key.") from e
+        return secret_key

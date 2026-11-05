@@ -15,49 +15,90 @@
 
 
 """
-TODO: docs.
+Functionality to encrypt and decrypt property values on the client side.
 
 **Property Encryption is a preview**.
 It might be changed without following the deprecation policy.
 See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
 
+.. note::
+
+    To be able to use this feature, the optional dependencies ``encryption``
+    need to be installed. For example::
+
+        pip install neo4j[encryption]
+
+The main entry-point for encryption and decryption is
+:meth:`.Driver.property_encryption` and
+:meth:`.AsyncDriver.property_encryption` respectively.
+
 TODO: explain AAD normalization is user responsibility
 > Drivers MUST document that users may want to consider normalizing STRING
 > values using something like NFC before providing them to the driver when both
 > encrypting and decrypting values.
-"""
 
+
+General Workflow
+^^^^^^^^^^^^^^^^
+
+TODO: how does on even?
+
+
+FIPS Compliance
+^^^^^^^^^^^^^^^
+
+TODO: explain FIPS compliance
+ * requires ``os.random`` to be FIPS compliant
+ * requires Python to be linked against OpenSSL in FIPS mode
+
+.. versionadded:: 6.5
+"""
 
 from __future__ import annotations
 
-from ._warnings import preview_warn
 from ._async.property_encryption import (
-    AsyncEnvelopePropertyEncryptionProfile,
-    AsyncPropertyEncryptionProfile,
-    AsyncKeyEncapsulationService,
     AsyncEncapsulatedKeyRecordRepository,
+    AsyncEnvelopePropertyEncryptionProfile,
+    AsyncKeyEncapsulationService,
+    AsyncPropertyEncryption,
+    AsyncPropertyEncryptionProfile,
 )
-from ._sync.property_encryption import (
-    EnvelopePropertyEncryptionProfile,
-    PropertyEncryptionProfile,
-    KeyEncapsulationService,
-    EncapsulatedKeyRecordRepository,
+from ._property_encryption.api import (
+    AadChoiceDecryption,
+    AadChoiceEncryption,
+    KeyChoice,
 )
 from ._property_encryption.profile_envelope import (
+    EncapsulatedKeyRecord,
     KeyEncapsulationOptions,
     KeyEncapsulationResult,
 )
+from ._sync.property_encryption import (
+    EncapsulatedKeyRecordRepository,
+    EnvelopePropertyEncryptionProfile,
+    KeyEncapsulationService,
+    PropertyEncryption,
+    PropertyEncryptionProfile,
+)
+from ._warnings import preview_warn
+
 
 __all__ = [
+    "AadChoiceDecryption",
+    "AadChoiceEncryption",
     "AsyncEncapsulatedKeyRecordRepository",
     "AsyncEnvelopePropertyEncryptionProfile",
     "AsyncKeyEncapsulationService",
+    "AsyncPropertyEncryption",
     "AsyncPropertyEncryptionProfile",
+    "EncapsulatedKeyRecord",
     "EncapsulatedKeyRecordRepository",
     "EnvelopePropertyEncryptionProfile",
+    "KeyChoice",
     "KeyEncapsulationOptions",
     "KeyEncapsulationResult",
     "KeyEncapsulationService",
+    "PropertyEncryption",
     "PropertyEncryptionProfile",
 ]
 

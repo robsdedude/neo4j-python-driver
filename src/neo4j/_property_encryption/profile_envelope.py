@@ -22,6 +22,14 @@ import dataclasses
 from .. import _typing as t  # noqa: TC001
 
 
+__all__ = [
+    "EncapsulatedKey",
+    "EncapsulatedKeyRecord",
+    "KeyEncapsulationOptions",
+    "KeyEncapsulationResult",
+]
+
+
 class KeyEncapsulationOptions(abc.ABC):
     """
     Options used by a ``KeyEncapsulationService`` to encapsulate a key.
@@ -124,8 +132,8 @@ class EncapsulatedKeyRecord(EncapsulatedKey):
 
     The metadata is stored along side the key via
     :meth:`.EncapsulatedKeyRecordRepository.create()` (or
-    :meth:`.AsyncEncapsulatedKeyRecordRepository.create()`) when creating a key
-    an to :meth:`.KeyEncapsulationService.decapsulate()` (or
+    :meth:`.AsyncEncapsulatedKeyRecordRepository.create()`) when creating a
+    key and passed to :meth:`.KeyEncapsulationService.decapsulate()` (or
     :meth:`.AsyncKeyEncapsulationService.decapsulate()`) when decapsulating a
     key after fetching it.
     """

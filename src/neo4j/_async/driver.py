@@ -44,8 +44,9 @@ from .._conf import (
 from .._debug import ENABLED as DEBUG_ENABLED
 from .._warnings import (
     deprecation_warn,
+    preview,
     preview_warn,
-    unclosed_resource_warn, preview,
+    unclosed_resource_warn,
 )
 from .._work import (
     EagerResult,
@@ -86,14 +87,14 @@ from .bookmark_manager import (
     TBmConsumer as _TBmConsumer,
     TBmSupplier as _TBmSupplier,
 )
-from .config import AsyncPoolConfig, AsyncDriverConfig
+from .config import (
+    AsyncDriverConfig,
+    AsyncPoolConfig,
+)
 from .work import (
     AsyncManagedTransaction,
     AsyncResult,
     AsyncSession,
-)
-from .property_encryption.profile import (
-    AsyncPropertyEncryptionProfile,
 )
 
 
@@ -106,6 +107,8 @@ if t.TYPE_CHECKING:
         T_NotificationMinimumSeverity,
         T_RoutingControl,
     )
+    from .property_encryption import AsyncPropertyEncryption
+    from .property_encryption.profile import AsyncPropertyEncryptionProfile
 
     class _DefaultEnum(Enum):
         default = "default"
@@ -1350,6 +1353,12 @@ class AsyncDriver:
 
         .. seealso:: :mod:`.property_encryption`
         """
+        from .property_encryption import (
+            AsyncDriverHolder,
+            AsyncPropertyEncryption,
+        )
+
+        return AsyncPropertyEncryption(AsyncDriverHolder(self))
 
 
 async def _work(
@@ -1616,6 +1625,9 @@ def _normalize_notifications_config(config_kwargs, *, driver_level=False):
 def _normalize_property_encryption_profiles(config: dict[str, t.Any]) -> None:
     if "property_encryption_profiles" not in config:
         return
+
+    from .property_encryption.profile import AsyncPropertyEncryptionProfile
+
     preview_warn(
         "Property encryption is a preview feature.",
         stack_level=3,

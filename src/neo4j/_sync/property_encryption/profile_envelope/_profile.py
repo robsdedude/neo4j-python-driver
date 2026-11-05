@@ -16,16 +16,7 @@
 
 from __future__ import annotations
 
-import abc
-import dataclasses
-
 from .... import _typing as t
-from ...._property_encryption.profile_envelope import (
-    EncapsulatedKey,
-    EncapsulatedKeyRecord,
-    KeyEncapsulationOptions,
-    KeyEncapsulationResult,
-)
 from ...._warnings import preview
 from ..caching import (
     KeyAliasCache,
@@ -42,7 +33,9 @@ if t.TYPE_CHECKING:
     from ._service import KeyEncapsulationService
 
 
-T_o = t.TypeVar("T_o", bound=KeyEncapsulationOptions)
+__all__ = [
+    "EnvelopePropertyEncryptionProfile",
+]
 
 
 @preview("Property encryption is a preview feature.")
@@ -78,10 +71,14 @@ class EnvelopePropertyEncryptionProfile(PropertyEncryptionProfile):
         self._name = name
         self._key_encapsulation_service = key_encapsulation_service
         self._key_repository = key_repository
-        self._key_cache = KeyCache(ttl=key_cache_ttl, size=key_cache_max_size)
+        self._key_cache = KeyCache(
+            ttl=key_cache_ttl, size=key_cache_max_size
+        )
         if self._key_cache.is_disabled():
             key_alias_cache_max_size = 0
-        self._key_alias_cache = KeyAliasCache(ttl=key_alias_cache_ttl, size=key_alias_cache_max_size)
+        self._key_alias_cache = KeyAliasCache(
+            ttl=key_alias_cache_ttl, size=key_alias_cache_max_size
+        )
 
     @property
     def name(self) -> str:

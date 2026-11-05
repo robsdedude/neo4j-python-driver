@@ -18,8 +18,13 @@ from __future__ import annotations
 
 import dataclasses
 
+from ... import _typing as t  # noqa: TC001
 from ..packstream import Structure as PackstreamStructure
-from ... import _typing as t
+
+
+__all__ = [
+    "EncryptedStruct",
+]
 
 
 @dataclasses.dataclass
@@ -31,7 +36,7 @@ class EncryptedStruct:
     type_name: str
     type_encoding_scheme_major: int
     type_encoding_scheme_minor: int
-    metadata: dict[str, str]
+    metadata: dict[str, object]
 
     def __post_init__(self) -> None:
         sorted_metadata = {}
@@ -54,9 +59,12 @@ class EncryptedStruct:
         )
 
     @classmethod
-    def from_packstream_structure(cls, structure: PackstreamStructure) -> t.Self:
+    def from_packstream_structure(
+        cls, structure: PackstreamStructure
+    ) -> t.Self:
         if structure.tag != b"e":
-            raise ValueError(f"Invalid structure tag: {structure.tag}")
+            hex_tag = structure.tag.hex().upper()
+            raise ValueError(f"Invalid structure tag: {hex_tag}")
         if len(structure) != 8:
             raise ValueError(f"Invalid structure length: {len(structure)}")
         (
@@ -68,7 +76,7 @@ class EncryptedStruct:
             type_encoding_scheme_major,
             type_encoding_scheme_minor,
             metadata,
-        ) = structure
+        ) = structure.fields
         if not isinstance(profile_type, str):
             raise TypeError(f"Invalid profile_type: {profile_type}")
         if not isinstance(profile_version, int):
@@ -91,10 +99,7 @@ class EncryptedStruct:
             )
         if not isinstance(metadata, dict):
             raise TypeError(f"Invalid metadata: {metadata}")
-        if not all(
-            isinstance(k, str) and isinstance(v, str)
-            for k, v in metadata.items()
-        ):
+        if not all(isinstance(k, str) for k in metadata):
             raise TypeError(f"Invalid metadata: {metadata}")
         return cls(
             profile_type,

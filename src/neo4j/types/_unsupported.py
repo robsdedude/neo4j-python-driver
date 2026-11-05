@@ -20,8 +20,18 @@ from .. import _typing as t  # noqa: TC001
 
 
 class UnsupportedType:
-    """
-    Represents a type unknown to the driver, received from the server.
+    '''
+    Represents a type unknown to the driver.
+
+    This type is used to indicated either of the following cases:
+
+    * The server wants to transmit a value of a type that is not supported by
+      the protocol version negotiated with the driver.
+    * The driver tries to decrypt a value that it does not support or that was
+      encoded with a scheme not supported by the driver.
+
+    Unsupported via protocol
+    """"""""""""""""""""""""
 
     This type is used, for instance, when a newer DBMS produces a result
     containing a type that the current version of the driver does not yet
@@ -41,7 +51,12 @@ class UnsupportedType:
     upon for any logic in your application.
     If your application requires handling the underlying type, you must upgrade
     (or downgrade) your driver to a version that supports it.
-    """
+
+    Unsupported via property encryption
+    """""""""""""""""""""""""""""""""""
+
+    See also :mod:`neo4j.property-encryption`.
+    '''
 
     _name: str
     _minimum_protocol_version: tuple[int, int]

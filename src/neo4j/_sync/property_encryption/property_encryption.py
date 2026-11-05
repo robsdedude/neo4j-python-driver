@@ -16,64 +16,41 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from ... import _typing as t
-from ..._property_encryption._all import (
-    AadChoice,
+from ..._property_encryption.api import (
+    AadChoiceDecryption,
+    AadChoiceEncryption,
     KeyChoice,
 )
+from ..._property_encryption.error_wrapper import (
+    property_encryption_error_wrapper,
+)
+from . import profile_envelope
+from .profile_envelope import EnvelopePropertyEncryptionProfile
 
 
-"""
+if t.TYPE_CHECKING:
+    from ..config import DriverConfig
+    from ..driver import Driver
+    from .profile import PropertyEncryptionProfile
 
-/**
- * Provides Neo4j Property Encryption functions.
- *
- * @see org.neo4j.driver.property_encryption.async.PropertyEncryption
- * @see org.neo4j.driver.property_encryption.reactive.ReactivePropertyEncryption
- * @see org.neo4j.driver.property_encryption.reactivestreams.ReactivePropertyEncryption
- * @since 6.3.0
- */
-@Preview(name = "Property Encryption")
-public interface PropertyEncryption extends BasePropertyEncryption {
-    /**
-     * Encrypts the value according to the provided {@link PropertyEncryptionRequest}.
-     *
-     * @param encryptRequest the encryption request, must not be {@literal null}
-     * @return the encrypted bytes
-     */
-    byte[] encryptToBytes(PropertyEncryptionRequest encryptRequest);
 
-    /**
-     * Decrypts the value according to the provided {@link PropertyDecryptionRequest}.
-     *
-     * @param decryptRequest the decryption request, must not be {@literal null}
-     * @return the decrypted value
-     */
-    Value decrypt(PropertyDecryptionRequest decryptRequest);
+__all__ = [
+    "DriverHolder",
+    "PropertyEncryption",
+]
 
-    /**
-     * Returns the key manager.
-     * <p>
-     * If this instance has been configured with a single property encryption profile, the key manager for that
-     * profile is returned.
-     *
-     * @return the key manager
-     * @throws IllegalStateException if key management is not supported by the specified profile
-     */
-    default EncapsulatedKeyManager keyManager() {
-        return keyManager(null);
-    }
 
-    /**
-     * Returns the key manager for the specified property encryption profile.
-     *
-     * @param profileName the profile name, may be {@literal null} when only a single profile is configured
-     * @return the key manager, or {@literal null} if the specified profile does not exist
-     * @throws IllegalStateException if key management is not supported by the specified profile
-     */
-    EncapsulatedKeyManager keyManager(String profileName);
-}
-"""
+AAD_CHOICE_ENCRYPTION_NONE = AadChoiceEncryption.none()
+
+
+@dataclass
+class DriverHolder:
+    # Indirection to indicate that AsyncPropertyEncryption is not meant to be
+    # instantiated by users.
+    driver: Driver
 
 
 class PropertyEncryption:
@@ -85,32 +62,104 @@ class PropertyEncryption:
     It is not supposed to be instantiated directly, but rather accessed via
     :meth:`.Driver.property_encryption()`.
 
+    The class is not supposed to be instantiated directly, but rather accessed
+    via :meth:`.Driver.property_encryption()`.
+
+    **Property Encryption is a preview**.
+    It might be changed without following the deprecation policy.
+    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
+
     .. versionadded:: 6.4
     """
 
+    _driver: Driver
+
+    def __init__(self, _driver: DriverHolder) -> None:
+        if not isinstance(_driver, DriverHolder):
+            raise TypeError(
+                f"Expected _driver to be of type {DriverHolder}, "
+                f"got {type(_driver)}."
+            )
+        self._driver = _driver.driver
+
+    @property_encryption_error_wrapper("Failed to encrypt property data.")
     def encrypt_to_bytes(
         self,
         value: object,
         /,
         *,
-        aad: AadChoice = AadChoice.none(),
+        aad: AadChoiceEncryption = AAD_CHOICE_ENCRYPTION_NONE,
         profile_name: str | None = None,
-        key_choice: KeyChoice | None,
+        key_choice: KeyChoice,
     ) -> bytes:
         """
-        Encrypts the value according to the provided :class:`.PropertyEncryptionRequest`.
+        Encrypt a property value.
 
-        :param encrypt_request: the encryption request, must not be :data:`None`
+        :param value: the value to encrypt.
+        :param aad: the additional authenticated data to use for encryption,
+            defaults to :meth:`.AadChoiceEncryption.none()`
+        :param profile_name: the name of the property encryption profile to
+            use. The profile must have been configured on the driver. If
+            exactly one profile has been configured, this parameter may be
+            omitted.
+        :param key_choice: the key to use for encryption.
         :return: the encrypted bytes
         """
-        ...
+        profile = _get_profile(self._driver, profile_name)
+        if type(profile) is EnvelopePropertyEncryptionProfile:
+            return profile_envelope.encrypt(
+                value, aad, key_choice, profile
+            )
+        raise TypeError(
+            f"Unsupported property encryption profile type: {type(profile)}."
+        )
 
+    @property_encryption_error_wrapper("Failed to decrypt property data.")
     def decrypt(
         self,
         value: bytes,
         /,
         *,
-        aad: AadChoice = AadChoice.none(),
-        todo: ... = ...,
-    ):
-        ...
+        aad: AadChoiceDecryption,
+    ) -> t.Any:
+        """
+        Decrypt a property value.
+
+        A :class:`.UnsupportedType` value will be returned if the value was
+        encrypted using a driver newer or older driver version that encoded the
+        value with a non-supported scheme.
+
+        :param value: the value to decrypt.
+        :param aad: the additional authenticated data to use for decryption.
+        :return: the decrypted value
+        """
+        profile = _get_profile(self._driver, None)
+        if type(profile) is EnvelopePropertyEncryptionProfile:
+            return profile_envelope.decrypt(value, aad, profile)
+        raise TypeError(
+            f"Unsupported property encryption profile type: {type(profile)}."
+        )
+
+    # TODO
+    def key_manager(self, profile_name: str | None = None) -> t.Any: ...
+
+
+def _get_profile(
+    driver: Driver, profile_name: str | None
+) -> PropertyEncryptionProfile:
+    config: DriverConfig = driver._driver_config
+    profiles = config.property_encryption_profiles
+    if profile_name is None:
+        if len(profiles) == 1:
+            return next(iter(profiles))
+        else:
+            raise KeyError(
+                "Multiple property encryption profiles are configured, "
+                "a profile name must be specified."
+            )
+    for profile in profiles:
+        if profile.name == profile_name:
+            return profile
+    raise KeyError(
+        f"Property encryption profile '{profile_name}' is not configured."
+    )

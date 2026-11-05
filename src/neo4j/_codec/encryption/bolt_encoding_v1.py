@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import abc
 import uuid
 
 from ... import _typing as t
@@ -34,6 +33,11 @@ from ._base import (
     SchemeMajorVersion,
     SchemeVersion,
 )
+
+
+__all__ = [
+    "BoltEncodingSchemeV1",
+]
 
 
 class BoltEncodingSchemeV1(BoltEncodingScheme):
@@ -62,7 +66,6 @@ class BoltEncodingSchemeV1(BoltEncodingScheme):
         )
 
     @classmethod
-    @abc.abstractmethod
     def type_baseline(cls, value: object) -> tuple[SchemeVersion, str]:
         return cls._type_baseline(value, inside_list=False)
 

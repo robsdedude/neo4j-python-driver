@@ -20,9 +20,13 @@ from __future__ import annotations
 
 # needed to load implementations
 from . import bolt_encoding_v1 as _  # noqa: F401
-from ._base import BoltEncodingScheme
+from ._base import (
+    BoltEncodingScheme,
+    SchemeVersion,
+)
 
 
 __all__ = [
     "BoltEncodingScheme",
+    "SchemeVersion",
 ]

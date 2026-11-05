@@ -15,25 +15,28 @@
 
 
 from __future__ import annotations
-from functools import wraps
 
 import abc
+from functools import wraps
 
-from ... import _typing as t  # noqa: TC001
+from ... import _typing as t
 from ..._version import (
     MajorVersion,
     VersionTuple,
 )
 from ...types import UnsupportedType
 
+
 if t.TYPE_CHECKING:
     P = t.ParamSpec("P")
     T = t.TypeVar("T")
 
-# class BoltEncodingSchemeMeta(abc.ABC, type):
-#     @property
-#     @abc.abstractmethod
-#     def version(self) -> :
+
+__all__ = [
+    "BoltEncodingScheme",
+    "SchemeMajorVersion",
+    "SchemeVersion",
+]
 
 
 class SchemeVersion(VersionTuple):
@@ -120,30 +123,56 @@ class BoltEncodingScheme(abc.ABC):
 
     @staticmethod
     def decode(
-        data: bytes | bytearray, received_version: SchemeVersion, /
+        data: bytes | bytearray,
+        received_version: SchemeVersion,
+        /,
+        *,
+        received_type_name: str,
     ) -> object:
+        def unsupported(msg: str) -> UnsupportedType:
+            return UnsupportedType._new(
+                received_type_name, received_version.version, msg
+            )
+
         cls = BoltEncodingScheme
         received_major_ver = SchemeMajorVersion(received_version.major)
         if received_major_ver > cls.max_supported_major:
-            # TODO: Properly fill fields!
-            return UnsupportedType._new("TODO", (0, 0), "TODO")
+            return unsupported(
+                "found future value encoding version "
+                "(consider updating the driver)"
+            )
         scheme = cls.known_schemes.get(received_major_ver)
         if scheme is not None:
             if scheme.SCHEME_VERSION.minor < received_version.minor:
-                # TODO: Properly fill fields!
-                return UnsupportedType._new("TODO", (0, 0), "TODO")
+                return unsupported(
+                    "found future value encoding version "
+                    "(consider updating the driver)"
+                )
             value = scheme._decode(data, received_version.minor)
         else:
             scheme = cls.back_compat_schemes.get(received_major_ver)
             if scheme is not None:
                 value = scheme._decode_compat(data, received_version)
             else:
-                # TODO: Properly fill fields!
-                return UnsupportedType._new("TODO", (0, 0), "TODO")
+                return unsupported(
+                    "found unknown value encoding version "
+                    "(an older driver can help to re-encrypt the value)"
+                )
+
         type_baseline = scheme.type_baseline(value)[0]
         if type_baseline > received_version:
-            # TODO: Properly fill fields!
-            return UnsupportedType._new("TODO", (0, 0), "TODO")
+            return unsupported(
+                "unable to decode value; the value was encoded using "
+                "an older driver but this encoding version has been dropped "
+                "from this driver"
+                "(an older driver can help to re-encode the value)"
+            )
+        if type_baseline < received_version:
+            return unsupported(
+                "unable to decode value; the value was encoded using "
+                "a newer driver but this encoding version is not supported by "
+                "this driver (consider updating the driver)"
+            )
         return value
 
     @classmethod
@@ -203,7 +232,7 @@ class BoltEncodingScheme(abc.ABC):
     @staticmethod
     def recreate_encoded_add(
         value: object, received_version: SchemeVersion, /
-    ) -> tuple[bytes, SchemeVersion]:
+    ) -> bytes:
         cls = BoltEncodingScheme
         received_major_ver = SchemeMajorVersion(received_version.major)
         if received_major_ver > cls.max_supported_major:
@@ -243,7 +272,7 @@ class BoltEncodingScheme(abc.ABC):
                 f"{received_version}, recreated encoding version: {baseline}, "
                 f"value {value!r}; consider updating the driver)"
             )
-        return bytes(data), baseline
+        return data
 
     @staticmethod
     @_wrap_encoding("AAD value")
@@ -254,23 +283,6 @@ class BoltEncodingScheme(abc.ABC):
         normalized_value = scheme._decode(data, scheme.SCHEME_VERSION.minor)
         baseline = scheme.type_baseline_aad(normalized_value)
         return bytes(data), baseline
-
-    # @staticmethod
-    # def encode_add(
-    #     value: object, /, received_version: SchemeVersion | None = None
-    # ) -> tuple[bytes, SchemeVersion]:
-    #     cls = BoltEncodingScheme
-    #     if received_version is None:
-    #         cls.current_scheme._encode(value)
-    #     scheme = BoltEncodingScheme.current_scheme
-    #     data = BoltEncodingScheme.current_scheme._encode(value)
-    #     normalized_value = BoltEncodingScheme.current_scheme._decode(
-    #         data, BoltEncodingScheme.current_scheme.SCHEME_VERSION.minor
-    #     )
-    #     baseline, type_name = BoltEncodingScheme.current_scheme.type_baseline(
-    #         normalized_value
-    #     )
-    #     return bytes(data), baseline, type_name
 
     @staticmethod
     def __raise_for_unsupported_aad_version(extra: str = "") -> t.Never:

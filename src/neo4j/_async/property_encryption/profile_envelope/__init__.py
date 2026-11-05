@@ -16,9 +16,16 @@
 
 from __future__ import annotations
 
+from ._impl import (
+    decrypt,
+    encrypt,
+)
 from ._profile import AsyncEnvelopePropertyEncryptionProfile
 from ._repository import AsyncEncapsulatedKeyRecordRepository
-from ._service import AsyncKeyEncapsulationService,AsyncKeyEncapsulationServices
+from ._service import (
+    AsyncKeyEncapsulationService,
+    AsyncKeyEncapsulationServices,
+)
 
 
 __all__ = [
@@ -26,4 +33,6 @@ __all__ = [
     "AsyncEnvelopePropertyEncryptionProfile",
     "AsyncKeyEncapsulationService",
     "AsyncKeyEncapsulationServices",
+    "decrypt",
+    "encrypt",
 ]

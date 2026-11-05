@@ -16,19 +16,29 @@
 
 from __future__ import annotations
 
+from .caching import (
+    AsyncKeyAliasCache,
+    AsyncKeyCache,
+)
 from .profile import AsyncPropertyEncryptionProfile
 from .profile_envelope import (
+    AsyncEncapsulatedKeyRecordRepository,
     AsyncEnvelopePropertyEncryptionProfile,
     AsyncKeyEncapsulationService,
-    AsyncEncapsulatedKeyRecordRepository,
 )
-from .caching import AsyncKeyAliasCache, AsyncKeyCache
+from .property_encryption import (
+    AsyncDriverHolder,
+    AsyncPropertyEncryption,
+)
+
 
 __all__ = [
+    "AsyncDriverHolder",
     "AsyncEncapsulatedKeyRecordRepository",
     "AsyncEnvelopePropertyEncryptionProfile",
     "AsyncKeyAliasCache",
     "AsyncKeyCache",
     "AsyncKeyEncapsulationService",
+    "AsyncPropertyEncryption",
     "AsyncPropertyEncryptionProfile",
 ]

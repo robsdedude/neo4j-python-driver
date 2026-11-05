@@ -16,21 +16,26 @@
 
 from __future__ import annotations
 
-import abc
-import dataclasses
-
-from ..caching import AsyncKeyAliasCache, AsyncKeyCache
-from ..profile import AsyncPropertyEncryptionProfile, internal_implementer
-from ...._warnings import preview
 from .... import _typing as t
-from ...._property_encryption.profile_envelope import KeyEncapsulationOptions, KeyEncapsulationResult, EncapsulatedKey, EncapsulatedKeyRecord
+from ...._warnings import preview
+from ..caching import (
+    AsyncKeyAliasCache,
+    AsyncKeyCache,
+)
+from ..profile import (
+    AsyncPropertyEncryptionProfile,
+    internal_implementer,
+)
+
 
 if t.TYPE_CHECKING:
-    from ._service import AsyncKeyEncapsulationService
     from ._repository import AsyncEncapsulatedKeyRecordRepository
+    from ._service import AsyncKeyEncapsulationService
 
 
-T_o = t.TypeVar("T_o", bound=KeyEncapsulationOptions)
+__all__ = [
+    "AsyncEnvelopePropertyEncryptionProfile",
+]
 
 
 @preview("Property encryption is a preview feature.")
@@ -66,10 +71,14 @@ class AsyncEnvelopePropertyEncryptionProfile(AsyncPropertyEncryptionProfile):
         self._name = name
         self._key_encapsulation_service = key_encapsulation_service
         self._key_repository = key_repository
-        self._key_cache = AsyncKeyCache(ttl=key_cache_ttl, size=key_cache_max_size)
+        self._key_cache = AsyncKeyCache(
+            ttl=key_cache_ttl, size=key_cache_max_size
+        )
         if self._key_cache.is_disabled():
             key_alias_cache_max_size = 0
-        self._key_alias_cache = AsyncKeyAliasCache(ttl=key_alias_cache_ttl, size=key_alias_cache_max_size)
+        self._key_alias_cache = AsyncKeyAliasCache(
+            ttl=key_alias_cache_ttl, size=key_alias_cache_max_size
+        )
 
     @property
     def name(self) -> str:
