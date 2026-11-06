@@ -16,8 +16,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from ... import _typing as t
 from ..._property_encryption.api import (
     AadChoiceDecryption,
@@ -35,6 +33,7 @@ if t.TYPE_CHECKING:
     from ..config import AsyncDriverConfig
     from ..driver import AsyncDriver
     from .profile import AsyncPropertyEncryptionProfile
+    from .profile_envelope import AsyncEncapsulatedKeyManager
 
 
 __all__ = [
@@ -46,10 +45,9 @@ __all__ = [
 AAD_CHOICE_ENCRYPTION_NONE = AadChoiceEncryption.none()
 
 
-@dataclass
-class AsyncDriverHolder:
-    # Indirection to indicate that AsyncPropertyEncryption is not meant to be
-    # instantiated by users.
+class AsyncDriverHolder(t.NamedTuple):
+    # Indirection to indicate that AsyncPropertyEncryption is not meant to
+    # be instantiated by users.
     driver: AsyncDriver
 
 
@@ -74,7 +72,7 @@ class AsyncPropertyEncryption:
 
     _driver: AsyncDriver
 
-    def __init__(self, _driver: AsyncDriverHolder) -> None:
+    def __init__(self, /, *, _driver: AsyncDriverHolder) -> None:
         if not isinstance(_driver, AsyncDriverHolder):
             raise TypeError(
                 f"Expected _driver to be of type {AsyncDriverHolder}, "
@@ -140,8 +138,31 @@ class AsyncPropertyEncryption:
             f"Unsupported property encryption profile type: {type(profile)}."
         )
 
-    # TODO
-    def key_manager(self, profile_name: str | None = None) -> t.Any: ...
+    @property_encryption_error_wrapper("Failed to retrieve the key manager.")
+    def key_manager(
+        self, profile_name: str | None = None
+    ) -> AsyncEncapsulatedKeyManager:
+        """
+        Provide access to manage encapsulated keys.
+
+        The retrieved profile must be a
+        :class:`.AsyncEnvelopePropertyEncryptionProfile` instance.
+
+        :param profile_name: the name of the property encryption profile to
+            use. The profile must have been configured on the driver. If
+            exactly one profile has been configured, this parameter may be
+            omitted.
+        :return: a key manager instance
+        """
+        profile = _get_profile(self._driver, profile_name)
+        if type(profile) is not AsyncEnvelopePropertyEncryptionProfile:
+            raise TypeError(
+                f"Profile with name {profile_name!r} does not support "
+                f"encapsulated keys (type {type(profile)})."
+            )
+        return profile_envelope.AsyncEncapsulatedKeyManager(
+            _profile=profile_envelope.ProfileWrapper(profile)
+        )
 
 
 def _get_profile(

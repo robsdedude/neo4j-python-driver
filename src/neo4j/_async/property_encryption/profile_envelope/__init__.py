@@ -20,6 +20,10 @@ from ._impl import (
     decrypt,
     encrypt,
 )
+from ._key_manager import (
+    AsyncEncapsulatedKeyManager,
+    ProfileWrapper,
+)
 from ._profile import AsyncEnvelopePropertyEncryptionProfile
 from ._repository import AsyncEncapsulatedKeyRecordRepository
 from ._service import (
@@ -29,10 +33,12 @@ from ._service import (
 
 
 __all__ = [
+    "AsyncEncapsulatedKeyManager",
     "AsyncEncapsulatedKeyRecordRepository",
     "AsyncEnvelopePropertyEncryptionProfile",
     "AsyncKeyEncapsulationService",
     "AsyncKeyEncapsulationServices",
+    "ProfileWrapper",
     "decrypt",
     "encrypt",
 ]

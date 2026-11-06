@@ -20,7 +20,7 @@ import math
 from time import monotonic
 
 from ... import _typing as t
-from ..._async_compat.concurrency import CooperativeLock
+from ..._async_compat.concurrency import AsyncCooperativeLock
 
 
 T = t.TypeVar("T")
@@ -40,13 +40,14 @@ class _Entry(t.NamedTuple, t.Generic[T]):
         return monotonic() - self.last_used
 
 
-class _AsyncCache(t.Generic[T]):
+class _Cache(t.Generic[T]):
     _ttl: float
     _size: int
     _cache: dict[str, _Entry[T]]
-    _lock: CooperativeLock
+    _inv_cache: dict[T, str] | None
+    _lock: AsyncCooperativeLock
 
-    def __init__(self, ttl: float, size: int) -> None:
+    def __init__(self, ttl: float, size: int, bijective: bool = False) -> None:
         if math.isnan(ttl) or ttl <= 0:
             raise ValueError(
                 f"{type(self)} ttl must be a number > 0, got {ttl}"
@@ -58,7 +59,9 @@ class _AsyncCache(t.Generic[T]):
         self._ttl = ttl
         self._size = size
         self._cache = {}
-        self._lock = CooperativeLock()
+        if bijective:
+            self._inv_cache = {}
+        self._lock = AsyncCooperativeLock()
 
     def set(self, key: str, value: T) -> None:
         if self.is_disabled():
@@ -68,6 +71,15 @@ class _AsyncCache(t.Generic[T]):
             if len(self._cache) >= self._size:
                 self._evict_lru_locked()
             self._cache[key] = _Entry(value, monotonic())
+            self._set_bijective_locked(key, value)
+
+    def _set_bijective_locked(self, key: str, value: T) -> None:
+        if self._inv_cache is None:
+            return
+        old_key = self._inv_cache.get(value)
+        if old_key is not None and old_key != key:
+            del self._cache[old_key]
+        self._inv_cache[value] = key
 
     def get(self, key: str) -> T | None:
         if self.is_disabled():
@@ -86,30 +98,55 @@ class _AsyncCache(t.Generic[T]):
         if self.is_disabled():
             return
         with self._lock:
-            self._cache.pop(key, None)
+            value = self._cache.pop(key, None)
+            self._forget_bijective_locked(value)
+
+    def _forget_bijective_locked(self, value: _Entry[T] | None) -> None:
+        if self._inv_cache is None or value is None:
+            return
+        del self._inv_cache[value.id]
 
     def is_disabled(self) -> bool:
         return self._size == 0
 
     def _clear_expired_locked(self) -> None:
         expired = tuple(
-            key
-            for key, entry in self._cache.items()
+            (key, entry)
+            for (key, entry) in self._cache.items()
             if entry.age() > self._ttl
         )
-        for key in expired:
+        for key, entry in expired:
             del self._cache[key]
+            if self._inv_cache is not None:
+                del self._inv_cache[entry.id]
 
     def _evict_lru_locked(self) -> None:
         oldest_key = min(
-            self._cache, key=lambda key: self._cache[key].last_used
+            self._cache.items(), key=lambda item: item[1].last_used
         )
-        del self._cache[oldest_key]
+        del self._cache[oldest_key[0]]
+        if self._inv_cache is not None:
+            del self._inv_cache[oldest_key[1].id]
 
 
-class AsyncKeyAliasCache(_AsyncCache[str]):
+class _BijectiveCache(_Cache[T]):
+    def __init__(self, ttl: float, size: int) -> None:
+        super().__init__(ttl, size, bijective=True)
+
+    def forget_value(self, value: T) -> None:
+        if self.is_disabled():
+            return
+        with self._lock:
+            assert self._inv_cache is not None
+            key = self._inv_cache.get(value)
+            if key is not None:
+                del self._cache[key]
+                del self._inv_cache[value]
+
+
+class AsyncKeyAliasCache(_BijectiveCache[str]):
     """Caches key alias -> key id."""
 
 
-class AsyncKeyCache(_AsyncCache[bytes]):
+class AsyncKeyCache(_Cache[bytes]):
     """Caches key id -> decapsulated key."""

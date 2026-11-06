@@ -1357,7 +1357,7 @@ class Driver:
             PropertyEncryption,
         )
 
-        return PropertyEncryption(DriverHolder(self))
+        return PropertyEncryption(_driver=DriverHolder(self))
 
 
 def _work(

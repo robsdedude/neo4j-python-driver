@@ -1358,7 +1358,7 @@ class AsyncDriver:
             AsyncPropertyEncryption,
         )
 
-        return AsyncPropertyEncryption(AsyncDriverHolder(self))
+        return AsyncPropertyEncryption(_driver=AsyncDriverHolder(self))
 
 
 async def _work(
