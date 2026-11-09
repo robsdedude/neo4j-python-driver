@@ -23,7 +23,7 @@ from ... import _typing as t
 from ..._async_compat.concurrency import CooperativeLock
 
 
-T = t.TypeVar("T")
+T = t.TypeVar("T", bound=t.Hashable)
 
 
 __all__ = [
@@ -59,8 +59,7 @@ class _Cache(t.Generic[T]):
         self._ttl = ttl
         self._size = size
         self._cache = {}
-        if bijective:
-            self._inv_cache = {}
+        self._inv_cache = {} if bijective else None
         self._lock = CooperativeLock()
 
     def set(self, key: str, value: T) -> None:
@@ -150,3 +149,6 @@ class KeyAliasCache(_BijectiveCache[str]):
 
 class KeyCache(_Cache[bytes]):
     """Caches key id -> decapsulated key."""
+
+    def __init__(self, ttl: float, size: int) -> None:
+        super().__init__(ttl, size)

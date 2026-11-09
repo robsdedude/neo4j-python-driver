@@ -75,6 +75,10 @@ class AadChoiceEncryption(_AadChoice):
         """Use no AAD."""
         return cls(AAD_CHOICE_NONE)
 
+    @classmethod
+    def _none_no_warning(cls) -> t.Self:
+        return cls._without_warning(AAD_CHOICE_NONE)  # type: ignore[attr-defined]
+
     def __repr__(self) -> str:
         if self._value is AAD_CHOICE_NONE:
             return f"{self.__class__.__name__}.none()"

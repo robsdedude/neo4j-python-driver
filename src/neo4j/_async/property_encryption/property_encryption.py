@@ -42,7 +42,7 @@ __all__ = [
 ]
 
 
-AAD_CHOICE_ENCRYPTION_NONE = AadChoiceEncryption.none()
+AAD_CHOICE_ENCRYPTION_NONE = AadChoiceEncryption._none_no_warning()
 
 
 class AsyncDriverHolder(t.NamedTuple):
