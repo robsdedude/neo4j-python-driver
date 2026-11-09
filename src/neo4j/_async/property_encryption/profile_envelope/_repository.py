@@ -41,6 +41,10 @@ class AsyncEncapsulatedKeyRecordRepository(abc.ABC):
 
     Any implementation of this abstract base class must be thread-safe.
 
+    **Property Encryption is a preview**.
+    It might be changed without following the deprecation policy.
+    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
+
     .. versionadded:: 6.5
     """
 

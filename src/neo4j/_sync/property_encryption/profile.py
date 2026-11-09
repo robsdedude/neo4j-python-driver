@@ -29,7 +29,20 @@ internal_implementer = object()
 
 
 class PropertyEncryptionProfile(abc.ABC):
-    """TODO: docs."""
+    """
+    A collection of mechanisms for encrypting and decrypting properties.
+
+    This class is not meant to be subclassed by user-code. Instead, users
+    should use the implementation(s) provided by the driver:
+
+    * :class:`.EnvelopePropertyEncryptionProfile`
+
+    **Property Encryption is a preview**.
+    It might be changed without following the deprecation policy.
+    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
+
+    .. versionadded:: 6.5
+    """
 
     def __init_subclass__(cls) -> None:
         attr = f"_{cls.__name__}__permitted_implementer"
@@ -42,4 +55,17 @@ class PropertyEncryptionProfile(abc.ABC):
     @property
     @abc.abstractmethod
     def name(self) -> str:
-        """TODO: docs."""
+        """
+        The name of the profile.
+
+        The profile's name is used by the driver as a look-up key when deciding
+        what cryptographic mechanisms to use for encrypting and decrypting
+        properties.
+
+        For encryption, user-code provides the name
+        (:meth:`.PropertyEncryption.decode`).
+        For decryption, the name of the used profile is stored alongside the
+        encrypted data. Therefore, when using multiple drivers to exchange
+        encrypted data, the used profile names must be the same across all
+        drivers.
+        """

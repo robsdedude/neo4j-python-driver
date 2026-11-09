@@ -67,7 +67,7 @@ class AsyncPropertyEncryption:
     It might be changed without following the deprecation policy.
     See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
 
-    .. versionadded:: 6.4
+    .. versionadded:: 6.5
     """
 
     _driver: AsyncDriver

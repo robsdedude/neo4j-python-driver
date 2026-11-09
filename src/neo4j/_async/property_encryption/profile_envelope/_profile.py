@@ -40,14 +40,6 @@ __all__ = [
 
 @preview("Property encryption is a preview feature.")
 class AsyncEnvelopePropertyEncryptionProfile(AsyncPropertyEncryptionProfile):
-    """
-    TODO: docs.
-
-    **Property Encryption is a preview**.
-    It might be changed without following the deprecation policy.
-    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
-    """
-
     __permitted_implementer = internal_implementer
 
     _name: str
@@ -68,6 +60,53 @@ class AsyncEnvelopePropertyEncryptionProfile(AsyncPropertyEncryptionProfile):
         key_alias_cache_max_size: int = 100,
         key_alias_cache_ttl: float = 15.0,
     ) -> None:
+        """
+        Use envelope encryption for encrypting and decrypting properties.
+
+        This means that a private key used for data encryption, called a data
+        encryption key (DEK), is being encrypted using a second (usually
+        symmetric) key, called the key encryption key (KEK). This technique is
+        also know as key encapsulation.
+
+        The profile contains two caches:
+
+        1. A cache resolving key ids to decapsulated DEKs.
+           This safes network operations when using remote/cloud key
+           encapsulation services as well as cryptographic operations for
+           decapsulating DEKs.
+        2. A cache resolving key aliases to key ids.
+           This safes network operations when using remote/cloud key
+           repositories.
+
+        Both come at the cost of potentially using outdated keys temporarily.
+        The ``ttl``s might be adjusted to lessen the effect or the cache's size
+        might be reduced or set to ``0`` to disable caching completely.
+
+        :param name: the name of the profile (see remarks under
+            :attr:`.AsyncPropertyEncryptionProfile.name`).
+        :param key_encapsulation_service: the service responsible for
+            encapsulating and decapsulating keys.
+        :param key_repository: the repository responsible for storing and
+            retrieving encapsulated keys (DEKs).
+        :param key_cache_max_size: the maximum number of keys to cache in
+            memory. If set to 0, caching is disabled.
+        :param key_cache_ttl:
+            for how many seconds a cache entry should be valid.
+        :param key_alias_cache_max_size: the maximum number of key aliases to
+            cache in memory. If set to 0, caching is disabled.
+        :param key_alias_cache_ttl:
+            for how many seconds a cache entry should be valid.
+
+        :raises ValueError:
+            * if any cache size is negative.
+            * if any cache ttl ``<= 0`` or ``nan``.
+
+        **Property Encryption is a preview**.
+        It might be changed without following the deprecation policy.
+        See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
+
+        .. versionadded:: 6.5
+        """
         self._name = name
         self._key_encapsulation_service = key_encapsulation_service
         self._key_repository = key_repository

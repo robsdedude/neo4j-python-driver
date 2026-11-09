@@ -61,7 +61,7 @@ class AadChoiceEncryption(_AadChoice):
     It might be changed without following the deprecation policy.
     See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
 
-    .. versionadded:: 6.4
+    .. versionadded:: 6.5
     """
 
     _value: object
@@ -108,7 +108,7 @@ class AadChoiceDecryption(_AadChoice):
     It might be changed without following the deprecation policy.
     See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
 
-    .. versionadded:: 6.4
+    .. versionadded:: 6.5
     """
 
     _value: object
@@ -148,7 +148,7 @@ class KeyChoice:
     It might be changed without following the deprecation policy.
     See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
 
-    .. versionadded:: 6.4
+    .. versionadded:: 6.5
 
     .. seealso::
         :meth:`.PropertyEncryption.encrypt_to_bytes`,

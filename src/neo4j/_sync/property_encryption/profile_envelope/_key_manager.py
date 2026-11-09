@@ -55,6 +55,10 @@ class EncapsulatedKeyManager:
     data key and registers the resulting :class:`.EncapsulatedKeyRecord`
     with the configured :class:`.EncapsulatedKeyRecordRepository`.
 
+    **Property Encryption is a preview**.
+    It might be changed without following the deprecation policy.
+    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
+
     .. versionadded:: 6.5
     """
 

@@ -20,6 +20,7 @@ import abc
 import dataclasses
 
 from .. import _typing as t  # noqa: TC001
+from .._warnings import preview
 
 
 __all__ = [
@@ -46,6 +47,10 @@ class KeyEncapsulationOptions(abc.ABC):
     :meth:`.AsyncKeyEncapsulationService.decapsulate()`) when the key is
     retrieved form the repository and needs to be decapsulated.
 
+    **Property Encryption is a preview**.
+    It might be changed without following the deprecation policy.
+    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
+
     .. versionadded:: 6.5
 
     .. seealso:: :class:`.KeyEncapsulationResult`
@@ -60,6 +65,7 @@ class KeyEncapsulationOptions(abc.ABC):
         """
 
 
+@preview("Property encryption is a preview feature.")
 @dataclasses.dataclass
 class KeyEncapsulationResult:
     """
@@ -67,6 +73,10 @@ class KeyEncapsulationResult:
 
     Contains the encapsulated key, the metadata required to decapsulate it,
     and the key itself.
+
+    **Property Encryption is a preview**.
+    It might be changed without following the deprecation policy.
+    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
 
     .. versionadded:: 6.5
 
@@ -94,12 +104,17 @@ class KeyEncapsulationResult:
     """
 
 
+@preview("Property encryption is a preview feature.")
 @dataclasses.dataclass
 class EncapsulatedKey:
     """
     A reference to an encapsulated key.
 
     Contains the key's globally unique id and, if assigned, its alias.
+
+    **Property Encryption is a preview**.
+    It might be changed without following the deprecation policy.
+    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
 
     .. versionadded:: 6.5
     """
@@ -111,6 +126,7 @@ class EncapsulatedKey:
     """The key alias, or :data:`None` if no alias is assigned."""
 
 
+@preview("Property encryption is a preview feature.")
 @dataclasses.dataclass
 class EncapsulatedKeyRecord(EncapsulatedKey):
     """
@@ -119,6 +135,10 @@ class EncapsulatedKeyRecord(EncapsulatedKey):
     Extends :class:`.EncapsulatedKey` with the key encapsulation and associated
     metadata required by a :class:`.KeyEncapsulationService` to decapsulate the
     key.
+
+    **Property Encryption is a preview**.
+    It might be changed without following the deprecation policy.
+    See also https://github.com/neo4j/neo4j-python-driver/wiki/preview-features
 
     .. versionadded:: 6.5
     """

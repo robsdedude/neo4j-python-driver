@@ -52,6 +52,8 @@ class AsyncKeyEncapsulationService(abc.ABC):
     Implementations of this abstract base class are provided through
     :class:`.AsyncKeyEncapsulationServices`.
 
+    Any implementation of this abstract base class must be thread-safe.
+
     .. versionadded:: 6.5
     """
 
