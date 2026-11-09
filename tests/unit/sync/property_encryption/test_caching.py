@@ -252,6 +252,30 @@ def test_set_clears_expired_entries(
         _assert_cache_internal_keys(cache, (*keys2, *keys3))
 
 
+def test_set_clears_expired_over_lru(
+    cache_factory: T_cache_factory[T_V],
+) -> None:
+    ttl = 1
+    tick = ttl / 2 + 0.001
+    with freezegun.freeze_time() as frozen_time:
+        cache = cache_factory(ttl=ttl, size=2)
+        # GIVEN: keys1 expired, keys2 LRU, cache full
+        keys1 = _make_keys(1)
+        _set_values(cache, keys1, cache_factory)
+        frozen_time.tick(tick)
+        keys2 = _make_keys(1)
+        _set_values(cache, keys2, cache_factory)
+        cache.get(keys2[0])
+        frozen_time.tick(tick)
+
+        # WHEN: calling set
+        keys3 = _make_keys(1)
+        _set_values(cache, keys3, cache_factory)
+
+        # THEN: the cache dropped the expired keys1, not the LRU keys2
+        _assert_cache_internal_keys(cache, (*keys2, *keys3))
+
+
 @pytest.mark.parametrize("size", [0, 1, 2**64 - 1])
 @pytest.mark.parametrize(
     "ttl", [sys.float_info.min, sys.float_info.max, float("inf")]

@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from neo4j import _typing as t
@@ -131,7 +133,80 @@ async def test_decrypt(
     )
 
 
-# TODO:
-#  * Test encrypt using non-existing key id
-#  * Test encrypt using non-existing key alias
-#  * Test decrypt using non-existing key id
+@pytest.mark.parametrize(
+    ("by_alias", "alias_cache_hit"),
+    (
+        (False, False),
+        (True, False),
+        (True, True),
+    ),
+)
+@mark_async_test
+async def test_encrypt_non_existing_key(
+    by_alias: bool,
+    alias_cache_hit: bool,
+    async_profile: AsyncTestingEnvelopePropertyEncryptionProfile,
+    mocked_encrypt_primitive: ReturnTrackingMock,
+    mocked_struct_encode: ReturnTrackingMock,
+) -> None:
+    encap_service = async_profile._key_encapsulation_service
+    key_repo = async_profile._key_repository
+    _, key_record = await async_profile._create_key(
+        KEY_ALIAS if by_alias else None,
+        key_cache=False,
+        alias_cache=alias_cache_hit,
+    )
+    await key_repo.delete_by_id(key_record.id)
+    async_profile._reset_mocks()
+
+    value = object()
+    aad = t.cast(AadChoiceEncryption, object())
+    key_choice = (
+        KeyChoice(alias=KEY_ALIAS) if by_alias else KeyChoice(id=key_record.id)
+    )
+    match = (
+        f"{re.escape(repr(KEY_ALIAS))}"
+        if by_alias and not alias_cache_hit
+        else f"{re.escape(repr(key_record.id))}"
+    )
+    with pytest.raises(KeyError, match=match):
+        await encrypt(value, aad, key_choice, async_profile)
+
+    if by_alias and not alias_cache_hit:
+        key_repo.find_by_alias.assert_awaited_once_with(KEY_ALIAS)  # type: ignore[attr-defined]
+        key_repo.find_by_id.assert_not_called()  # type: ignore[attr-defined]
+    else:
+        key_repo.find_by_id.assert_awaited_once_with(key_record.id)  # type: ignore[attr-defined]
+        key_repo.find_by_alias.assert_not_called()  # type: ignore[attr-defined]
+    encap_service.decapsulate.assert_not_called()  # type: ignore[attr-defined]
+    mocked_encrypt_primitive.assert_not_called()
+    mocked_struct_encode.assert_not_called()
+    assert async_profile._key_cache.get(key_record.id) is None
+    assert async_profile._key_alias_cache.get(KEY_ALIAS) is None
+
+
+@mark_async_test
+async def test_decrypt_non_existing_key(
+    async_profile: AsyncTestingEnvelopePropertyEncryptionProfile,
+    mocked_decrypt_primitive: ReturnTrackingMock,
+    mocked_struct_decode: ReturnTrackingMock,
+    mocked_load_metadata: ReturnTrackingMock,
+) -> None:
+    encap_service = async_profile._key_encapsulation_service
+    key_repo = async_profile._key_repository
+    key_id = "non-existing-key-id"
+    mocked_load_metadata.return_value["key_id"] = key_id
+
+    value = t.cast(bytes, object())
+    aad = t.cast(AadChoiceDecryption, object())
+    with pytest.raises(KeyError, match=f"{re.escape(repr(key_id))}"):
+        await decrypt(value, aad, async_profile)
+
+    mocked_struct_decode.assert_called_once_with(value)
+    decoded_struct = mocked_struct_decode.call_return_values[0]
+    mocked_load_metadata.assert_called_once_with(decoded_struct.metadata)
+    key_repo.find_by_id.assert_awaited_once_with(key_id)  # type: ignore[attr-defined]
+    key_repo.find_by_alias.assert_not_called()  # type: ignore[attr-defined]
+    encap_service.decapsulate.assert_not_called()  # type: ignore[attr-defined]
+    mocked_decrypt_primitive.assert_not_called()
+    assert async_profile._key_cache.get(key_id) is None
