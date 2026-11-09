@@ -35,6 +35,7 @@ if t.TYPE_CHECKING:
 
     import aiohttp
     import urllib3
+    import cryptography
 else:
     aiohttp: t.Any = None
     with suppress(ImportError):
@@ -47,6 +48,10 @@ else:
         raise ImportError(
             "aiohttp and urllib3 must both be installed or both be missing"
         )
+
+    cryptography: t.Any = None
+    with suppress(ImportError):
+        import cryptography  # type: ignore[no-redef]
 
 
 if t.TYPE_CHECKING:
@@ -72,6 +77,7 @@ HAS_NP = np is not None
 HAS_PD = pd is not None
 HAS_PA = pa is not None
 HAS_HTTP = aiohttp is not None
+HAS_CRYPTO = cryptography is not None
 
 
 if np is None:
@@ -84,9 +90,11 @@ if pa is None:
 
 
 __all__ = [
+    "HAS_CRYPTO",
     "HAS_NP",
     "HAS_PA",
     "HAS_PD",
+    "mark_skip_if_crypto_dependencies_missing",
     "mark_skip_if_http_dependencies_missing",
     "mark_skip_with_optional_dependency",
     "mark_skip_without_optional_dependency",
@@ -141,6 +149,11 @@ def skip_if_mocked_dependency(dep: t.Any) -> None:
 
 mark_skip_if_http_dependencies_missing = pytest.mark.skipif(
     not HAS_HTTP, reason="aiohttp and urllib3 are not installed"
+)
+
+
+mark_skip_if_crypto_dependencies_missing = pytest.mark.skipif(
+    not HAS_CRYPTO, reason="cryptography is not installed"
 )
 
 

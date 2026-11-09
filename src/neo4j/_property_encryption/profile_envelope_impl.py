@@ -20,8 +20,6 @@ import os
 from contextlib import contextmanager
 from dataclasses import dataclass
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-
 from .. import _typing as t
 from .._codec.encryption import (
     BoltEncodingScheme,
@@ -193,6 +191,8 @@ class _EncryptionResult:
 def _encrypt_encoded_value(
     data: bytes, key: bytes, aad: bytes | None
 ) -> _EncryptionResult:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
     if len(key) != 256:
         raise ValueError(f"Invalid key length: {len(key)} (must be 256).")
     iv = os.urandom(12)
@@ -204,6 +204,8 @@ def _encrypt_encoded_value(
 def _decrypt_encoded_value(
     cipher_output: bytes, iv: bytes, key: bytes, aad: bytes | None
 ) -> bytes:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
     if len(key) != 256:
         raise ValueError(f"Invalid key length: {len(key)} (must be 256).")
     aesgcm = AESGCM(key)

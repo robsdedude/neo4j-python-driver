@@ -20,12 +20,6 @@ import abc
 import base64
 import os
 
-from cryptography.hazmat.primitives.ciphers import (
-    Cipher,
-    modes,
-)
-from cryptography.hazmat.primitives.ciphers.algorithms import AES256
-
 from .... import _typing as t  # noqa: TC001
 from ...._property_encryption.profile_envelope import (
     KeyEncapsulationOptions,
@@ -72,7 +66,7 @@ class AsyncKeyEncapsulationService(abc.ABC):
 
     @abc.abstractmethod
     async def decapsulate(
-        self, encapsulation: bytes, matadata: t.Mapping[str, str]
+        self, encapsulation: bytes, metadata: t.Mapping[str, str]
     ) -> bytes:
         """
         Decapsulate an encapsulated key.
@@ -115,11 +109,18 @@ class AsyncKeyEncapsulationServices:
 
 class _AsyncLocalKeyEncapsulationService(AsyncKeyEncapsulationService):
     def __init__(self, master_key: bytes) -> None:
+        from cryptography.hazmat.primitives.ciphers.algorithms import AES256
+
         self._algo = AES256(master_key)
 
     async def encapsulate(
         self, options: KeyEncapsulationOptions | None
     ) -> KeyEncapsulationResult:
+        from cryptography.hazmat.primitives.ciphers import (
+            Cipher,
+            modes,
+        )
+
         if options is not None:
             raise ValueError(
                 "Local key encapsulation service does not accept options."
@@ -141,6 +142,11 @@ class _AsyncLocalKeyEncapsulationService(AsyncKeyEncapsulationService):
     async def decapsulate(
         self, encapsulation: bytes, matadata: t.Mapping[str, str]
     ) -> bytes:
+        from cryptography.hazmat.primitives.ciphers import (
+            Cipher,
+            modes,
+        )
+
         try:
             iv_base64 = matadata["iv"]
         except KeyError as e:
