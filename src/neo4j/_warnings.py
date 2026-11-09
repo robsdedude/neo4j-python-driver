@@ -117,6 +117,8 @@ def _make_warning_decorator(
             return inner
 
         if inspect.isclass(f):
+            new_class = type(f.__name__, f.__bases__, dict(f.__dict__))
+
             if hasattr(f, "__init__"):
                 original_init = f.__init__
 
@@ -125,15 +127,18 @@ def _make_warning_decorator(
                     warning_func(message, stack_level=2)
                     return original_init(self, *args, **kwargs)
 
-                def _without_warning(cls, *args, **kwargs):
-                    obj = cls.__new__(cls, *args, **kwargs)
-                    original_init(obj, *args, **kwargs)
-                    return obj
+                new_class.__init__ = inner
+            else:
 
-                f.__init__ = inner
-                f._without_warning = classmethod(_without_warning)
-                return f
-            raise TypeError("Cannot decorate class without __init__")
+                def inner(self, *args, **kwargs):
+                    warning_func(message, stack_level=2)
+                    return super(new_class, self).__init__(*args, **kwargs)
+
+                new_class.__init__ = inner
+
+            new_class._without_warning = f
+
+            return new_class
 
         else:
 

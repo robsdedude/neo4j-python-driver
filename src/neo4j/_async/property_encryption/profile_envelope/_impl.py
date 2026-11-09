@@ -99,6 +99,7 @@ async def _load_key_by_id(
     encap_key = await key_repository.find_by_id(key_id)
     if encap_key is None:
         profile._key_cache.forget(key_id)
+        profile._key_alias_cache.forget_value(key_id)
         raise KeyError(f"Key not found by id {key_id!r}.")
     return await _decapsulate_key(profile, encap_key)
 

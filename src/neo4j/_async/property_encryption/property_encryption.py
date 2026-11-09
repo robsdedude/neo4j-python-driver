@@ -42,7 +42,10 @@ __all__ = [
 ]
 
 
-AAD_CHOICE_ENCRYPTION_NONE = AadChoiceEncryption._none_no_warning()
+AAD_CHOICE_ENCRYPTION_NONE = t.cast(
+    AadChoiceEncryption,
+    AadChoiceEncryption._without_warning,  # type: ignore[attr-defined]
+).none()
 
 
 class AsyncDriverHolder(t.NamedTuple):

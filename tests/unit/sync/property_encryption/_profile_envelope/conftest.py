@@ -21,52 +21,53 @@ import struct
 
 import pytest
 
+import neo4j._sync.property_encryption.profile_envelope._impl
 from neo4j import _typing as t
+from neo4j._codec.encryption.struct import EncryptedStruct
+from neo4j._property_encryption import profile_envelope_impl
+from neo4j._property_encryption.profile_envelope_impl import MetaData
+from neo4j._sync.property_encryption.profile import internal_implementer
 from neo4j._sync.property_encryption.profile_envelope import (
     EncapsulatedKeyRecordRepository,
     EnvelopePropertyEncryptionProfile,
     KeyEncapsulationService,
 )
-from neo4j.property_encryption import (
+
+from ...._mock import ReturnTrackingMock
+from ....property_encryption._preview import (
     EncapsulatedKeyRecord,
     KeyEncapsulationResult,
 )
 
 
 if t.TYPE_CHECKING:
+    import mock
     from pytest_mock import MockFixture
 
     from neo4j.property_encryption import (
-        AadChoiceDecryption,
         AadChoiceEncryption,
-        KeyChoice,
         KeyEncapsulationOptions,
     )
 
 
-class TestingEnvelopePropertyEncryptionProfile(
-    EnvelopePropertyEncryptionProfile, abc.ABC
-):
-    @abc.abstractmethod
-    def _create_key(
-        self,
-        alias: str | None = None,
-        key_cache: bool = True,
-        alias_cache: bool = True,
-    ) -> EncapsulatedKeyRecord: ...
+if t.TYPE_CHECKING:
+
+    class KeyEncapsulationServiceMock(
+        KeyEncapsulationService, mock.MagicMock
+    ): ...
 
 
 @pytest.fixture
 def encapsulation_service(
     mocker: MockFixture,
-) -> KeyEncapsulationService:
+) -> KeyEncapsulationServiceMock:
     fixed_meta = {"meta": "data"}
 
     class FakeService(KeyEncapsulationService):
         _last_key: int
 
         def __init__(self):
-            super().__init__()
+            super(KeyEncapsulationService, self).__init__()
             self._last_key = 0
 
         def encapsulate(
@@ -90,20 +91,27 @@ def encapsulation_service(
             assert len(key) == 8
             return b"\x00" * 248 + key
 
-    return mocker.Mock(warps=FakeService())
+    return mocker.MagicMock(wraps=FakeService())
+
+
+if t.TYPE_CHECKING:
+
+    class EncapsulatedKeyRecordRepositoryMock(
+        EncapsulatedKeyRecordRepository, mock.MagicMock
+    ): ...
 
 
 @pytest.fixture
 def repository(
     mocker: MockFixture,
-) -> EncapsulatedKeyRecordRepository:
+) -> EncapsulatedKeyRecordRepositoryMock:
     class FakeRepository(EncapsulatedKeyRecordRepository):
         _records: dict[str, EncapsulatedKeyRecord]
         _alias_map: dict[str, str]
         _next_id: int
 
         def __init__(self):
-            super().__init__()
+            super(EncapsulatedKeyRecordRepository, self).__init__()
             self._records = {}
             self._alias_map = {}
             self._next_id = 1
@@ -156,7 +164,28 @@ def repository(
             if record.alias is not None:
                 del self._alias_map[record.alias]
 
-    return mocker.Mock(wraps=FakeRepository())
+    return mocker.MagicMock(wraps=FakeRepository())
+
+
+class TestingEnvelopePropertyEncryptionProfile(
+    EnvelopePropertyEncryptionProfile, abc.ABC
+):
+    __permitted_implementer = internal_implementer
+    _key_encapsulation_service: KeyEncapsulationServiceMock
+    _key_repository: EncapsulatedKeyRecordRepositoryMock
+
+    @abc.abstractmethod
+    def _create_key(
+        self,
+        alias: str | None = None,
+        /,
+        *,
+        key_cache: bool = True,
+        alias_cache: bool = True,
+    ) -> tuple[KeyEncapsulationResult, EncapsulatedKeyRecord]: ...
+
+    @abc.abstractmethod
+    def _reset_mocks(self) -> None: ...
 
 
 @pytest.fixture
@@ -165,26 +194,153 @@ def profile(
     repository: EncapsulatedKeyRecordRepository,
 ) -> TestingEnvelopePropertyEncryptionProfile:
     class Profile(TestingEnvelopePropertyEncryptionProfile):
+        __permitted_implementer = internal_implementer
+
+        def __init__(self, *args, **kwargs) -> None:
+            if t.TYPE_CHECKING:
+                super_init = (
+                    TestingEnvelopePropertyEncryptionProfile.__init__
+                )
+            else:
+                super_init = super()._without_warning.__init__
+            super_init(self, *args, **kwargs)
+
         def _create_key(
             self,
             alias: str | None = None,
+            /,
+            *,
             key_cache: bool = True,
             alias_cache: bool = True,
-        ) -> EncapsulatedKeyRecord:
+        ) -> tuple[KeyEncapsulationResult, EncapsulatedKeyRecord]:
             key = self._key_encapsulation_service.encapsulate(None)
             record = self._key_repository.create(
                 alias=alias,
                 encapsulation=key.encapsulation,
                 metadata=key.metadata,
             )
-            if alias_cache and alias is not None:
-                self._key_alias_cache.set(alias, record.id)
             if key_cache:
                 self._key_cache.set(record.id, key.secret_key)
-            return record
+            if alias_cache and alias is not None:
+                self._key_alias_cache.set(alias, record.id)
+            return key, record
+
+        def _reset_mocks(self) -> None:
+            self._key_encapsulation_service.reset_mock()
+            self._key_repository.reset_mock()
 
     return Profile(
         "profile",
         key_encapsulation_service=encapsulation_service,
         key_repository=repository,
     )
+
+
+def mocked_encrypt(
+    value: object,
+    aad: AadChoiceEncryption,
+    key: bytes,
+    profile_name: str,
+) -> EncryptedStruct:
+    return EncryptedStruct(
+        profile_type="MOCKED",
+        profile_version=3,
+        profile_name=profile_name,
+        cipher_output=b"super secret",
+        type_name=str(type(value)),
+        type_encoding_scheme_major=7,
+        type_encoding_scheme_minor=13,
+        metadata={"encryption meta": object()},
+    )
+
+
+@pytest.fixture
+def mocked_encrypt_primitive(mocker: MockFixture) -> ReturnTrackingMock:
+    mod = profile_envelope_impl
+    attr_name = "encrypt"
+    attr = getattr(mod, attr_name)
+
+    mocked = mocker.patch.object(
+        mod, attr_name, new=ReturnTrackingMock(spec=attr)
+    )
+    mocked.side_effect = mocked_encrypt
+    return mocked
+
+
+@pytest.fixture
+def mocked_struct_encode(mocker: MockFixture) -> ReturnTrackingMock:
+    n = 0
+
+    def call(*args, **kwargs) -> bytes:
+        nonlocal n
+        n += 1
+        return f"encoded-{n}".encode("ascii")
+
+    mod = neo4j._sync.property_encryption.profile_envelope._impl
+    attr_name = "encode_encrypted_struct"
+    attr = getattr(mod, attr_name)
+
+    mocked = mocker.patch.object(
+        mod, attr_name, new=ReturnTrackingMock(spec=attr)
+    )
+    mocked.side_effect = call
+    return mocked
+
+
+@pytest.fixture
+def mocked_decrypt_primitive(mocker: MockFixture) -> ReturnTrackingMock:
+    mod = profile_envelope_impl
+    attr_name = "decrypt"
+    attr = getattr(mod, attr_name)
+
+    return mocker.patch.object(
+        mod, attr_name, new=ReturnTrackingMock(spec=attr)
+    )
+
+
+@pytest.fixture
+def mocked_struct_decode(mocker: MockFixture) -> ReturnTrackingMock:
+    n = 0
+
+    def call(*args, **kwargs) -> EncryptedStruct:
+        nonlocal n
+        n += 1
+        return EncryptedStruct(
+            profile_type="MOCKED",
+            profile_version=3,
+            profile_name="profile name",
+            cipher_output=f"super secret {n}".encode("ascii"),
+            type_name="mockeroony",
+            type_encoding_scheme_major=7,
+            type_encoding_scheme_minor=13,
+            metadata={"decryption meta": object()},
+        )
+
+    mod = neo4j._sync.property_encryption.profile_envelope._impl
+    attr_name = "decode_encrypted_struct"
+    attr = getattr(mod, attr_name)
+
+    mocked = mocker.patch.object(
+        mod, attr_name, new=ReturnTrackingMock(spec=attr)
+    )
+    mocked.side_effect = call
+    return mocked
+
+
+@pytest.fixture
+def mocked_load_metadata(mocker: MockFixture) -> ReturnTrackingMock:
+    mod = profile_envelope_impl
+    attr_name = "load_metadata"
+    attr = getattr(mod, attr_name)
+
+    mocked = mocker.patch.object(
+        mod, attr_name, new=ReturnTrackingMock(spec=attr)
+    )
+    mocked.return_value = MetaData(
+        key_id="key_id",
+        iv=b"iv",
+        aad=b"aad",
+        aad_encoding_scheme_major=4,
+        aad_encoding_scheme_minor=6,
+    )
+    return mocked

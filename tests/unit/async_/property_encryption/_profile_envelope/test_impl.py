@@ -15,54 +15,123 @@
 
 
 from __future__ import annotations
-import profile
 
 import pytest
 
 from neo4j import _typing as t
 from neo4j._async.property_encryption.profile_envelope import (
-    AsyncEncapsulatedKeyRecordRepository,
-    AsyncEnvelopePropertyEncryptionProfile,
-    AsyncKeyEncapsulationService,
     decrypt,
     encrypt,
 )
 
+from ....._async_compat import mark_async_test
+from ....property_encryption._preview import (
+    AadChoiceDecryption,
+    AadChoiceEncryption,
+    KeyChoice,
+)
+
 
 if t.TYPE_CHECKING:
-    from pytest_mock import MockFixture
-
-    from neo4j.property_encryption import (
-        AadChoiceDecryption,
-        AadChoiceEncryption,
-        KeyChoice,
-    )
-
+    from ...._mock import ReturnTrackingMock
     from .conftest import AsyncTestingEnvelopePropertyEncryptionProfile
 
 
-KEY_ID = "key-id"
 KEY_ALIAS = "key-alias"
 
 
-@pytest.mark.parametrize(
-    "key_choice", (KeyChoice(id=KEY_ID), KeyChoice(alias=KEY_ALIAS))
-)
+@pytest.mark.parametrize("by_alias", (True, False))
 @pytest.mark.parametrize("key_cache_hit", (True, False))
 @pytest.mark.parametrize("alias_cache_hit", (True, False))
-def test_encrypt(
-    key_choice: KeyChoice,
+@mark_async_test
+async def test_encrypt(
+    by_alias: bool,
     key_cache_hit: bool,
     alias_cache_hit: bool,
     async_profile: AsyncTestingEnvelopePropertyEncryptionProfile,
+    mocked_encrypt_primitive: ReturnTrackingMock,
+    mocked_struct_encode: ReturnTrackingMock,
 ) -> None:
-    key = async_profile._create_key(
-        alias=KEY_ALIAS,
+    encap_service = async_profile._key_encapsulation_service
+    key_repo = async_profile._key_repository
+    key, key_record = await async_profile._create_key(
+        KEY_ALIAS if by_alias else None,
         key_cache=key_cache_hit,
         alias_cache=alias_cache_hit,
     )
+    async_profile._reset_mocks()
+
     value = object()
     aad = t.cast(AadChoiceEncryption, object())
-    # mock encryption primitive
-    encypted = encrypt(value, aad, key_choice, async_profile)
-    assert False, "TODO"
+    key_choice = (
+        KeyChoice(alias=KEY_ALIAS) if by_alias else KeyChoice(id=key_record.id)
+    )
+    encypted = await encrypt(value, aad, key_choice, async_profile)
+
+    mocked_encrypt_primitive.assert_called_once_with(
+        value, aad, key.secret_key, async_profile.name
+    )
+    struct = mocked_encrypt_primitive.call_return_values[0]
+    mocked_struct_encode.assert_called_once_with(struct)
+    assert encypted is mocked_struct_encode.call_return_values[0]
+    expect_key_from_cache = alias_cache_hit if by_alias else key_cache_hit
+    if expect_key_from_cache:
+        encap_service.assert_not_called()
+        key_repo.assert_not_called()
+    else:
+        if by_alias:
+            key_repo.find_by_alias.assert_awaited_once_with(KEY_ALIAS)  # type: ignore[attr-defined]
+        else:
+            key_repo.find_by_id.assert_awaited_once_with(key_record.id)  # type: ignore[attr-defined]
+        encap_service.decapsulate.assert_awaited_once_with(  # type: ignore[attr-defined]
+            key.encapsulation, key.metadata
+        )
+
+
+@pytest.mark.parametrize("key_cache_hit", (True, False))
+@pytest.mark.parametrize("alias_cache_hit", (True, False))
+@mark_async_test
+async def test_decrypt(
+    key_cache_hit: bool,
+    alias_cache_hit: bool,
+    async_profile: AsyncTestingEnvelopePropertyEncryptionProfile,
+    mocked_decrypt_primitive: ReturnTrackingMock,
+    mocked_struct_decode: ReturnTrackingMock,
+    mocked_load_metadata: ReturnTrackingMock,
+) -> None:
+    encap_service = async_profile._key_encapsulation_service
+    key_repo = async_profile._key_repository
+    key, key_record = await async_profile._create_key(
+        KEY_ALIAS,
+        key_cache=key_cache_hit,
+        alias_cache=alias_cache_hit,
+    )
+    mocked_load_metadata.return_value["key_id"] = key_record.id
+    async_profile._reset_mocks()
+
+    value = t.cast(bytes, object())
+    aad = t.cast(AadChoiceDecryption, object())
+    decrypted = await decrypt(value, aad, async_profile)
+
+    assert decrypted is mocked_decrypt_primitive.call_return_values[0]
+    mocked_struct_decode.assert_called_once_with(value)
+    decoded_struct = mocked_struct_decode.call_return_values[0]
+    mocked_load_metadata.assert_called_once_with(decoded_struct.metadata)
+    metadata = mocked_load_metadata.call_return_values[0]
+    if key_cache_hit:
+        encap_service.assert_not_called()
+        key_repo.assert_not_called()
+    else:
+        key_repo.find_by_id.assert_awaited_once_with(metadata["key_id"])  # type: ignore[attr-defined]
+        encap_service.decapsulate.assert_awaited_once_with(  # type: ignore[attr-defined]
+            key.encapsulation, key.metadata
+        )
+    mocked_decrypt_primitive.assert_called_once_with(
+        decoded_struct, metadata, aad, async_profile.name, key.secret_key
+    )
+
+
+# TODO:
+#  * Test encrypt using non-existing key id
+#  * Test encrypt using non-existing key alias
+#  * Test decrypt using non-existing key id
