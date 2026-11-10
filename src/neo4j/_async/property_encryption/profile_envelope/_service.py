@@ -127,7 +127,7 @@ class _AsyncLocalKeyEncapsulationService(AsyncKeyEncapsulationService):
             )
 
         iv = os.urandom(16)
-        mode = modes.CBC(iv)
+        mode = modes.GCM(iv)
         cipher = Cipher(self._algo, mode)
         secret_key = os.urandom(32)  # new random AES-256 key
         encryptor = cipher.encryptor()
@@ -140,7 +140,7 @@ class _AsyncLocalKeyEncapsulationService(AsyncKeyEncapsulationService):
         )
 
     async def decapsulate(
-        self, encapsulation: bytes, matadata: t.Mapping[str, str]
+        self, encapsulation: bytes, metadata: t.Mapping[str, str]
     ) -> bytes:
         from cryptography.hazmat.primitives.ciphers import (
             Cipher,
@@ -148,12 +148,12 @@ class _AsyncLocalKeyEncapsulationService(AsyncKeyEncapsulationService):
         )
 
         try:
-            iv_base64 = matadata["iv"]
+            iv_base64 = metadata["iv"]
         except KeyError as e:
             raise ValueError(
                 "Metadata for decapsulation must contain 'iv'."
             ) from e
-        if len(matadata) != 1:
+        if len(metadata) != 1:
             raise ValueError(
                 "Metadata for decapsulation must only contain 'iv'."
             )
@@ -168,7 +168,7 @@ class _AsyncLocalKeyEncapsulationService(AsyncKeyEncapsulationService):
             raise ValueError(
                 "Metadata for decapsulation must contain a valid 16-byte 'iv'."
             )
-        mode = modes.CBC(iv)
+        mode = modes.GCM(iv)
         cipher = Cipher(self._algo, mode)
         decryptor = cipher.decryptor()
         try:
