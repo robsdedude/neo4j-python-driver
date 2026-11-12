@@ -111,6 +111,10 @@ class _LocalKeyEncapsulationService(KeyEncapsulationService):
     def __init__(self, master_key: bytes) -> None:
         from cryptography.hazmat.primitives.ciphers.algorithms import AES256
 
+        if not isinstance(master_key, bytes):
+            raise TypeError(
+                "Master key must be bytes, got {type(master_key)}."
+            )
         self._algo = AES256(master_key)
 
     def encapsulate(
@@ -131,7 +135,9 @@ class _LocalKeyEncapsulationService(KeyEncapsulationService):
         cipher = Cipher(self._algo, mode)
         secret_key = os.urandom(32)  # new random AES-256 key
         encryptor = cipher.encryptor()
-        encapsulation = encryptor.update(secret_key) + encryptor.finalize()
+        encapsulation = (
+            encryptor.update(secret_key) + encryptor.finalize() + encryptor.tag
+        )
         metadata = {"iv": base64.b64encode(iv).decode("utf-8")}
         return KeyEncapsulationResult(
             encapsulation=encapsulation,
@@ -158,7 +164,7 @@ class _LocalKeyEncapsulationService(KeyEncapsulationService):
                 "Metadata for decapsulation must only contain 'iv'."
             )
         try:
-            iv = base64.b64decode(iv_base64)
+            iv = base64.b64decode(iv_base64, validate=True)
         except Exception as e:
             raise ValueError(
                 "Metadata for decapsulation must contain a valid "
@@ -168,11 +174,13 @@ class _LocalKeyEncapsulationService(KeyEncapsulationService):
             raise ValueError(
                 "Metadata for decapsulation must contain a valid 16-byte 'iv'."
             )
-        mode = modes.GCM(iv)
-        cipher = Cipher(self._algo, mode)
-        decryptor = cipher.decryptor()
         try:
-            secret_key = decryptor.update(encapsulation) + decryptor.finalize()
+            mode = modes.GCM(iv, encapsulation[-16:])
+            cipher = Cipher(self._algo, mode)
+            decryptor = cipher.decryptor()
+            secret_key = (
+                decryptor.update(encapsulation[:-16]) + decryptor.finalize()
+            )
         except Exception as e:
             raise ValueError("Failed to decapsulate the key.") from e
         return secret_key
