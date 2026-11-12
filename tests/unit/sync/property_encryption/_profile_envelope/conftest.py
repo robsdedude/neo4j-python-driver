@@ -91,7 +91,7 @@ def encapsulation_service(
             assert len(key) == 8
             return b"\x00" * 248 + key
 
-    return mocker.MagicMock(wraps=FakeService())
+    return ReturnTrackingMock(wraps=FakeService())
 
 
 if t.TYPE_CHECKING:
@@ -164,7 +164,7 @@ def repository(
             if record.alias is not None:
                 del self._alias_map[record.alias]
 
-    return mocker.MagicMock(wraps=FakeRepository())
+    return ReturnTrackingMock(wraps=FakeRepository())
 
 
 class TestingEnvelopePropertyEncryptionProfile(

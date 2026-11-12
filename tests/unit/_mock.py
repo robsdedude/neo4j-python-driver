@@ -21,12 +21,23 @@ import mock
 from neo4j import _typing as t  # noqa: TC001
 
 
-class ReturnTrackingMock(mock.Mock):
+
+class _ReturnTrackingMock(mock.Mock):
     call_return_values: list[t.Any]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.call_return_values = []
+
+    def _get_child_mock(self, **kw):
+        res = super()._get_child_mock(**kw)
+        if isinstance(res, mock.AsyncMock):
+            return AsyncReturnTrackingMock(**kw)
+        else:
+            return ReturnTrackingMock(**kw)
+
+
+class ReturnTrackingMock(_ReturnTrackingMock):
 
     def __call__(self, *args, **kwargs):
         result = super().__call__(*args, **kwargs)
@@ -34,7 +45,9 @@ class ReturnTrackingMock(mock.Mock):
         return result
 
 
-class AsyncReturnTrackingMock(mock.AsyncMock):
+
+
+class AsyncReturnTrackingMock(mock.AsyncMock, _ReturnTrackingMock):
     call_return_values: list[t.Any]
 
     def __init__(self, *args, **kwargs):

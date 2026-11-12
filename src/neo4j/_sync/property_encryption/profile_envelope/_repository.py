@@ -105,6 +105,9 @@ class EncapsulatedKeyRecordRepository(abc.ABC):
         The alias **must not** be used by another key. To assign an alias
         currently used by another key, it must first be deleted from that key.
 
+        Implementers are advised to raise an error if the id cannot be found in
+        the repository or if the alias is already in use by another key.
+
         :param id: the id of the key for which to set the alias.
         :param alias: the alias to assign to the key, or :data:`None` to remove
             the alias.
@@ -115,6 +118,9 @@ class EncapsulatedKeyRecordRepository(abc.ABC):
     def delete_by_id(self, id: str) -> None:
         """
         Delete a key by id.
+
+        Implementers are advised to raise an error if the id cannot be found in
+        the repository.
 
         :param id: the id of the key to delete.
         """

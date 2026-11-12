@@ -20,14 +20,16 @@ from .... import _typing as t
 from ...._property_encryption.error_wrapper import (
     property_encryption_error_wrapper,
 )
-from ...._property_encryption.profile_envelope import (
-    EncapsulatedKey,
-    KeyEncapsulationOptions,
-)
+from ...._property_encryption.profile_envelope import EncapsulatedKey
 
 
 if t.TYPE_CHECKING:
+    from ...._property_encryption.profile_envelope import (
+        KeyEncapsulationOptions,
+    )
     from ._profile import EnvelopePropertyEncryptionProfile
+else:
+    EncapsulatedKey = EncapsulatedKey._without_warning
 
 
 __all__ = ["EncapsulatedKeyManager", "ProfileWrapper"]
@@ -95,7 +97,9 @@ class EncapsulatedKeyManager:
             encapsulation_result.encapsulation,
             encapsulation_result.metadata,
         )
-        self._profile._key_cache.set(key_record.id, key_record.encapsulation)
+        self._profile._key_cache.set(
+            key_record.id, encapsulation_result.secret_key
+        )
         if alias is not None:
             self._profile._key_alias_cache.set(alias, key_record.id)
         return EncapsulatedKey(id=key_record.id, alias=key_record.alias)
@@ -115,7 +119,12 @@ class EncapsulatedKeyManager:
         key_record = self._profile._key_repository.find_by_alias(alias)
         if key_record is None:
             return None
-        self._profile._key_cache.set(key_record.id, key_record.encapsulation)
+        secret_key = (
+            self._profile._key_encapsulation_service.decapsulate(
+                key_record.encapsulation, key_record.metadata
+            )
+        )
+        self._profile._key_cache.set(key_record.id, secret_key)
         self._profile._key_alias_cache.set(alias, key_record.id)
         return EncapsulatedKey(id=key_record.id, alias=key_record.alias)
 
@@ -142,8 +151,8 @@ class EncapsulatedKeyManager:
 
         :param id: the key id to delete the alias for.
         """
-        self._profile._key_repository.set_alias_by_id(id, None)
         self._profile._key_alias_cache.forget_value(id)
+        self._profile._key_repository.set_alias_by_id(id, None)
 
     @property_encryption_error_wrapper("Failed to delete encapsulated key.")
     def delete_by_id(self, id: str, /) -> None:
@@ -152,6 +161,6 @@ class EncapsulatedKeyManager:
 
         :param id: the key id to delete.
         """
-        self._profile._key_repository.delete_by_id(id)
         self._profile._key_cache.forget(id)
         self._profile._key_alias_cache.forget_value(id)
+        self._profile._key_repository.delete_by_id(id)

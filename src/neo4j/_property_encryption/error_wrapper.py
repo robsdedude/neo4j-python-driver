@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+import inspect
 from functools import wraps
 
 from ..exceptions import (
@@ -30,6 +31,19 @@ __all__ = [
 
 def property_encryption_error_wrapper(message):
     def decorator(func):
+        if inspect.iscoroutinefunction(func):
+
+            @wraps(func)
+            async def inner(*args, **kwargs):
+                try:
+                    return await func(*args, **kwargs)
+                except (DriverError, Neo4jError):
+                    raise
+                except Exception as e:
+                    raise PropertyEncryptionError(message) from e
+
+            return inner
+
         @wraps(func)
         def inner(*args, **kwargs):
             try:

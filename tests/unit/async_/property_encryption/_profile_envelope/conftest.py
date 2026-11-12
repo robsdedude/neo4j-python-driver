@@ -33,7 +33,7 @@ from neo4j._codec.encryption.struct import EncryptedStruct
 from neo4j._property_encryption import profile_envelope_impl
 from neo4j._property_encryption.profile_envelope_impl import MetaData
 
-from ...._mock import ReturnTrackingMock
+from ...._mock import ReturnTrackingMock, AsyncReturnTrackingMock
 from ....property_encryption._preview import (
     EncapsulatedKeyRecord,
     KeyEncapsulationResult,
@@ -91,7 +91,7 @@ def async_encapsulation_service(
             assert len(key) == 8
             return b"\x00" * 248 + key
 
-    return mocker.AsyncMock(wraps=FakeService())
+    return AsyncReturnTrackingMock(wraps=FakeService())
 
 
 if t.TYPE_CHECKING:
@@ -164,7 +164,7 @@ def async_repository(
             if record.alias is not None:
                 del self._alias_map[record.alias]
 
-    return mocker.AsyncMock(wraps=FakeRepository())
+    return AsyncReturnTrackingMock(wraps=FakeRepository())
 
 
 class AsyncTestingEnvelopePropertyEncryptionProfile(
