@@ -34,8 +34,8 @@ if t.TYPE_CHECKING:
     import types
 
     import aiohttp
-    import urllib3
     import cryptography
+    import urllib3
 else:
     aiohttp: t.Any = None
     with suppress(ImportError):

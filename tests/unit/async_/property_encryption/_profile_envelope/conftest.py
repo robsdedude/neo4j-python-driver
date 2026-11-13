@@ -33,7 +33,10 @@ from neo4j._codec.encryption.struct import EncryptedStruct
 from neo4j._property_encryption import profile_envelope_impl
 from neo4j._property_encryption.profile_envelope_impl import MetaData
 
-from ...._mock import ReturnTrackingMock, AsyncReturnTrackingMock
+from ...._mock import (
+    AsyncReturnTrackingMock,
+    ReturnTrackingMock,
+)
 from ....property_encryption._preview import (
     EncapsulatedKeyRecord,
     KeyEncapsulationResult,

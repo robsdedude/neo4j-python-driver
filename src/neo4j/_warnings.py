@@ -117,28 +117,26 @@ def _make_warning_decorator(
             return inner
 
         if inspect.isclass(f):
-            new_class = type(f.__name__, f.__bases__, dict(f.__dict__))
+            original_init = f.__init__
+            without_warning = type(
+                f.__name__,
+                (f,),
+                {
+                    "__module__": f.__module__,
+                    "__qualname__": f.__qualname__,
+                    "__init__": original_init,
+                },
+            )
 
-            if hasattr(f, "__init__"):
-                original_init = f.__init__
+            @wraps(original_init)
+            def inner(self, *args, **kwargs):
+                warning_func(message, stack_level=2)
+                return original_init(self, *args, **kwargs)
 
-                @wraps(original_init)
-                def inner(self, *args, **kwargs):
-                    warning_func(message, stack_level=2)
-                    return original_init(self, *args, **kwargs)
+            f.__init__ = inner
+            f._without_warning = without_warning
 
-                new_class.__init__ = inner
-            else:
-
-                def inner(self, *args, **kwargs):
-                    warning_func(message, stack_level=2)
-                    return super(new_class, self).__init__(*args, **kwargs)
-
-                new_class.__init__ = inner
-
-            new_class._without_warning = f
-
-            return new_class
+            return f
 
         else:
 
