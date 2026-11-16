@@ -48,6 +48,7 @@ from neo4j._sync.io._pool import (
     DirectBoltPool,
     RoutedBoltPool,
 )
+from neo4j._sync.property_encryption import PropertyEncryption
 from neo4j.api import (
     BookmarkManager,
     READ_ACCESS,
@@ -1679,3 +1680,16 @@ def _make_driver(uri: str, **kwargs) -> Driver:
         with pytest.warns(PreviewWarning, match="Query API/HTTP support"):
             return GraphDatabase.driver(uri, **kwargs)
     return GraphDatabase.driver(uri, **kwargs)
+
+
+@mark_sync_test
+def test_property_encryption() -> None:
+    with GraphDatabase.driver("bolt://localhost") as driver:
+        with pytest.warns(
+            PreviewWarning,
+            match=re.escape("Property encryption is a preview feature."),
+        ):
+            property_encryption = driver.property_encryption()
+
+        assert isinstance(property_encryption, PropertyEncryption)
+        assert property_encryption._driver is driver

@@ -46,6 +46,7 @@ from neo4j._async.io._pool import (
     AsyncDirectBoltPool,
     AsyncRoutedBoltPool,
 )
+from neo4j._async.property_encryption import AsyncPropertyEncryption
 from neo4j._async_compat.util import AsyncUtil
 from neo4j._debug import ENABLED as DEBUG_ENABLED
 from neo4j.api import (
@@ -1680,3 +1681,16 @@ def _make_driver(uri: str, **kwargs) -> AsyncDriver:
         with pytest.warns(PreviewWarning, match="Query API/HTTP support"):
             return AsyncGraphDatabase.driver(uri, **kwargs)
     return AsyncGraphDatabase.driver(uri, **kwargs)
+
+
+@mark_async_test
+async def test_property_encryption() -> None:
+    async with AsyncGraphDatabase.driver("bolt://localhost") as driver:
+        with pytest.warns(
+            PreviewWarning,
+            match=re.escape("Property encryption is a preview feature."),
+        ):
+            property_encryption = driver.property_encryption()
+
+        assert isinstance(property_encryption, AsyncPropertyEncryption)
+        assert property_encryption._driver is driver
