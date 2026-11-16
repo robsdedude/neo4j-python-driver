@@ -23,7 +23,7 @@ import pytest
 
 import neo4j._sync.property_encryption.profile_envelope._impl
 from neo4j import _typing as t
-from neo4j._codec.encryption.struct import EncryptedStruct
+from neo4j._codec.property_encryption.struct import EncryptedStruct
 from neo4j._property_encryption import profile_envelope_impl
 from neo4j._property_encryption.profile_envelope_impl import MetaData
 from neo4j._sync.property_encryption.profile import internal_implementer

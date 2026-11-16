@@ -35,7 +35,7 @@ from ....property_encryption._preview import (
 
 
 if t.TYPE_CHECKING:
-    from neo4j._codec.encryption.struct import EncryptedStruct
+    from neo4j._codec.property_encryption.struct import EncryptedStruct
 
     from ...._mock import ReturnTrackingMock
     from .conftest import AsyncTestingEnvelopePropertyEncryptionProfile

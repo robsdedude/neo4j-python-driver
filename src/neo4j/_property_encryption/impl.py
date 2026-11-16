@@ -19,7 +19,6 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from .. import _typing as t  # noqa: TC001
-from .._codec.encryption.struct import EncryptedStruct
 from .._codec.packstream import (
     PackableBuffer,
     Structure as PackstreamStructure,
@@ -29,6 +28,7 @@ from .._codec.packstream.v2 import (
     Packer as PackStreamV2Packer,
     Unpacker as PackStreamV2Unpacker,
 )
+from .._codec.property_encryption.struct import EncryptedStruct
 
 
 __all__ = [

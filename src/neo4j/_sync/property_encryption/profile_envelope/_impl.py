@@ -22,7 +22,7 @@ from ...._property_encryption.impl import encode_encrypted_struct
 
 
 if t.TYPE_CHECKING:
-    from ...._codec.encryption.struct import EncryptedStruct
+    from ...._codec.property_encryption.struct import EncryptedStruct
     from ...._property_encryption.api import (
         AadChoiceDecryption,
         AadChoiceEncryption,

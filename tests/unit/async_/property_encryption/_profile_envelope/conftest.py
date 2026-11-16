@@ -29,7 +29,7 @@ from neo4j._async.property_encryption.profile_envelope import (
     AsyncEnvelopePropertyEncryptionProfile,
     AsyncKeyEncapsulationService,
 )
-from neo4j._codec.encryption.struct import EncryptedStruct
+from neo4j._codec.property_encryption.struct import EncryptedStruct
 from neo4j._property_encryption import profile_envelope_impl
 from neo4j._property_encryption.profile_envelope_impl import MetaData
 

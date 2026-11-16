@@ -21,11 +21,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 from .. import _typing as t
-from .._codec.encryption import (
-    BoltEncodingScheme,
-    SchemeVersion,
-)
-from .._codec.encryption.struct import EncryptedStruct
 from .._codec.packstream import (
     PackableBuffer,
     Structure as PackstreamStructure,
@@ -35,6 +30,11 @@ from .._codec.packstream.v2 import (
     Packer as PackStreamV2Packer,
     Unpacker as PackStreamV2Unpacker,
 )
+from .._codec.property_encryption import (
+    BoltEncodingScheme,
+    SchemeVersion,
+)
+from .._codec.property_encryption.struct import EncryptedStruct
 from .api import (
     AAD_CHOICE_NONE,
     AAD_CHOICE_USE_EXTERNAL,
