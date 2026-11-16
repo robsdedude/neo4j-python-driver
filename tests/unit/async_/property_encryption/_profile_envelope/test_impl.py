@@ -35,6 +35,8 @@ from ....property_encryption._preview import (
 
 
 if t.TYPE_CHECKING:
+    from neo4j._codec.encryption.struct import EncryptedStruct
+
     from ...._mock import ReturnTrackingMock
     from .conftest import AsyncTestingEnvelopePropertyEncryptionProfile
 
@@ -98,7 +100,7 @@ async def test_decrypt(
     alias_cache_hit: bool,
     async_profile: AsyncTestingEnvelopePropertyEncryptionProfile,
     mocked_decrypt_primitive: ReturnTrackingMock,
-    mocked_struct_decode: ReturnTrackingMock,
+    encrypted_struct: EncryptedStruct,
     mocked_load_metadata: ReturnTrackingMock,
 ) -> None:
     encap_service = async_profile._key_encapsulation_service
@@ -111,14 +113,11 @@ async def test_decrypt(
     mocked_load_metadata.return_value["key_id"] = key_record.id
     async_profile._reset_mocks()
 
-    value = t.cast(bytes, object())
     aad = t.cast(AadChoiceDecryption, object())
-    decrypted = await decrypt(value, aad, async_profile)
+    decrypted = await decrypt(encrypted_struct, aad, async_profile)
 
     assert decrypted is mocked_decrypt_primitive.call_return_values[0]
-    mocked_struct_decode.assert_called_once_with(value)
-    decoded_struct = mocked_struct_decode.call_return_values[0]
-    mocked_load_metadata.assert_called_once_with(decoded_struct.metadata)
+    mocked_load_metadata.assert_called_once_with(encrypted_struct.metadata)
     metadata = mocked_load_metadata.call_return_values[0]
     if key_cache_hit:
         encap_service.assert_not_called()
@@ -129,7 +128,7 @@ async def test_decrypt(
             key.encapsulation, key.metadata
         )
     mocked_decrypt_primitive.assert_called_once_with(
-        decoded_struct, metadata, aad, async_profile.name, key.secret_key
+        encrypted_struct, metadata, aad, async_profile.name, key.secret_key
     )
 
 
@@ -189,7 +188,7 @@ async def test_encrypt_non_existing_key(
 async def test_decrypt_non_existing_key(
     async_profile: AsyncTestingEnvelopePropertyEncryptionProfile,
     mocked_decrypt_primitive: ReturnTrackingMock,
-    mocked_struct_decode: ReturnTrackingMock,
+    encrypted_struct: EncryptedStruct,
     mocked_load_metadata: ReturnTrackingMock,
 ) -> None:
     encap_service = async_profile._key_encapsulation_service
@@ -197,14 +196,11 @@ async def test_decrypt_non_existing_key(
     key_id = "non-existing-key-id"
     mocked_load_metadata.return_value["key_id"] = key_id
 
-    value = t.cast(bytes, object())
     aad = t.cast(AadChoiceDecryption, object())
     with pytest.raises(KeyError, match=f"{re.escape(repr(key_id))}"):
-        await decrypt(value, aad, async_profile)
+        await decrypt(encrypted_struct, aad, async_profile)
 
-    mocked_struct_decode.assert_called_once_with(value)
-    decoded_struct = mocked_struct_decode.call_return_values[0]
-    mocked_load_metadata.assert_called_once_with(decoded_struct.metadata)
+    mocked_load_metadata.assert_called_once_with(encrypted_struct.metadata)
     key_repo.find_by_id.assert_awaited_once_with(key_id)  # type: ignore[attr-defined]
     key_repo.find_by_alias.assert_not_called()  # type: ignore[attr-defined]
     encap_service.decapsulate.assert_not_called()  # type: ignore[attr-defined]

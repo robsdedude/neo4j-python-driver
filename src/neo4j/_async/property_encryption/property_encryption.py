@@ -25,6 +25,7 @@ from ..._property_encryption.api import (
 from ..._property_encryption.error_wrapper import (
     property_encryption_error_wrapper,
 )
+from ..._property_encryption.impl import decode_encrypted_struct
 from . import profile_envelope
 from .profile_envelope import AsyncEnvelopePropertyEncryptionProfile
 
@@ -130,13 +131,19 @@ class AsyncPropertyEncryption:
         encrypted using a driver newer or older driver version that encoded the
         value with a non-supported scheme.
 
+        The profile name used to decrypt the value is taken from the metadata
+        stored alongside the encrypted value. Therefore, when using multiple
+        drivers to exchange encrypted data, the used profile names must be the
+        same across all drivers.
+
         :param value: the value to decrypt.
         :param aad: the additional authenticated data to use for decryption.
         :return: the decrypted value
         """
-        profile = _get_profile(self._driver, None)
+        struct = decode_encrypted_struct(value)
+        profile = _get_profile(self._driver, struct.profile_name)
         if type(profile) is AsyncEnvelopePropertyEncryptionProfile:
-            return await profile_envelope.decrypt(value, aad, profile)
+            return await profile_envelope.decrypt(struct, aad, profile)
         raise TypeError(
             f"Unsupported property encryption profile type: {type(profile)}."
         )

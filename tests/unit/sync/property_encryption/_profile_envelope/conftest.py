@@ -299,32 +299,17 @@ def mocked_decrypt_primitive(mocker: MockFixture) -> ReturnTrackingMock:
 
 
 @pytest.fixture
-def mocked_struct_decode(mocker: MockFixture) -> ReturnTrackingMock:
-    n = 0
-
-    def call(*args, **kwargs) -> EncryptedStruct:
-        nonlocal n
-        n += 1
-        return EncryptedStruct(
-            profile_type="MOCKED",
-            profile_version=3,
-            profile_name="profile name",
-            cipher_output=f"super secret {n}".encode("ascii"),
-            type_name="mockeroony",
-            type_encoding_scheme_major=7,
-            type_encoding_scheme_minor=13,
-            metadata={"decryption meta": object()},
-        )
-
-    mod = neo4j._sync.property_encryption.profile_envelope._impl
-    attr_name = "decode_encrypted_struct"
-    attr = getattr(mod, attr_name)
-
-    mocked = mocker.patch.object(
-        mod, attr_name, new=ReturnTrackingMock(spec=attr)
+def encrypted_struct() -> EncryptedStruct:
+    return EncryptedStruct(
+        profile_type="MOCKED",
+        profile_version=3,
+        profile_name="profile name",
+        cipher_output=b"super secret",
+        type_name="mockeroony",
+        type_encoding_scheme_major=7,
+        type_encoding_scheme_minor=13,
+        metadata={"decryption meta": object()},
     )
-    mocked.side_effect = call
-    return mocked
 
 
 @pytest.fixture

@@ -18,13 +18,11 @@ from __future__ import annotations
 
 from .... import _typing as t
 from ...._property_encryption import profile_envelope_impl
-from ...._property_encryption.impl import (
-    decode_encrypted_struct,
-    encode_encrypted_struct,
-)
+from ...._property_encryption.impl import encode_encrypted_struct
 
 
 if t.TYPE_CHECKING:
+    from ...._codec.encryption.struct import EncryptedStruct
     from ...._property_encryption.api import (
         AadChoiceDecryption,
         AadChoiceEncryption,
@@ -52,11 +50,10 @@ async def encrypt(
 
 
 async def decrypt(
-    value: bytes,
+    struct: EncryptedStruct,
     aad: AadChoiceDecryption,
     profile: AsyncEnvelopePropertyEncryptionProfile,
 ) -> t.Any:
-    struct = decode_encrypted_struct(value)
     metadata = profile_envelope_impl.load_metadata(struct.metadata)
     key = await _get_key_by_id(profile, metadata["key_id"])
     return profile_envelope_impl.decrypt(
