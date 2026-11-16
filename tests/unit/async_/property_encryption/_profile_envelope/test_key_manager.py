@@ -34,7 +34,7 @@ from ....._async_compat import mark_async_test
 if t.TYPE_CHECKING:
     from neo4j._property_encryption.profile_envelope import EncapsulatedKey
 
-    from ....property_encryption._preview import EncapsulatedKeyRecord
+    from ....common.property_encryption._preview import EncapsulatedKeyRecord
     from .conftest import AsyncTestingEnvelopePropertyEncryptionProfile
 
 

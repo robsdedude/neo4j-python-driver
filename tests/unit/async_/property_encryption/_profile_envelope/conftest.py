@@ -37,7 +37,7 @@ from ...._mock import (
     AsyncReturnTrackingMock,
     ReturnTrackingMock,
 )
-from ....property_encryption._preview import (
+from ....common.property_encryption._preview import (
     EncapsulatedKeyRecord,
     KeyEncapsulationResult,
 )

@@ -27,7 +27,7 @@ from neo4j._sync.property_encryption.profile_envelope import (
 )
 
 from ....._async_compat import mark_sync_test
-from ....property_encryption._preview import (
+from ....common.property_encryption._preview import (
     AadChoiceDecryption,
     AadChoiceEncryption,
     KeyChoice,

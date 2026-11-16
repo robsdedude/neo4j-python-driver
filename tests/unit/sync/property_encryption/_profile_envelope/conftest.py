@@ -34,7 +34,7 @@ from neo4j._sync.property_encryption.profile_envelope import (
 )
 
 from ...._mock import ReturnTrackingMock
-from ....property_encryption._preview import (
+from ....common.property_encryption._preview import (
     EncapsulatedKeyRecord,
     KeyEncapsulationResult,
 )
